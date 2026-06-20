@@ -1,5 +1,5 @@
 /* =========================================
-   KAIIN — X8-inspired Motion Theme JS
+   Amara — Motion Theme JS
    ========================================= */
 'use strict';
 

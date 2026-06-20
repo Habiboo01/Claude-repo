@@ -3,10 +3,10 @@
     "hero": {
       "type": "hero-banner",
       "settings": {
-        "eyebrow": "It starts with a whisper",
-        "heading": "Multilayered|beauty",
-        "tagline": "Multilayered beauty for those who live between worlds.",
-        "cta_label": "Shop Sweet Talk",
+        "eyebrow": "Welcome",
+        "heading": "Your story|starts here",
+        "tagline": "Add a sentence about your brand — what you make and who it's for. Edit everything here in the theme editor.",
+        "cta_label": "Shop the collection",
         "cta_url": "/collections/all",
         "show_scroll_indicator": true
       }
@@ -14,29 +14,29 @@
     "marquee": {
       "type": "marquee-ticker",
       "blocks": {
-        "m1": { "type": "item", "settings": { "text": "Shine" } },
-        "m2": { "type": "item", "settings": { "text": "Hydrate" } },
-        "m3": { "type": "item", "settings": { "text": "Plump" } },
-        "m4": { "type": "item", "settings": { "text": "Made between worlds" } }
+        "m1": { "type": "item", "settings": { "text": "New in" } },
+        "m2": { "type": "item", "settings": { "text": "Made for you" } },
+        "m3": { "type": "item", "settings": { "text": "Free shipping" } },
+        "m4": { "type": "item", "settings": { "text": "Shop the collection" } }
       },
       "block_order": ["m1", "m2", "m3", "m4"]
     },
     "launch": {
       "type": "featured-collection",
       "settings": {
-        "heading": "Sweet Talk",
+        "heading": "Featured",
         "collection": "",
-        "products_to_show": 3,
+        "products_to_show": 4,
         "show_view_all": true
       }
     },
     "details": {
       "type": "split-section",
       "settings": {
-        "eyebrow": "The formula",
-        "heading": "Worn like a\nsecond skin",
-        "body": "A weightless gloss that does three things at once — a mirror shine, deep hydration, and a soft, buildable plump. No stickiness. Just you, turned up.",
-        "cta_label": "Discover the formula",
+        "eyebrow": "Why us",
+        "heading": "Made with\ncare",
+        "body": "Describe what makes your product special — the materials, the craft, the thinking behind it. Replace this text with your own.",
+        "cta_label": "Learn more",
         "cta_url": "/collections/all",
         "reverse": false
       }
@@ -44,15 +44,15 @@
     "layers": {
       "type": "feature-columns",
       "settings": {
-        "eyebrow": "Three layers",
-        "title": "Shine. Hydrate. Plump.",
-        "intro": "One gloss, three things it never compromises on.",
+        "eyebrow": "Why us",
+        "title": "What sets us apart",
+        "intro": "Add a short line about what makes your product worth choosing.",
         "show_index": true
       },
       "blocks": {
-        "l1": { "type": "column", "settings": { "title": "Shine", "text": "A weightless, mirror-like finish that catches every light." } },
-        "l2": { "type": "column", "settings": { "title": "Hydrate", "text": "Deep, lasting moisture that keeps lips soft all day." } },
-        "l3": { "type": "column", "settings": { "title": "Plump", "text": "A subtle, buildable fullness — never harsh, always you." } }
+        "l1": { "type": "column", "settings": { "title": "Quality", "text": "Made with care, from materials you can trust." } },
+        "l2": { "type": "column", "settings": { "title": "Designed for you", "text": "Thoughtful details that make everyday use a pleasure." } },
+        "l3": { "type": "column", "settings": { "title": "Made to last", "text": "Built to stay with you, season after season." } }
       },
       "block_order": ["l1", "l2", "l3"]
     },
@@ -60,8 +60,8 @@
       "type": "editorial-text",
       "settings": {
         "section_number": "Our story",
-        "heading": "Living\nbetween\nworlds",
-        "body": "Born of two cultures and at home in both, Bedouin's Daughter is beauty for those who refuse to choose. Multilayered, like you.",
+        "heading": "About\nus",
+        "body": "Tell your brand's story here. Share what you make, who it's for, and what makes it different — in a sentence or two.",
         "link_label": "Read our story",
         "link_url": "/pages/about"
       }
@@ -69,26 +69,25 @@
     "gallery": {
       "type": "image-gallery",
       "settings": {
-        "eyebrow": "Lived in",
-        "title": "Between worlds",
+        "eyebrow": "Gallery",
+        "title": "In the wild",
         "columns": 3,
         "gap": 8,
         "ratio": "1",
-        "handle": "@bedouinsdaughter"
+        "handle": "@yourbrand"
       },
       "blocks": {
         "g1": { "type": "image" }, "g2": { "type": "image" }, "g3": { "type": "image" },
-        "g4": { "type": "image" }, "g5": { "type": "image" }, "g6": { "type": "image" },
-        "g7": { "type": "image" }, "g8": { "type": "image" }, "g9": { "type": "image" }
+        "g4": { "type": "image" }, "g5": { "type": "image" }, "g6": { "type": "image" }
       },
-      "block_order": ["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g9"]
+      "block_order": ["g1", "g2", "g3", "g4", "g5", "g6"]
     },
     "closing": {
       "type": "statement",
       "settings": {
-        "eyebrow": "Bedouin's Daughter",
-        "text": "<p>I will be, <em>all of me.</em></p>",
-        "subtext": "Multilayered beauty for those who live between worlds.",
+        "eyebrow": "",
+        "text": "<p>Made for <em>you.</em></p>",
+        "subtext": "Add a closing line that captures what your brand is about.",
         "cta_label": "Shop the collection",
         "cta_url": "/collections/all",
         "show_logo": true,
