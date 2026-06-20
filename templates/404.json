@@ -21,11 +21,12 @@
       "type": "hero-banner",
       "name": "Hero Banner",
       "settings": {
+        "video_url": "",
         "image": "shopify://shop_images/tshirts.jpg",
         "show_play_button": false,
         "eyebrow": "It starts with a whisper",
-        "heading": "Multilayered|beauty",
-        "tagline": "Multilayered beauty for those who live between worlds.",
+        "heading": "Summer edition",
+        "tagline": "",
         "cta_label": "Shop now",
         "cta_url": "shopify://collections/all",
         "show_scroll_indicator": true
@@ -36,7 +37,7 @@
       "name": "Featured Collection",
       "settings": {
         "heading": "Featured Products",
-        "collection": "",
+        "collection": "oversized-t-shirt",
         "products_to_show": 4,
         "show_view_all": true
       }
