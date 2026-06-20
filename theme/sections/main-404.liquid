@@ -1,0 +1,22 @@
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--header-height) var(--gutter) var(--spacing-lg);">
+  <p class="label reveal" style="margin-bottom:1.5rem;">Error 404</p>
+  <h1 class="heading-display reveal" style="margin-bottom:var(--spacing-md);">Lost</h1>
+  <p class="reveal" style="color:var(--color-muted);font-size:15px;max-width:340px;margin-bottom:var(--spacing-lg);line-height:1.7;">
+    {{ section.settings.message }}
+  </p>
+  <a href="{{ routes.root_url }}" class="btn-pill reveal" data-magnetic>
+    {{ section.settings.button_label }}
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</div>
+
+{% schema %}
+{
+  "name": "404",
+  "tag": "section",
+  "settings": [
+    { "type": "text", "id": "message", "label": "Message", "default": "This page doesn't exist, but there's plenty to explore." },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Back to Home" }
+  ]
+}
+{% endschema %}
