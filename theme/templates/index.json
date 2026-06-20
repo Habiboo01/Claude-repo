@@ -1,0 +1,62 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero-banner",
+      "settings": {
+        "eyebrow": "New Collection",
+        "heading": "WEAR|YOUR|STORY",
+        "cta_label": "Shop Now",
+        "cta_url": "/collections/all",
+        "show_scroll_indicator": true
+      }
+    },
+    "ticker": {
+      "type": "marquee-ticker",
+      "block_order": ["item1", "item2", "item3", "item4"],
+      "blocks": {
+        "item1": { "type": "item", "settings": { "text": "New Arrivals" } },
+        "item2": { "type": "item", "settings": { "text": "Free Shipping Over 500 EGP" } },
+        "item3": { "type": "item", "settings": { "text": "Crafted in Egypt" } },
+        "item4": { "type": "item", "settings": { "text": "Minimal. Intentional." } }
+      }
+    },
+    "editorial_1": {
+      "type": "editorial-text",
+      "settings": {
+        "section_number": "01 — Philosophy",
+        "heading": "Wear\nYour\nStory",
+        "body": "KAIIN is built on the idea that clothing should speak without words. Each piece is a quiet declaration of who you are.",
+        "link_label": "Our Story",
+        "link_url": "/pages/about"
+      }
+    },
+    "featured_1": {
+      "type": "featured-collection",
+      "settings": {
+        "heading": "New Arrivals",
+        "products_to_show": 4,
+        "show_view_all": true
+      }
+    },
+    "split_1": {
+      "type": "split-section",
+      "settings": {
+        "eyebrow": "02 — Craftsmanship",
+        "heading": "Made With\nIntention",
+        "body": "Every stitch, every silhouette is chosen deliberately. We work with premium fabrics and thoughtful construction to create pieces that last.",
+        "cta_label": "Shop Collection",
+        "cta_url": "/collections/all",
+        "reverse": false
+      }
+    },
+    "featured_2": {
+      "type": "featured-collection",
+      "settings": {
+        "heading": "Best Sellers",
+        "products_to_show": 4,
+        "show_view_all": true
+      }
+    }
+  },
+  "order": ["hero", "ticker", "editorial_1", "featured_1", "split_1", "featured_2"]
+}

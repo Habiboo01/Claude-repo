@@ -1,0 +1,54 @@
+{% layout 'theme' %}
+
+<div style="padding: calc(var(--header-height) + var(--spacing-xl)) var(--gutter) var(--spacing-xl); max-width: 800px; margin: 0 auto;">
+  <h1 class="heading-lg reveal" style="margin-bottom:var(--spacing-lg);">Your Cart</h1>
+
+  {% if cart.item_count == 0 %}
+    <div style="text-align:center;padding:var(--spacing-xl) 0;">
+      <p style="color:var(--color-muted);font-size:14px;margin-bottom:var(--spacing-md);">Your cart is empty.</p>
+      <a href="/collections/all" class="btn-add-to-cart" style="display:inline-block;padding:14px 32px;text-decoration:none;font-size:12px;">
+        <span>Continue Shopping</span>
+      </a>
+    </div>
+  {% else %}
+    <form action="/cart" method="post">
+      {% for item in cart.items %}
+        <div class="cart-item reveal" data-key="{{ item.key }}" style="grid-template-columns:100px 1fr;gap:var(--spacing-md);padding:var(--spacing-md) 0;">
+          <div class="cart-item__img">
+            {% if item.image %}
+              <img src="{{ item.image | image_url: width: 200 }}" alt="{{ item.product.title }}">
+            {% endif %}
+          </div>
+          <div>
+            <p class="cart-item__title">{{ item.product.title }}</p>
+            <p class="cart-item__variant">{{ item.variant.title }}</p>
+            <p class="cart-item__price">{{ item.final_price | money }}</p>
+            <div style="display:flex;align-items:center;gap:1rem;margin-top:0.5rem;">
+              <input type="number" name="updates[]" value="{{ item.quantity }}" min="0"
+                     style="width:50px;border:1px solid var(--color-border);padding:4px 8px;font-size:13px;text-align:center;">
+              <a href="/cart/change?line={{ forloop.index }}&quantity=0"
+                 style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--color-muted);">Remove</a>
+            </div>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--color-border);"></div>
+      {% endfor %}
+
+      <div style="display:flex;justify-content:flex-end;gap:var(--spacing-md);padding:var(--spacing-md) 0;">
+        <button type="submit" name="update" class="btn-secondary" style="width:auto;padding:14px 24px;">Update Cart</button>
+      </div>
+
+      <div style="text-align:right;padding-bottom:var(--spacing-md);">
+        <p style="font-size:13px;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;">
+          Subtotal: <strong>{{ cart.total_price | money }}</strong>
+        </p>
+        <p style="font-size:11px;color:var(--color-muted);margin-bottom:var(--spacing-sm);">
+          Shipping &amp; taxes calculated at checkout
+        </p>
+        <a href="{{ routes.checkout }}" class="btn-add-to-cart" style="display:inline-block;padding:16px 48px;text-decoration:none;">
+          <span>Checkout</span>
+        </a>
+      </div>
+    </form>
+  {% endif %}
+</div>

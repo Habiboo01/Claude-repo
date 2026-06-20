@@ -1,0 +1,27 @@
+{
+  "general": {
+    "currency": { "estimated_label": "Estimated" },
+    "meta": { "tags": "Tagged \"{{ tags }}\"", "page": "Page {{ page }}" },
+    "404": { "title": "404", "subtext": "This page doesn't exist.", "link": "Go back home" },
+    "password_page": { "login_button": "Enter" }
+  },
+  "products": {
+    "product": {
+      "add_to_cart": "Add to Cart",
+      "sold_out": "Sold Out",
+      "unavailable": "Unavailable",
+      "on_sale": "Sale",
+      "quantity": { "label": "Quantity" },
+      "size_chart": "Size Guide"
+    },
+    "facets": { "sort_by_label": "Sort by", "filter_by_label": "Filter" }
+  },
+  "cart": {
+    "title": "Your Cart",
+    "subtotal": "Subtotal",
+    "checkout": "Checkout",
+    "empty": "Your cart is empty.",
+    "update": "Update Cart",
+    "taxes_and_shipping_policy_at_checkout_html": "Taxes and shipping calculated at checkout"
+  }
+}

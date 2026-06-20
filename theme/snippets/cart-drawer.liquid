@@ -1,0 +1,50 @@
+<div class="cart-drawer" id="CartDrawer" aria-hidden="true">
+  <div class="cart-drawer__header">
+    <h2 class="cart-drawer__title">Your Cart ({{ cart.item_count }})</h2>
+    <button class="cart-drawer__close" aria-label="Close cart"></button>
+  </div>
+
+  <div class="cart-drawer__body">
+    {% if cart.item_count == 0 %}
+      <div style="text-align:center; padding: 4rem 0; color: var(--color-muted);">
+        <p style="font-size:13px; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:1rem;">Your cart is empty</p>
+        <a href="{{ routes.collections_url }}" style="font-size:11px; text-transform:uppercase; letter-spacing:0.15em; text-decoration:underline;">
+          Continue Shopping
+        </a>
+      </div>
+    {% else %}
+      {% for item in cart.items %}
+        <div class="cart-item" data-key="{{ item.key }}">
+          <div class="cart-item__img">
+            {% if item.image %}
+              <img src="{{ item.image | image_url: width: 160 }}" alt="{{ item.product.title }}">
+            {% endif %}
+          </div>
+          <div>
+            <p class="cart-item__title">{{ item.product.title }}</p>
+            <p class="cart-item__variant">{{ item.variant.title }}</p>
+            <p class="cart-item__price">{{ item.final_price | money }}</p>
+            <div class="cart-item__qty">
+              <button data-action="decrease" aria-label="Decrease quantity">−</button>
+              <span>{{ item.quantity }}</span>
+              <button data-action="increase" aria-label="Increase quantity">+</button>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {% if cart.item_count > 0 %}
+    <div class="cart-drawer__footer">
+      <div class="cart-subtotal">
+        <span>Subtotal</span>
+        <span><span class="cart-subtotal__price">{{ cart.total_price | money }}</span></span>
+      </div>
+      <p class="cart-note">Shipping &amp; taxes calculated at checkout</p>
+      <a href="{{ routes.checkout }}" class="btn-add-to-cart" style="display:block; text-align:center; text-decoration:none;">
+        <span>Checkout</span>
+      </a>
+    </div>
+  {% endif %}
+</div>

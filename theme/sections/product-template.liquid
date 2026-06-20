@@ -1,0 +1,188 @@
+{% assign product = product %}
+{% assign current_variant = product.selected_or_first_available_variant %}
+
+<div class="product-page">
+  <div class="product-layout">
+
+    <!-- Gallery -->
+    <div class="product-gallery">
+      <div class="product-gallery__main">
+        <img
+          id="MainProductImage"
+          src="{{ product.featured_image | image_url: width: 1200 }}"
+          srcset="{{ product.featured_image | image_url: width: 600 }} 600w,
+                  {{ product.featured_image | image_url: width: 1200 }} 1200w"
+          sizes="50vw"
+          alt="{{ product.featured_image.alt | escape }}"
+          loading="eager"
+          width="{{ product.featured_image.width }}"
+          height="{{ product.featured_image.height }}"
+        >
+      </div>
+
+      {% if product.images.size > 1 %}
+        <div class="product-gallery__thumbs">
+          {% for image in product.images %}
+            <button class="product-gallery__thumb{% if forloop.first %} active{% endif %}"
+                    aria-label="View image {{ forloop.index }}">
+              <img
+                src="{{ image | image_url: width: 200 }}"
+                alt="{{ image.alt | escape }}"
+                loading="lazy"
+                width="{{ image.width }}"
+                height="{{ image.height }}"
+              >
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Product Info -->
+    <div class="product-info">
+      {% if product.vendor != blank %}
+        <p class="product-info__vendor">{{ product.vendor }}</p>
+      {% endif %}
+
+      <h1 class="product-info__title">{{ product.title }}</h1>
+
+      <div class="product-info__price{% if current_variant.compare_at_price > current_variant.price %} product-info__price--sale{% endif %}">
+        <span class="product-info__price--current">{{ current_variant.price | money }}</span>
+        {% if current_variant.compare_at_price > current_variant.price %}
+          <s>{{ current_variant.compare_at_price | money }}</s>
+        {% endif %}
+      </div>
+
+      <div class="product-divider"></div>
+
+      <form data-product-form data-variants="{{ product.variants | json | escape }}">
+        <input type="hidden" name="id" value="{{ current_variant.id }}">
+
+        {% for option in product.options_with_values %}
+          {% assign option_name_lower = option.name | downcase %}
+
+          {% if option_name_lower == 'size' %}
+            <div class="variant-label">
+              <span>{{ option.name }}</span>
+              <span>Size Guide</span>
+            </div>
+            <div class="size-options">
+              {% for value in option.values %}
+                {% assign variant_available = false %}
+                {% for variant in product.variants %}
+                  {% if variant.options contains value and variant.available %}
+                    {% assign variant_available = true %}
+                  {% endif %}
+                {% endfor %}
+                <button
+                  type="button"
+                  class="size-btn{% unless variant_available %} unavailable{% endunless %}{% if option.selected_value == value %} selected{% endif %}"
+                  data-value="{{ value }}"
+                >
+                  {{ value }}
+                </button>
+              {% endfor %}
+            </div>
+
+          {% elsif option_name_lower == 'color' or option_name_lower == 'colour' %}
+            <div class="variant-label">
+              <span>{{ option.name }}</span>
+              <span>{{ option.selected_value }}</span>
+            </div>
+            <div class="color-options">
+              {% for value in option.values %}
+                <button
+                  type="button"
+                  class="color-btn{% if option.selected_value == value %} selected{% endif %}"
+                  style="background-color:{{ value | downcase | replace: ' ', '' }};"
+                  data-value="{{ value }}"
+                  aria-label="{{ value }}"
+                  title="{{ value }}"
+                ></button>
+              {% endfor %}
+            </div>
+
+          {% else %}
+            <div class="variant-label"><span>{{ option.name }}</span></div>
+            <div class="size-options">
+              {% for value in option.values %}
+                <button
+                  type="button"
+                  class="size-btn{% if option.selected_value == value %} selected{% endif %}"
+                  data-value="{{ value }}"
+                >{{ value }}</button>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endfor %}
+
+        <div class="product-divider"></div>
+
+        <button type="submit" class="btn-add-to-cart"{% unless current_variant.available %} disabled{% endunless %}>
+          <span>
+            {% if current_variant.available %}Add to Cart{% else %}Sold Out{% endif %}
+          </span>
+        </button>
+
+        <a href="{{ routes.checkout }}" class="btn-secondary" style="display:block;text-align:center;margin-top:8px;line-height:1;padding:17px;">
+          Buy Now
+        </a>
+      </form>
+
+      <div class="product-divider"></div>
+
+      {% if product.description != blank %}
+        <div class="product-info__description">
+          {{ product.description }}
+        </div>
+        <div class="product-divider"></div>
+      {% endif %}
+
+      <div class="product-accordion">
+        <div class="accordion-item">
+          <button class="accordion-trigger" type="button">
+            <span>Shipping &amp; Returns</span>
+            <span class="accordion-icon"></span>
+          </button>
+          <div class="accordion-content">
+            <div class="accordion-content__inner">
+              Free shipping on orders over 500 EGP. Standard delivery 2–5 business days within Egypt. Returns accepted within 14 days of receipt.
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-trigger" type="button">
+            <span>Size &amp; Fit</span>
+            <span class="accordion-icon"></span>
+          </button>
+          <div class="accordion-content">
+            <div class="accordion-content__inner">
+              Our pieces are designed with a relaxed, intentional fit. If you're between sizes, we recommend sizing up. See our full size guide for measurements.
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-trigger" type="button">
+            <span>Care Instructions</span>
+            <span class="accordion-icon"></span>
+          </button>
+          <div class="accordion-content">
+            <div class="accordion-content__inner">
+              Cold machine wash or hand wash. Do not tumble dry. Iron on low heat if needed. Dry flat to preserve shape.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Product",
+  "tag": "section",
+  "class": "section-product",
+  "settings": []
+}
+{% endschema %}

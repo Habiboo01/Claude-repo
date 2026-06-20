@@ -1,0 +1,79 @@
+<div class="collection-header">
+  <p class="label reveal">Collection</p>
+  <h1 class="collection-header__title reveal">{{ collection.title }}</h1>
+  {% if collection.description != blank %}
+    <p class="collection-header__description reveal" style="color:var(--color-muted);font-size:14px;margin-top:0.5rem;max-width:500px;">
+      {{ collection.description }}
+    </p>
+  {% endif %}
+  <p class="collection-header__count reveal">{{ collection.all_products_count }} Products</p>
+</div>
+
+<div class="collection-filters">
+  <a href="{{ collection.url }}" class="filter-btn{% unless current_tags %} active{% endunless %}">All</a>
+  {% for tag in collection.all_tags %}
+    {% if current_tags contains tag %}
+      <a href="{{ collection.url }}" class="filter-btn active">{{ tag }}</a>
+    {% else %}
+      <a href="{{ collection.url }}/{{ tag | handleize }}" class="filter-btn">{{ tag }}</a>
+    {% endif %}
+  {% endfor %}
+
+  <div class="collection-sort">
+    <label for="SortBy" class="visually-hidden">Sort by</label>
+    <select id="SortBy" name="sort_by" onchange="window.location.href=this.value">
+      {% assign sort_options = 'manual,best-selling,title-ascending,title-descending,price-ascending,price-descending,created-ascending,created-descending' | split: ',' %}
+      {% assign sort_labels  = 'Featured,Best Selling,A–Z,Z–A,Price Low–High,Price High–Low,Oldest,Newest' | split: ',' %}
+      {% for option in sort_options %}
+        <option value="{{ collection.url }}?sort_by={{ option }}"{% if collection.sort_by == option %} selected{% endif %}>
+          {{ sort_labels[forloop.index0] }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+<div class="collection-grid stagger">
+  {% paginate collection.products by section.settings.products_per_page %}
+    {% for product in collection.products %}
+      {% render 'product-card', product: product %}
+    {% endfor %}
+
+    {% if paginate.pages > 1 %}
+      <div class="pagination" style="grid-column:1/-1; padding:var(--spacing-lg) var(--gutter); display:flex; gap:1rem; justify-content:center;">
+        {% if paginate.previous %}
+          <a href="{{ paginate.previous.url }}" class="filter-btn">&larr; Previous</a>
+        {% endif %}
+        {% for part in paginate.parts %}
+          {% if part.is_link %}
+            <a href="{{ part.url }}" class="filter-btn">{{ part.title }}</a>
+          {% else %}
+            <span class="filter-btn active">{{ part.title }}</span>
+          {% endif %}
+        {% endfor %}
+        {% if paginate.next %}
+          <a href="{{ paginate.next.url }}" class="filter-btn">Next &rarr;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endpaginate %}
+</div>
+
+{% schema %}
+{
+  "name": "Collection",
+  "tag": "section",
+  "class": "section-collection",
+  "settings": [
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products per page",
+      "min": 6,
+      "max": 48,
+      "step": 6,
+      "default": 24
+    }
+  ]
+}
+{% endschema %}

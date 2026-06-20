@@ -1,0 +1,30 @@
+{
+  "type": "footer",
+  "name": "Footer group",
+  "sections": {
+    "footer": {
+      "type": "footer",
+      "block_order": ["shop_col", "info_col"],
+      "blocks": {
+        "shop_col": {
+          "type": "menu",
+          "settings": {
+            "heading": "Shop",
+            "menu": "main-menu"
+          }
+        },
+        "info_col": {
+          "type": "menu",
+          "settings": {
+            "heading": "Info",
+            "menu": "footer"
+          }
+        }
+      },
+      "settings": {
+        "tagline": "Minimal clothing for intentional people. Made in Egypt."
+      }
+    }
+  },
+  "order": ["footer"]
+}

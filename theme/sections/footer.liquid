@@ -1,0 +1,103 @@
+<footer class="site-footer" role="contentinfo">
+  <div class="site-footer__top">
+    <div class="footer-brand">
+      <div class="footer-brand__logo">{{ shop.name }}</div>
+      <p class="footer-brand__tagline">{{ section.settings.tagline }}</p>
+    </div>
+
+    {% for block in section.blocks %}
+      {% if block.type == 'menu' %}
+        <div class="footer-col" {{ block.shopify_attributes }}>
+          <p class="footer-col__heading">{{ block.settings.heading }}</p>
+          <ul class="footer-col__links">
+            {% for link in linklists[block.settings.menu].links %}
+              <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="site-footer__bottom">
+    <p>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. All rights reserved.</p>
+    <div class="footer-socials">
+      {% if section.settings.instagram_url != blank %}
+        <a href="{{ section.settings.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>
+      {% endif %}
+      {% if section.settings.tiktok_url != blank %}
+        <a href="{{ section.settings.tiktok_url }}" target="_blank" rel="noopener" aria-label="TikTok">TikTok</a>
+      {% endif %}
+      {% if section.settings.facebook_url != blank %}
+        <a href="{{ section.settings.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>
+      {% endif %}
+    </div>
+    <p>{{ section.settings.payment_text }}</p>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "tag": "footer",
+  "class": "section-footer",
+  "settings": [
+    {
+      "type": "text",
+      "id": "tagline",
+      "label": "Brand tagline",
+      "default": "Minimal clothing for intentional people. Made in Egypt."
+    },
+    {
+      "type": "text",
+      "id": "payment_text",
+      "label": "Payment/shipping note",
+      "default": "Secure checkout · Cash on delivery available"
+    },
+    {
+      "type": "url",
+      "id": "instagram_url",
+      "label": "Instagram URL"
+    },
+    {
+      "type": "url",
+      "id": "tiktok_url",
+      "label": "TikTok URL"
+    },
+    {
+      "type": "url",
+      "id": "facebook_url",
+      "label": "Facebook URL"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "menu",
+      "name": "Menu",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Shop"
+        },
+        {
+          "type": "link_list",
+          "id": "menu",
+          "label": "Menu",
+          "default": "main-menu"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Footer",
+      "blocks": [
+        { "type": "menu", "settings": { "heading": "Shop", "menu": "main-menu" } },
+        { "type": "menu", "settings": { "heading": "Info", "menu": "footer" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

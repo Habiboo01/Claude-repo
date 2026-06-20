@@ -1,0 +1,15 @@
+{
+  "type": "header",
+  "name": "Header group",
+  "sections": {
+    "header": {
+      "type": "header",
+      "settings": {
+        "show_announcement": true,
+        "announcement_text": "Free shipping on orders over 500 EGP — Use code KAIIN",
+        "main_menu": "main-menu"
+      }
+    }
+  },
+  "order": ["header"]
+}

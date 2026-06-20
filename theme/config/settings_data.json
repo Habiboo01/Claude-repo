@@ -1,0 +1,10 @@
+{
+  "current": {
+    "color_bg": "#f8f7f4",
+    "color_fg": "#0a0a0a",
+    "color_muted": "#8a8a8a",
+    "color_border": "#e0ddd8",
+    "animations_reveal_on_scroll": true
+  },
+  "presets": {}
+}

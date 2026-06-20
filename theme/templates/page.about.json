@@ -1,0 +1,9 @@
+{
+  "sections": {
+    "main": {
+      "type": "about-story",
+      "settings": {}
+    }
+  },
+  "order": ["main"]
+}
