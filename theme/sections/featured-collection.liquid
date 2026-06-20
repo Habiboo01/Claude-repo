@@ -1,18 +1,18 @@
-{% assign collection = collections[section.settings.collection] %}
+{% assign col = collections[section.settings.collection] %}
 
 <section class="featured-collection" id="FeaturedCollection-{{ section.id }}">
   <div class="featured-collection__header">
     <h2 class="featured-collection__title reveal">
       {% if section.settings.heading != blank %}
         {{ section.settings.heading }}
-      {% elsif collection != blank %}
-        {{ collection.title }}
+      {% elsif col != blank %}
+        {{ col.title }}
       {% else %}
         Featured
       {% endif %}
     </h2>
     {% if section.settings.show_view_all %}
-      <a href="{{ collection.url | default: '/collections/all' }}" class="featured-collection__view-all reveal">
+      <a href="{{ col.url | default: '/collections/all' }}" class="featured-collection__view-all reveal">
         View All
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -22,21 +22,26 @@
   </div>
 
   <div class="featured-collection__grid stagger">
-    {% if collection != blank %}
-      {% for product in collection.products limit: section.settings.products_to_show %}
+    {% if col != blank %}
+      {% for product in col.products limit: section.settings.products_to_show %}
         {% render 'product-card', product: product %}
       {% endfor %}
     {% else %}
-      {% for i in (1..4) %}
-        <article class="product-card reveal">
-          <div class="product-card__media" style="background:#efefed;">
-            {{ 'product-' | append: i | placeholder_svg_tag: 'placeholder-svg', style: 'width:100%;height:100%;' }}
-          </div>
-          <div class="product-card__info">
-            <h3 class="product-card__title">Sample Product {{ i }}</h3>
-            <div class="product-card__price"><span>0.00 EGP</span></div>
-          </div>
-        </article>
+      {% assign all_products = collections.all.products %}
+      {% for product in all_products limit: section.settings.products_to_show %}
+        {% render 'product-card', product: product %}
+      {% else %}
+        {% for i in (1..4) %}
+          <article class="product-card reveal">
+            <div class="product-card__media" style="background:#efefed;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;">
+              {{ 'product-' | append: i | placeholder_svg_tag: 'placeholder-svg' }}
+            </div>
+            <div class="product-card__info">
+              <h3 class="product-card__title">Sample Product {{ i }}</h3>
+              <div class="product-card__price"><span>0.00 EGP</span></div>
+            </div>
+          </article>
+        {% endfor %}
       {% endfor %}
     {% endif %}
   </div>

@@ -20,7 +20,18 @@
     <meta name="description" content="{{ page_description | escape }}">
   {%- endif -%}
 
-  {% render 'social-meta-tags' %}
+  {%- if page_description -%}
+    <meta property="og:description" content="{{ page_description | escape }}">
+  {%- endif -%}
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:title" content="{{ page_title | escape }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ shop.name }}">
+  {%- if product.featured_image -%}
+    <meta property="og:image" content="{{ product.featured_image | image_url: width: 1200 }}">
+  {%- elsif collection.image -%}
+    <meta property="og:image" content="{{ collection.image | image_url: width: 1200 }}">
+  {%- endif -%}
 
   {{ content_for_header }}
 

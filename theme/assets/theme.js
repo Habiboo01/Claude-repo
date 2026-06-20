@@ -14,12 +14,18 @@ const revealObserver = new IntersectionObserver(
       }
     });
   },
-  { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
+  { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
 );
 
-document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(el => {
-  revealObserver.observe(el);
-});
+const initReveal = () => {
+  document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale').forEach(el => {
+    revealObserver.observe(el);
+  });
+};
+
+// Run now and also after any dynamic content loads
+initReveal();
+document.addEventListener('shopify:section:load', initReveal);
 
 // Hero entrance on load
 const hero = document.querySelector('.hero');
@@ -333,31 +339,36 @@ document.querySelectorAll('.accordion-trigger').forEach(trigger => {
 });
 
 // ─── Page Transitions ─────────────────────────────────────────────────────────
-document.querySelectorAll('a[href]:not([href^="#"]):not([href^="mailto"]):not([href^="tel"]):not([target="_blank"])').forEach(link => {
-  link.addEventListener('click', e => {
-    const href = link.getAttribute('href');
-    if (href.startsWith('/') || href.startsWith(window.location.origin)) {
-      e.preventDefault();
-      const overlay = document.querySelector('.page-overlay');
-      if (overlay) {
-        overlay.style.transition = 'opacity 0.3s ease';
-        overlay.style.opacity = '1';
-        overlay.style.pointerEvents = 'all';
-        setTimeout(() => { window.location.href = href; }, 280);
-      } else {
-        window.location.href = href;
-      }
-    }
-  });
-});
+const overlay = document.querySelector('.page-overlay');
 
-// Fade in on page load
-window.addEventListener('load', () => {
-  const overlay = document.querySelector('.page-overlay');
-  if (overlay) {
-    overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
-  }
+// Fade in immediately on page load
+if (overlay) {
+  overlay.style.opacity = '0';
+  overlay.style.pointerEvents = 'none';
+  overlay.style.transition = 'opacity 0.35s ease';
+}
+
+document.querySelectorAll('a[href]').forEach(link => {
+  const href = link.getAttribute('href');
+  if (
+    !href ||
+    href.startsWith('#') ||
+    href.startsWith('mailto') ||
+    href.startsWith('tel') ||
+    link.target === '_blank' ||
+    link.hasAttribute('download') ||
+    (!href.startsWith('/') && !href.startsWith(window.location.origin))
+  ) return;
+
+  link.addEventListener('click', e => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    if (overlay) {
+      overlay.style.opacity = '1';
+      overlay.style.pointerEvents = 'all';
+    }
+    setTimeout(() => { window.location.href = href; }, 320);
+  });
 });
 
 // ─── Parallax on Hero ─────────────────────────────────────────────────────────
