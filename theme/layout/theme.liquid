@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="{{ settings.color_bg | default: '#f5efe8' }}">
 
   {%- if settings.favicon != blank -%}
     <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
@@ -35,15 +35,33 @@
 
   {{ content_for_header }}
 
+  {%- assign heading_font = settings.heading_font -%}
+  {%- assign body_font = settings.body_font -%}
+  {%- if heading_font != blank -%}{{ heading_font | font_face: font_display: 'swap' }}{%- endif -%}
+  {%- if body_font != blank -%}
+    {{ body_font | font_face: font_display: 'swap' }}
+    {{ body_font | font_modify: 'weight', '+200' | font_face: font_display: 'swap' }}
+  {%- endif -%}
+
   {{- 'base.css' | asset_url | stylesheet_tag -}}
 
   <style>
     :root {
-      --color-bg: {{ settings.color_bg | default: '#0b0b0c' }};
-      --color-fg: {{ settings.color_fg | default: '#f2f1ee' }};
-      --color-muted: {{ settings.color_muted | default: '#86868a' }};
-      --color-card: {{ settings.color_card | default: '#111113' }};
-      --color-border: {{ settings.color_fg | default: '#f2f1ee' }}1f;
+      --color-bg: {{ settings.color_bg | default: '#f5efe8' }};
+      --color-fg: {{ settings.color_fg | default: '#211c18' }};
+      --color-muted: {{ settings.color_muted | default: '#9a8d80' }};
+      --color-card: {{ settings.color_card | default: '#ece3d9' }};
+      --color-accent: {{ settings.color_accent | default: '#b67b5e' }};
+      --color-border: color-mix(in srgb, {{ settings.color_fg | default: '#211c18' }} {{ settings.border_opacity | default: 16 }}%, transparent);
+      {%- if heading_font != blank %}
+      --font-heading: {{ heading_font.family }}, {{ heading_font.fallback_families }};
+      {%- endif %}
+      {%- if body_font != blank %}
+      --font-body: {{ body_font.family }}, {{ body_font.fallback_families }};
+      {%- endif %}
+      --heading-tracking: {{ settings.heading_tracking | default: -1 | divided_by: 100.0 }}em;
+      --radius: {{ settings.corner_radius | default: 100 }}px;
+      --max-width: {{ settings.page_width | default: 1600 }}px;
     }
     {%- unless settings.animations_reveal_on_scroll %}
     .reveal, .reveal-left, .reveal-right, .reveal-scale { opacity: 1 !important; transform: none !important; }
@@ -56,7 +74,7 @@
   </script>
 </head>
 
-<body class="{% if settings.animations_reveal_on_scroll %} animate--page-load{% endif %}">
+<body class="{% if settings.animations_reveal_on_scroll %}animate--page-load{% endif %}{% if settings.enable_custom_cursor %} has-custom-cursor{% endif %}">
 
   {%- sections 'header-group' -%}
 

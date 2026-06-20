@@ -1,0 +1,86 @@
+{%- liquid
+  assign cols = section.blocks.size
+  if cols == 0
+    assign cols = 3
+  endif
+-%}
+
+<section class="feature-columns" id="FeatureColumns-{{ section.id }}">
+  {% if section.settings.eyebrow != blank or section.settings.title != blank or section.settings.intro != blank %}
+    <div class="feature-columns__head">
+      {% if section.settings.eyebrow != blank %}
+        <p class="feature-columns__eyebrow reveal">{{ section.settings.eyebrow }}</p>
+      {% endif %}
+      {% if section.settings.title != blank %}
+        <h2 class="feature-columns__title clip-reveal"><span>{{ section.settings.title }}</span></h2>
+      {% endif %}
+      {% if section.settings.intro != blank %}
+        <p class="feature-columns__intro reveal">{{ section.settings.intro }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="feature-columns__grid stagger" style="--cols: {{ cols }};">
+    {% for block in section.blocks %}
+      <article class="feature-col reveal" {{ block.shopify_attributes }}>
+        {% if block.settings.image != blank %}
+          <div class="feature-col__media">
+            <img
+              src="{{ block.settings.image | image_url: width: 700 }}"
+              srcset="{{ block.settings.image | image_url: width: 400 }} 400w, {{ block.settings.image | image_url: width: 700 }} 700w, {{ block.settings.image | image_url: width: 1000 }} 1000w"
+              sizes="(min-width:900px) 30vw, 90vw"
+              alt="{{ block.settings.image.alt | escape }}" loading="lazy">
+          </div>
+        {% elsif block.settings.show_placeholder %}
+          <div class="feature-col__media">{{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}</div>
+        {% endif %}
+        {% if section.settings.show_index %}
+          <p class="feature-col__index">{{ forloop.index0 | plus: 1 | prepend: '0' }}</p>
+        {% endif %}
+        {% if block.settings.title != blank %}
+          <h3 class="feature-col__title">{{ block.settings.title }}</h3>
+        {% endif %}
+        {% if block.settings.text != blank %}
+          <p class="feature-col__text">{{ block.settings.text }}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Feature Columns",
+  "tag": "section",
+  "class": "section-feature-columns",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Three layers" },
+    { "type": "text", "id": "title", "label": "Title", "default": "Shine. Hydrate. Plump." },
+    { "type": "textarea", "id": "intro", "label": "Intro text", "default": "Multilayered beauty, made to be worn by those who live between worlds." },
+    { "type": "checkbox", "id": "show_index", "label": "Show number above each column", "default": true }
+  ],
+  "blocks": [
+    {
+      "type": "column",
+      "name": "Column",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "checkbox", "id": "show_placeholder", "label": "Show placeholder if no image", "default": true },
+        { "type": "text", "id": "title", "label": "Title", "default": "Shine" },
+        { "type": "textarea", "id": "text", "label": "Text", "default": "A weightless, mirror-like finish that catches every light." }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "Feature Columns",
+      "blocks": [
+        { "type": "column", "settings": { "title": "Shine", "text": "A weightless, mirror-like finish that catches every light." } },
+        { "type": "column", "settings": { "title": "Hydrate", "text": "Deep, lasting moisture that keeps lips soft all day." } },
+        { "type": "column", "settings": { "title": "Plump", "text": "A subtle, buildable fullness — never harsh, always you." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

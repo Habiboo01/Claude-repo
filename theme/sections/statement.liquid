@@ -1,0 +1,50 @@
+<section class="statement{% if section.settings.bordered %} statement--bordered{% endif %}" id="Statement-{{ section.id }}"
+         {% if section.settings.bg_color != blank %}style="background:{{ section.settings.bg_color }};"{% endif %}>
+  {% if section.settings.eyebrow != blank %}
+    <p class="statement__eyebrow reveal">{{ section.settings.eyebrow }}</p>
+  {% endif %}
+
+  {% if section.settings.text != blank %}
+    <div class="statement__text reveal" role="heading" aria-level="2">{{ section.settings.text }}</div>
+  {% endif %}
+
+  {% if section.settings.subtext != blank %}
+    <p class="statement__sub reveal">{{ section.settings.subtext }}</p>
+  {% endif %}
+
+  {% if section.settings.cta_label != blank %}
+    <div class="statement__cta reveal">
+      <a href="{{ section.settings.cta_url }}" class="btn-pill" data-magnetic>
+        {{ section.settings.cta_label }}
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  {% endif %}
+
+  {% if section.settings.show_logo %}
+    <div class="statement__logo reveal">
+      {% if section.settings.logo_text != blank %}{{ section.settings.logo_text }}{% else %}{{ shop.name }}{% endif %}
+    </div>
+  {% endif %}
+</section>
+
+{% schema %}
+{
+  "name": "Statement",
+  "tag": "section",
+  "class": "section-statement",
+  "settings": [
+    { "type": "paragraph", "content": "Use <em>text</em> in the headline to italicize part of it." },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow" },
+    { "type": "richtext", "id": "text", "label": "Headline", "default": "<p>I will be, <em>all of me.</em></p>" },
+    { "type": "textarea", "id": "subtext", "label": "Sub text", "default": "Multilayered beauty for those who live between worlds." },
+    { "type": "text", "id": "cta_label", "label": "Button label", "default": "Shop the collection" },
+    { "type": "url", "id": "cta_url", "label": "Button URL" },
+    { "type": "checkbox", "id": "show_logo", "label": "Show stacked logo wordmark", "default": true },
+    { "type": "text", "id": "logo_text", "label": "Logo wordmark (blank = shop name)" },
+    { "type": "color", "id": "bg_color", "label": "Background (optional)" },
+    { "type": "checkbox", "id": "bordered", "label": "Show top border", "default": true }
+  ],
+  "presets": [{ "name": "Statement" }]
+}
+{% endschema %}

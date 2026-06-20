@@ -1,27 +1,48 @@
 [
   {
     "name": "theme_info",
-    "theme_name": "KAIIN",
-    "theme_version": "2.0.0",
-    "theme_author": "KAIIN",
+    "theme_name": "Amara",
+    "theme_version": "1.0.0",
+    "theme_author": "Amara Studio",
     "theme_documentation_url": "",
     "theme_support_url": ""
   },
   {
     "name": "Colors",
     "settings": [
-      { "type": "color", "id": "color_bg", "label": "Background", "default": "#0b0b0c" },
-      { "type": "color", "id": "color_fg", "label": "Foreground / text", "default": "#f2f1ee" },
-      { "type": "color", "id": "color_muted", "label": "Muted text", "default": "#86868a" },
-      { "type": "color", "id": "color_card", "label": "Card / image background", "default": "#111113" }
+      { "type": "color", "id": "color_bg", "label": "Background", "default": "#f5efe8" },
+      { "type": "color", "id": "color_fg", "label": "Text", "default": "#211c18" },
+      { "type": "color", "id": "color_muted", "label": "Muted text", "default": "#9a8d80" },
+      { "type": "color", "id": "color_card", "label": "Card / image background", "default": "#ece3d9" },
+      { "type": "color", "id": "color_accent", "label": "Accent (sale, highlights)", "default": "#b67b5e" },
+      { "type": "range", "id": "border_opacity", "label": "Border strength", "min": 5, "max": 40, "step": 1, "unit": "%", "default": 16 }
+    ]
+  },
+  {
+    "name": "Typography",
+    "settings": [
+      { "type": "font_picker", "id": "heading_font", "label": "Heading font", "default": "eb_garamond_n4" },
+      { "type": "font_picker", "id": "body_font", "label": "Body font", "default": "assistant_n4" },
+      { "type": "range", "id": "heading_tracking", "label": "Heading letter spacing", "min": -5, "max": 5, "step": 1, "unit": "/100em", "default": -1, "info": "Lower = tighter. Serif display reads best slightly tight." }
+    ]
+  },
+  {
+    "name": "Layout",
+    "settings": [
+      { "type": "range", "id": "page_width", "label": "Max page width", "min": 1200, "max": 2000, "step": 20, "unit": "px", "default": 1600 },
+      { "type": "range", "id": "corner_radius", "label": "Button / pill radius", "min": 0, "max": 100, "step": 2, "unit": "px", "default": 100 }
+    ]
+  },
+  {
+    "name": "Motion",
+    "settings": [
+      { "type": "paragraph", "content": "All motion respects each visitor's 'reduce motion' system setting automatically." },
+      { "type": "checkbox", "id": "animations_reveal_on_scroll", "label": "Reveal sections on scroll", "default": true },
+      { "type": "checkbox", "id": "enable_custom_cursor", "label": "Custom cursor (desktop only)", "default": false, "info": "A floating cursor ring. Off by default for a softer feel." }
     ]
   },
   {
     "name": "Favicon",
     "settings": [ { "type": "image_picker", "id": "favicon", "label": "Favicon" } ]
-  },
-  {
-    "name": "Animations",
-    "settings": [ { "type": "checkbox", "id": "animations_reveal_on_scroll", "label": "Enable scroll reveal animations", "default": true } ]
   }
 ]

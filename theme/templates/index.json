@@ -3,10 +3,10 @@
     "hero": {
       "type": "hero-banner",
       "settings": {
-        "eyebrow": "Collection 001 — 2026",
-        "heading": "WEAR|YOUR|STORY",
-        "tagline": "The future will define us. Minimal forms, intentional craft — clothing as a quiet declaration of who you are.",
-        "cta_label": "Shop the Collection",
+        "eyebrow": "It starts with a whisper",
+        "heading": "Multilayered|beauty",
+        "tagline": "Multilayered beauty for those who live between worlds.",
+        "cta_label": "Shop Sweet Talk",
         "cta_url": "/collections/all",
         "show_scroll_indicator": true
       }
@@ -14,60 +14,88 @@
     "marquee": {
       "type": "marquee-ticker",
       "blocks": {
-        "m1": { "type": "item", "settings": { "text": "New Collection" } },
-        "m2": { "type": "item", "settings": { "text": "Crafted in Egypt" } },
-        "m3": { "type": "item", "settings": { "text": "Minimal · Intentional" } },
-        "m4": { "type": "item", "settings": { "text": "Free Shipping Over 500 EGP" } }
+        "m1": { "type": "item", "settings": { "text": "Shine" } },
+        "m2": { "type": "item", "settings": { "text": "Hydrate" } },
+        "m3": { "type": "item", "settings": { "text": "Plump" } },
+        "m4": { "type": "item", "settings": { "text": "Made between worlds" } }
       },
       "block_order": ["m1", "m2", "m3", "m4"]
     },
-    "showcase": {
-      "type": "product-showcase",
-      "settings": { "heading": "Featured", "view_all_url": "/collections/all" },
-      "blocks": {
-        "f1": { "type": "feature", "settings": { "eyebrow": "Signature", "button_label": "View Product" } },
-        "f2": { "type": "feature", "settings": { "eyebrow": "Best Seller", "button_label": "View Product" } },
-        "f3": { "type": "feature", "settings": { "eyebrow": "New Arrival", "button_label": "View Product" } },
-        "f4": { "type": "feature", "settings": { "eyebrow": "Limited", "button_label": "View Product" } },
-        "f5": { "type": "feature", "settings": { "eyebrow": "Exclusive", "button_label": "View Product" } }
-      },
-      "block_order": ["f1", "f2", "f3", "f4", "f5"]
-    },
-    "featured": {
+    "launch": {
       "type": "featured-collection",
-      "settings": { "heading": "New Arrivals", "collection": "oversized-t-shirt", "products_to_show": 8, "show_view_all": true }
-    },
-    "editorial": {
-      "type": "editorial-text",
       "settings": {
-        "section_number": "01 — Philosophy",
-        "heading": "Wear\nYour\nStory",
-        "body": "KAIIN is built on the idea that clothing should speak without words. Each piece is a quiet declaration of who you are.",
-        "link_label": "Our Story",
-        "link_url": "/pages/about"
+        "heading": "Sweet Talk",
+        "collection": "",
+        "products_to_show": 3,
+        "show_view_all": true
       }
     },
-    "rows": {
-      "type": "collection-rows",
-      "settings": { "heading": "Collections", "subheading": "Index — 2026" },
-      "blocks": {
-        "r1": { "type": "row", "settings": { "collection": "oversized-t-shirt", "products_to_show": 6 } },
-        "r2": { "type": "row", "settings": { "collection": "oversized-t-shirt-copy", "products_to_show": 6 } },
-        "r3": { "type": "row", "settings": { "collection": "wide-leg-sweatpant-copy", "products_to_show": 6 } }
-      },
-      "block_order": ["r1", "r2", "r3"]
-    },
-    "split": {
+    "details": {
       "type": "split-section",
       "settings": {
-        "eyebrow": "02 — Craftsmanship",
-        "heading": "Made With\nIntention",
-        "body": "Every stitch, every silhouette is chosen deliberately. We work with premium fabrics and thoughtful construction to create pieces that last.",
-        "cta_label": "Shop Collection",
+        "eyebrow": "The formula",
+        "heading": "Worn like a\nsecond skin",
+        "body": "A weightless gloss that does three things at once — a mirror shine, deep hydration, and a soft, buildable plump. No stickiness. Just you, turned up.",
+        "cta_label": "Discover the formula",
         "cta_url": "/collections/all",
         "reverse": false
       }
+    },
+    "layers": {
+      "type": "feature-columns",
+      "settings": {
+        "eyebrow": "Three layers",
+        "title": "Shine. Hydrate. Plump.",
+        "intro": "One gloss, three things it never compromises on.",
+        "show_index": true
+      },
+      "blocks": {
+        "l1": { "type": "column", "settings": { "title": "Shine", "text": "A weightless, mirror-like finish that catches every light." } },
+        "l2": { "type": "column", "settings": { "title": "Hydrate", "text": "Deep, lasting moisture that keeps lips soft all day." } },
+        "l3": { "type": "column", "settings": { "title": "Plump", "text": "A subtle, buildable fullness — never harsh, always you." } }
+      },
+      "block_order": ["l1", "l2", "l3"]
+    },
+    "story": {
+      "type": "editorial-text",
+      "settings": {
+        "section_number": "Our story",
+        "heading": "Living\nbetween\nworlds",
+        "body": "Born of two cultures and at home in both, Bedouin's Daughter is beauty for those who refuse to choose. Multilayered, like you.",
+        "link_label": "Read our story",
+        "link_url": "/pages/about"
+      }
+    },
+    "gallery": {
+      "type": "image-gallery",
+      "settings": {
+        "eyebrow": "Lived in",
+        "title": "Between worlds",
+        "columns": 3,
+        "gap": 8,
+        "ratio": "1",
+        "handle": "@bedouinsdaughter"
+      },
+      "blocks": {
+        "g1": { "type": "image" }, "g2": { "type": "image" }, "g3": { "type": "image" },
+        "g4": { "type": "image" }, "g5": { "type": "image" }, "g6": { "type": "image" },
+        "g7": { "type": "image" }, "g8": { "type": "image" }, "g9": { "type": "image" }
+      },
+      "block_order": ["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g9"]
+    },
+    "closing": {
+      "type": "statement",
+      "settings": {
+        "eyebrow": "Bedouin's Daughter",
+        "text": "<p>I will be, <em>all of me.</em></p>",
+        "subtext": "Multilayered beauty for those who live between worlds.",
+        "cta_label": "Shop the collection",
+        "cta_url": "/collections/all",
+        "show_logo": true,
+        "logo_text": "",
+        "bordered": true
+      }
     }
   },
-  "order": ["hero", "marquee", "showcase", "featured", "editorial", "rows", "split"]
+  "order": ["hero", "marquee", "launch", "details", "layers", "story", "gallery", "closing"]
 }
