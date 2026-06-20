@@ -27,9 +27,11 @@
       "blocks": {
         "f1": { "type": "feature", "settings": { "eyebrow": "Signature", "button_label": "View Product" } },
         "f2": { "type": "feature", "settings": { "eyebrow": "Best Seller", "button_label": "View Product" } },
-        "f3": { "type": "feature", "settings": { "eyebrow": "New", "button_label": "View Product" } }
+        "f3": { "type": "feature", "settings": { "eyebrow": "New Arrival", "button_label": "View Product" } },
+        "f4": { "type": "feature", "settings": { "eyebrow": "Limited", "button_label": "View Product" } },
+        "f5": { "type": "feature", "settings": { "eyebrow": "Exclusive", "button_label": "View Product" } }
       },
-      "block_order": ["f1", "f2", "f3"]
+      "block_order": ["f1", "f2", "f3", "f4", "f5"]
     },
     "featured": {
       "type": "featured-collection",

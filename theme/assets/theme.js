@@ -14,7 +14,7 @@ const revealObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
 
 function initReveal() {
-  document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .clip-reveal')
+  document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .clip-reveal, .showcase__media--slide-left, .showcase__media--slide-right, .showcase__content--slide-left, .showcase__content--slide-right')
     .forEach(el => revealObserver.observe(el));
 }
 initReveal();
