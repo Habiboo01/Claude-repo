@@ -35,17 +35,15 @@
 
   {{ content_for_header }}
 
-  {%- assign heading_font = settings.heading_font -%}
-  {%- assign body_font = settings.body_font -%}
-  {%- if heading_font != blank -%}{{ heading_font | font_face: font_display: 'swap' }}{%- endif -%}
-  {%- if body_font != blank -%}
-    {{ body_font | font_face: font_display: 'swap' }}
-    {{ body_font | font_modify: 'weight', '+200' | font_face: font_display: 'swap' }}
-  {%- endif -%}
-
   {{- 'base.css' | asset_url | stylesheet_tag -}}
 
-  <style>
+  {% style %}
+    {%- if settings.heading_font.family != blank -%}
+      {{ settings.heading_font | font_face: font_display: 'swap' }}
+    {%- endif -%}
+    {%- if settings.body_font.family != blank -%}
+      {{ settings.body_font | font_face: font_display: 'swap' }}
+    {%- endif -%}
     :root {
       --color-bg: {{ settings.color_bg | default: '#f5efe8' }};
       --color-fg: {{ settings.color_fg | default: '#211c18' }};
@@ -53,11 +51,11 @@
       --color-card: {{ settings.color_card | default: '#ece3d9' }};
       --color-accent: {{ settings.color_accent | default: '#b67b5e' }};
       --color-border: color-mix(in srgb, {{ settings.color_fg | default: '#211c18' }} {{ settings.border_opacity | default: 16 }}%, transparent);
-      {%- if heading_font != blank %}
-      --font-heading: {{ heading_font.family }}, {{ heading_font.fallback_families }};
+      {%- if settings.heading_font.family != blank %}
+      --font-heading: {{ settings.heading_font.family }}, {{ settings.heading_font.fallback_families }};
       {%- endif %}
-      {%- if body_font != blank %}
-      --font-body: {{ body_font.family }}, {{ body_font.fallback_families }};
+      {%- if settings.body_font.family != blank %}
+      --font-body: {{ settings.body_font.family }}, {{ settings.body_font.fallback_families }};
       {%- endif %}
       --heading-tracking: {{ settings.heading_tracking | default: -1 | divided_by: 100.0 }}em;
       --radius: {{ settings.corner_radius | default: 100 }}px;
@@ -67,7 +65,7 @@
     .reveal, .reveal-left, .reveal-right, .reveal-scale { opacity: 1 !important; transform: none !important; }
     .clip-reveal > span { transform: none !important; }
     {%- endunless %}
-  </style>
+  {% endstyle %}
 
   <script>
     document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
