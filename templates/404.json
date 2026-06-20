@@ -1,4 +1,83 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
-  "sections": { "main": { "type": "main-404" } },
-  "order": ["main"]
+  "sections": {
+    "main": {
+      "type": "main-404",
+      "disabled": true,
+      "settings": {
+        "message": "This page doesn't exist, but there's plenty to explore.",
+        "button_label": "Back to Home"
+      }
+    },
+    "hero_banner_4qAH6K": {
+      "type": "hero-banner",
+      "name": "Hero Banner",
+      "settings": {
+        "image": "shopify://shop_images/tshirts.jpg",
+        "show_play_button": false,
+        "eyebrow": "It starts with a whisper",
+        "heading": "Multilayered|beauty",
+        "tagline": "Multilayered beauty for those who live between worlds.",
+        "cta_label": "Shop now",
+        "cta_url": "shopify://collections/all",
+        "show_scroll_indicator": true
+      }
+    },
+    "featured_collection_9fYWeK": {
+      "type": "featured-collection",
+      "name": "Featured Collection",
+      "settings": {
+        "heading": "Featured Products",
+        "collection": "",
+        "products_to_show": 4,
+        "show_view_all": true
+      }
+    },
+    "about_story_teXwhQ": {
+      "type": "about-story",
+      "name": "About / Story",
+      "settings": {
+        "hero_image": "shopify://shop_images/a-hand-removes-a-sweater-from-a-clothing-rack.jpg",
+        "eyebrow": "Our Story",
+        "hero_heading": "Our story",
+        "chapter_1_label": "01 — Origin",
+        "chapter_1_heading": "Where It Began",
+        "chapter_1_text": "<p>KAIIN began with a quiet frustration: clothes that looked the part but felt like nothing at all. We wanted the opposite, fewer pieces, made properly, that earn their place in a wardrobe and stay there.</p><p>So we started small. One silhouette, refined until there was nothing left to remove. No logos shouting, no trend to chase. Just considered shapes, honest fabric, and the confidence to leave things plain.</p>",
+        "chapter_1_image": "shopify://shop_images/t-shirt-store.jpg",
+        "chapter_2_label": "02 — Process",
+        "chapter_2_heading": "How We Make It",
+        "chapter_2_text": "<p>Everything is made in Egypt, in small runs, by people who care how a seam falls. We choose natural, durable fabrics and cut for a relaxed, intentional fit, pieces meant to soften with wear, not wear out.</p><p>We don't overproduce. We release in limited chapters, make only what should exist, and would rather sell out than pile up. Slow isn't a slogan for us; it's simply the pace good clothing takes.</p>"
+      }
+    },
+    "statement_CyR7m3": {
+      "type": "statement",
+      "name": "Statement",
+      "settings": {
+        "eyebrow": "",
+        "text": "<p><em>less, but better.</em></p>",
+        "subtext": "",
+        "cta_label": "Shop the products",
+        "cta_url": "shopify://collections/all",
+        "show_logo": true,
+        "logo_text": "",
+        "bg_color": "",
+        "bordered": true
+      }
+    }
+  },
+  "order": [
+    "main",
+    "hero_banner_4qAH6K",
+    "featured_collection_9fYWeK",
+    "about_story_teXwhQ",
+    "statement_CyR7m3"
+  ]
 }
