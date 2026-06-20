@@ -1,80 +1,73 @@
-{% assign has_hero = false %}
-{% for section in template.sections %}
-  {% if section.type == 'hero-banner' %}{% assign has_hero = true %}{% endif %}
-{% endfor %}
-
 <div class="cursor" aria-hidden="true">
-  <div class="cursor__dot" style="position:fixed;"></div>
-  <div class="cursor__circle" style="position:fixed;"></div>
+  <div class="cursor__dot"></div>
+  <div class="cursor__circle"></div>
 </div>
 
 {% if section.settings.show_announcement and section.settings.announcement_text != blank %}
-  <div class="announcement-bar" role="status">
-    {{ section.settings.announcement_text }}
-  </div>
+  <div class="announcement-bar" role="status">{{ section.settings.announcement_text }}</div>
 {% endif %}
 
-<header class="site-header{% if has_hero %} site-header--transparent site-header--light{% else %} site-header--solid{% endif %}" role="banner">
-  <a href="/" class="site-header__logo" aria-label="{{ shop.name }} home">
+<header class="site-header{% if section.settings.show_announcement and section.settings.announcement_text != blank %} site-header--with-announcement{% endif %}" role="banner">
+  <div class="site-header__left">
+    <button class="menu-trigger" data-menu-open aria-label="Open menu">
+      <span class="menu-trigger__dot"></span>
+      Menu
+    </button>
+    {% if section.settings.show_shop_link %}
+      <a href="{{ routes.all_products_collection_url }}" class="header-link">Shop</a>
+    {% endif %}
+  </div>
+
+  <a href="{{ routes.root_url }}" class="site-header__logo" aria-label="{{ shop.name }} home">
     {% if section.settings.logo != blank %}
-      <img src="{{ section.settings.logo | image_url: width: 160 }}" alt="{{ shop.name }}" width="120" height="auto">
+      <img src="{{ section.settings.logo | image_url: width: 240 }}" alt="{{ shop.name }}">
     {% else %}
       {{ shop.name }}
     {% endif %}
   </a>
 
-  <nav class="site-header__nav" role="navigation" aria-label="Main">
-    {% for link in linklists[section.settings.main_menu].links %}
-      <a href="{{ link.url }}"{% if link.active %} aria-current="page"{% endif %}>
-        {{ link.title }}
-      </a>
-    {% endfor %}
-  </nav>
-
-  <div class="site-header__actions">
-    <a href="{{ routes.search_url }}" aria-label="Search">
-      <svg class="site-header__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="11" cy="11" r="7" stroke-width="1.5"/>
-        <path d="M16.5 16.5L21 21" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </a>
-
+  <div class="site-header__right">
+    <a href="{{ routes.search_url }}" class="header-link">Search</a>
     {% if shop.customer_accounts_enabled %}
-      <a href="{{ routes.account_url }}" aria-label="Account">
-        <svg class="site-header__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="8" r="4" stroke-width="1.5"/>
-          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </a>
+      <a href="{{ routes.account_url }}" class="header-link">Account</a>
     {% endif %}
-
-    <button data-cart-open aria-label="Cart ({{ cart.item_count }} items)" style="position:relative;">
-      <svg class="site-header__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-width="1.5"/>
-        <line x1="3" y1="6" x2="21" y2="6" stroke-width="1.5"/>
-        <path d="M16 10a4 4 0 01-8 0" stroke-width="1.5"/>
-      </svg>
-      <span class="header-cart-count cart-count" style="{% if cart.item_count == 0 %}display:none{% endif %}">
-        {{ cart.item_count }}
-      </span>
-    </button>
-
-    <button class="menu-toggle" aria-label="Menu" aria-expanded="false">
-      <span></span>
-      <span></span>
-      <span></span>
+    <button class="header-cart" data-cart-open aria-label="Open cart">
+      Cart <span class="header-cart__count">[<span class="cart-count">{{ cart.item_count }}</span>]</span>
     </button>
   </div>
 </header>
 
-<nav class="mobile-nav" role="navigation" aria-label="Mobile">
-  {% for link in linklists[section.settings.main_menu].links %}
-    <a href="{{ link.url }}">{{ link.title }}</a>
-  {% endfor %}
-  <a href="{{ routes.search_url }}">Search</a>
-  {% if shop.customer_accounts_enabled %}
-    <a href="{{ routes.account_url }}">Account</a>
-  {% endif %}
+<!-- Fullscreen Menu Overlay -->
+<nav class="menu-overlay" aria-label="Main navigation">
+  <div class="menu-overlay__top">
+    <span class="label">{{ shop.name }} — Index</span>
+    <button class="menu-overlay__close" data-menu-close aria-label="Close menu">
+      Close <span class="menu-overlay__close-x"></span>
+    </button>
+  </div>
+
+  <div class="menu-overlay__body">
+    <div class="menu-overlay__links">
+      {% for link in linklists[section.settings.main_menu].links %}
+        <a href="{{ link.url }}" class="menu-overlay__link" style="--i: {{ forloop.index0 }};">
+          <span class="idx">0{{ forloop.index }}</span>{{ link.title }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="menu-overlay__aside">
+      {% if section.settings.menu_image != blank %}
+        <img src="{{ section.settings.menu_image | image_url: width: 600 }}" alt="" loading="lazy" style="aspect-ratio:4/5;object-fit:cover;width:100%;">
+      {% endif %}
+      <div>
+        <h4>Connect</h4>
+        {% if section.settings.instagram_url != blank %}<a href="{{ section.settings.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+        {% if section.settings.tiktok_url != blank %}<a href="{{ section.settings.tiktok_url }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
+        <a href="{{ routes.search_url }}">Search</a>
+        {% if shop.customer_accounts_enabled %}<a href="{{ routes.account_url }}">Account</a>{% endif %}
+      </div>
+    </div>
+  </div>
 </nav>
 
 {% render 'cart-drawer' %}
@@ -85,29 +78,15 @@
   "tag": "header",
   "class": "section-header",
   "settings": [
-    {
-      "type": "checkbox",
-      "id": "show_announcement",
-      "label": "Show announcement bar",
-      "default": true
-    },
-    {
-      "type": "text",
-      "id": "announcement_text",
-      "label": "Announcement text",
-      "default": "Free shipping on orders over 500 EGP — Use code KAIIN"
-    },
-    {
-      "type": "image_picker",
-      "id": "logo",
-      "label": "Logo"
-    },
-    {
-      "type": "link_list",
-      "id": "main_menu",
-      "label": "Main menu",
-      "default": "main-menu"
-    }
+    { "type": "checkbox", "id": "show_announcement", "label": "Show announcement bar", "default": true },
+    { "type": "text", "id": "announcement_text", "label": "Announcement text", "default": "Free shipping on orders over 500 EGP" },
+    { "type": "image_picker", "id": "logo", "label": "Logo" },
+    { "type": "link_list", "id": "main_menu", "label": "Main menu", "default": "main-menu" },
+    { "type": "checkbox", "id": "show_shop_link", "label": "Show 'Shop' link in header", "default": true },
+    { "type": "header", "content": "Menu overlay" },
+    { "type": "image_picker", "id": "menu_image", "label": "Menu feature image" },
+    { "type": "url", "id": "instagram_url", "label": "Instagram URL" },
+    { "type": "url", "id": "tiktok_url", "label": "TikTok URL" }
   ]
 }
 {% endschema %}

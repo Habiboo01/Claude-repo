@@ -37,6 +37,20 @@
 
   {{- 'base.css' | asset_url | stylesheet_tag -}}
 
+  <style>
+    :root {
+      --color-bg: {{ settings.color_bg | default: '#0b0b0c' }};
+      --color-fg: {{ settings.color_fg | default: '#f2f1ee' }};
+      --color-muted: {{ settings.color_muted | default: '#86868a' }};
+      --color-card: {{ settings.color_card | default: '#111113' }};
+      --color-border: {{ settings.color_fg | default: '#f2f1ee' }}1f;
+    }
+    {%- unless settings.animations_reveal_on_scroll %}
+    .reveal, .reveal-left, .reveal-right, .reveal-scale { opacity: 1 !important; transform: none !important; }
+    .clip-reveal > span { transform: none !important; }
+    {%- endunless %}
+  </style>
+
   <script>
     document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
   </script>
@@ -52,7 +66,8 @@
 
   {%- sections 'footer-group' -%}
 
-  <div id="page-overlay" class="page-overlay"></div>
+  <div class="cart-backdrop"></div>
+  <div class="page-transition"></div>
 
   <script src="{{ 'theme.js' | asset_url }}" defer></script>
 </body>

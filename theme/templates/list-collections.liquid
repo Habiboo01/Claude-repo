@@ -1,0 +1,24 @@
+<div class="collection-header">
+  <p class="label reveal">Index</p>
+  <h1 class="collection-header__title reveal">Collections</h1>
+</div>
+
+<div class="product-grid stagger" style="padding-top:var(--spacing-md);padding-bottom:var(--spacing-xl);">
+  {% for collection in collections %}
+    <article class="product-card reveal">
+      <a href="{{ collection.url }}" class="product-card__media">
+        {% if collection.image %}
+          <img class="product-card__img" src="{{ collection.image | image_url: width: 700 }}" alt="{{ collection.title | escape }}" loading="lazy">
+        {% elsif collection.products.first.featured_image %}
+          <img class="product-card__img" src="{{ collection.products.first.featured_image | image_url: width: 700 }}" alt="{{ collection.title | escape }}" loading="lazy">
+        {% else %}
+          <div style="width:100%;height:100%;background:#141416;"></div>
+        {% endif %}
+      </a>
+      <div class="product-card__info">
+        <a href="{{ collection.url }}"><h3 class="product-card__title">{{ collection.title }}</h3></a>
+        <span class="product-card__price">{{ collection.all_products_count }}</span>
+      </div>
+    </article>
+  {% endfor %}
+</div>

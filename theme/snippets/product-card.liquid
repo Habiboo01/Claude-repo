@@ -1,40 +1,22 @@
-{% comment %}
-  Render a product card.
-  Usage: {% render 'product-card', product: product %}
-{% endcomment %}
+{% comment %} Usage: {% render 'product-card', product: product %} {% endcomment %}
+{%- assign img1 = product.featured_image -%}
+{%- assign img2 = product.images[1] -%}
+{%- assign first_variant = product.selected_or_first_available_variant -%}
 
-{%- assign featured_image = product.featured_image -%}
-{%- assign second_image = product.images[1] -%}
-
-<article class="product-card reveal" data-product-id="{{ product.id }}">
-  <a href="{{ product.url }}" class="product-card__media" tabindex="-1" aria-hidden="true">
-    {% if featured_image %}
-      <img
-        class="product-card__img product-card__img--primary"
-        src="{{ featured_image | image_url: width: 600 }}"
-        srcset="{{ featured_image | image_url: width: 400 }} 400w,
-                {{ featured_image | image_url: width: 600 }} 600w,
-                {{ featured_image | image_url: width: 800 }} 800w"
-        sizes="(min-width: 1200px) 25vw, (min-width: 768px) 33vw, 50vw"
-        alt="{{ featured_image.alt | escape }}"
-        loading="lazy"
-        width="{{ featured_image.width }}"
-        height="{{ featured_image.height }}"
-      >
-      {% if second_image %}
-        <img
-          class="product-card__img product-card__img--secondary"
-          src="{{ second_image | image_url: width: 600 }}"
-          alt="{{ second_image.alt | escape }}"
-          loading="lazy"
-          width="{{ second_image.width }}"
-          height="{{ second_image.height }}"
-        >
+<article class="product-card reveal">
+  <a href="{{ product.url }}" class="product-card__media">
+    {% if img1 %}
+      <img class="product-card__img product-card__img--primary"
+           src="{{ img1 | image_url: width: 700 }}"
+           srcset="{{ img1 | image_url: width: 400 }} 400w, {{ img1 | image_url: width: 700 }} 700w, {{ img1 | image_url: width: 1000 }} 1000w"
+           sizes="(min-width:1100px) 25vw, (min-width:600px) 33vw, 50vw"
+           alt="{{ img1.alt | escape }}" loading="lazy">
+      {% if img2 %}
+        <img class="product-card__img product-card__img--secondary"
+             src="{{ img2 | image_url: width: 700 }}" alt="{{ img2.alt | escape }}" loading="lazy">
       {% endif %}
     {% else %}
-      <div style="width:100%;height:100%;background:#efefed;display:flex;align-items:center;justify-content:center;">
-        {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
-      </div>
+      <div style="width:100%;height:100%;background:#141416;"></div>
     {% endif %}
 
     {% if product.available == false %}
@@ -42,19 +24,22 @@
     {% elsif product.compare_at_price > product.price %}
       <span class="product-card__badge">Sale</span>
     {% endif %}
-
-    <div class="product-card__quick-add">Quick Add</div>
   </a>
 
+  {% if product.available %}
+    <button class="product-card__quick"
+            data-quick-add
+            data-variant-id="{{ first_variant.id }}"
+            data-url="{{ product.url }}">
+      Quick Add — {{ product.price | money }}
+    </button>
+  {% endif %}
+
   <div class="product-card__info">
-    <a href="{{ product.url }}">
-      <h3 class="product-card__title">{{ product.title }}</h3>
-    </a>
+    <a href="{{ product.url }}"><h3 class="product-card__title">{{ product.title }}</h3></a>
     <div class="product-card__price{% if product.compare_at_price > product.price %} product-card__price--sale{% endif %}">
       <span>{{ product.price | money }}</span>
-      {% if product.compare_at_price > product.price %}
-        <s>{{ product.compare_at_price | money }}</s>
-      {% endif %}
+      {% if product.compare_at_price > product.price %}<s>{{ product.compare_at_price | money }}</s>{% endif %}
     </div>
   </div>
 </article>

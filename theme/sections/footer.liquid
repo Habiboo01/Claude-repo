@@ -1,3 +1,18 @@
+{% if section.settings.show_newsletter %}
+  <div class="newsletter">
+    <h2 class="newsletter__title clip-reveal"><span>{{ section.settings.newsletter_heading }}</span></h2>
+    <p class="newsletter__sub reveal">{{ section.settings.newsletter_subheading }}</p>
+    {% form 'customer', class: 'newsletter__form reveal' %}
+      <input type="hidden" name="contact[tags]" value="newsletter">
+      <input type="email" name="contact[email]" placeholder="Your email address" required aria-label="Email">
+      <button type="submit" data-magnetic>Subscribe →</button>
+    {% endform %}
+    {% if section.settings.newsletter_note != blank %}
+      <p class="newsletter__note">{{ section.settings.newsletter_note }}</p>
+    {% endif %}
+  </div>
+{% endif %}
+
 <footer class="site-footer" role="contentinfo">
   <div class="site-footer__top">
     <div class="footer-brand">
@@ -20,19 +35,13 @@
   </div>
 
   <div class="site-footer__bottom">
-    <p>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. All rights reserved.</p>
+    <span>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}</span>
     <div class="footer-socials">
-      {% if section.settings.instagram_url != blank %}
-        <a href="{{ section.settings.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>
-      {% endif %}
-      {% if section.settings.tiktok_url != blank %}
-        <a href="{{ section.settings.tiktok_url }}" target="_blank" rel="noopener" aria-label="TikTok">TikTok</a>
-      {% endif %}
-      {% if section.settings.facebook_url != blank %}
-        <a href="{{ section.settings.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook">Facebook</a>
-      {% endif %}
+      {% if section.settings.instagram_url != blank %}<a href="{{ section.settings.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+      {% if section.settings.tiktok_url != blank %}<a href="{{ section.settings.tiktok_url }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
+      {% if section.settings.facebook_url != blank %}<a href="{{ section.settings.facebook_url }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
     </div>
-    <p>{{ section.settings.payment_text }}</p>
+    <span>{{ section.settings.credit_text }}</span>
   </div>
 </footer>
 
@@ -42,51 +51,26 @@
   "tag": "footer",
   "class": "section-footer",
   "settings": [
-    {
-      "type": "text",
-      "id": "tagline",
-      "label": "Brand tagline",
-      "default": "Minimal clothing for intentional people. Made in Egypt."
-    },
-    {
-      "type": "text",
-      "id": "payment_text",
-      "label": "Payment/shipping note",
-      "default": "Secure checkout · Cash on delivery available"
-    },
-    {
-      "type": "url",
-      "id": "instagram_url",
-      "label": "Instagram URL"
-    },
-    {
-      "type": "url",
-      "id": "tiktok_url",
-      "label": "TikTok URL"
-    },
-    {
-      "type": "url",
-      "id": "facebook_url",
-      "label": "Facebook URL"
-    }
+    { "type": "header", "content": "Newsletter" },
+    { "type": "checkbox", "id": "show_newsletter", "label": "Show newsletter", "default": true },
+    { "type": "text", "id": "newsletter_heading", "label": "Newsletter heading", "default": "Join the Index" },
+    { "type": "text", "id": "newsletter_subheading", "label": "Newsletter subheading", "default": "Special offers and new releases, straight to your inbox." },
+    { "type": "text", "id": "newsletter_note", "label": "Note under form", "default": "No spam. Unsubscribe anytime." },
+    { "type": "header", "content": "Brand" },
+    { "type": "text", "id": "tagline", "label": "Brand tagline", "default": "Minimal clothing for intentional people. Made in Egypt." },
+    { "type": "text", "id": "credit_text", "label": "Credit text", "default": "All rights reserved" },
+    { "type": "header", "content": "Social" },
+    { "type": "url", "id": "instagram_url", "label": "Instagram URL" },
+    { "type": "url", "id": "tiktok_url", "label": "TikTok URL" },
+    { "type": "url", "id": "facebook_url", "label": "Facebook URL" }
   ],
   "blocks": [
     {
       "type": "menu",
-      "name": "Menu",
+      "name": "Menu column",
       "settings": [
-        {
-          "type": "text",
-          "id": "heading",
-          "label": "Heading",
-          "default": "Shop"
-        },
-        {
-          "type": "link_list",
-          "id": "menu",
-          "label": "Menu",
-          "default": "main-menu"
-        }
+        { "type": "text", "id": "heading", "label": "Heading", "default": "Shop" },
+        { "type": "link_list", "id": "menu", "label": "Menu", "default": "main-menu" }
       ]
     }
   ],
@@ -94,8 +78,9 @@
     {
       "name": "Footer",
       "blocks": [
-        { "type": "menu", "settings": { "heading": "Shop", "menu": "main-menu" } },
-        { "type": "menu", "settings": { "heading": "Info", "menu": "footer" } }
+        { "type": "menu", "settings": { "heading": "Shop" } },
+        { "type": "menu", "settings": { "heading": "Info" } },
+        { "type": "menu", "settings": { "heading": "Company" } }
       ]
     }
   ]

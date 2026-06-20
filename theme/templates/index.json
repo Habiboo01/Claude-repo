@@ -3,24 +3,39 @@
     "hero": {
       "type": "hero-banner",
       "settings": {
-        "eyebrow": "New Collection — 2026",
+        "eyebrow": "Collection 001 — 2026",
         "heading": "WEAR|YOUR|STORY",
-        "cta_label": "Shop Now",
+        "tagline": "The future will define us. Minimal forms, intentional craft — clothing as a quiet declaration of who you are.",
+        "cta_label": "Shop the Collection",
         "cta_url": "/collections/all",
         "show_scroll_indicator": true
       }
     },
-    "ticker": {
+    "marquee": {
       "type": "marquee-ticker",
-      "block_order": ["item1", "item2", "item3", "item4"],
       "blocks": {
-        "item1": { "type": "item", "settings": { "text": "New Arrivals" } },
-        "item2": { "type": "item", "settings": { "text": "Free Shipping Over 500 EGP" } },
-        "item3": { "type": "item", "settings": { "text": "Crafted in Egypt" } },
-        "item4": { "type": "item", "settings": { "text": "Minimal. Intentional." } }
-      }
+        "m1": { "type": "item", "settings": { "text": "New Collection" } },
+        "m2": { "type": "item", "settings": { "text": "Crafted in Egypt" } },
+        "m3": { "type": "item", "settings": { "text": "Minimal · Intentional" } },
+        "m4": { "type": "item", "settings": { "text": "Free Shipping Over 500 EGP" } }
+      },
+      "block_order": ["m1", "m2", "m3", "m4"]
     },
-    "editorial_1": {
+    "showcase": {
+      "type": "product-showcase",
+      "settings": { "heading": "Featured", "view_all_url": "/collections/all" },
+      "blocks": {
+        "f1": { "type": "feature", "settings": { "eyebrow": "Signature", "button_label": "View Product" } },
+        "f2": { "type": "feature", "settings": { "eyebrow": "Best Seller", "button_label": "View Product" } },
+        "f3": { "type": "feature", "settings": { "eyebrow": "New", "button_label": "View Product" } }
+      },
+      "block_order": ["f1", "f2", "f3"]
+    },
+    "featured": {
+      "type": "featured-collection",
+      "settings": { "heading": "New Arrivals", "collection": "oversized-t-shirt", "products_to_show": 8, "show_view_all": true }
+    },
+    "editorial": {
       "type": "editorial-text",
       "settings": {
         "section_number": "01 — Philosophy",
@@ -30,16 +45,17 @@
         "link_url": "/pages/about"
       }
     },
-    "featured_1": {
-      "type": "featured-collection",
-      "settings": {
-        "heading": "New Arrivals",
-        "collection": "oversized-t-shirt",
-        "products_to_show": 4,
-        "show_view_all": true
-      }
+    "rows": {
+      "type": "collection-rows",
+      "settings": { "heading": "Collections", "subheading": "Index — 2026" },
+      "blocks": {
+        "r1": { "type": "row", "settings": { "collection": "oversized-t-shirt", "products_to_show": 6 } },
+        "r2": { "type": "row", "settings": { "collection": "oversized-t-shirt-copy", "products_to_show": 6 } },
+        "r3": { "type": "row", "settings": { "collection": "wide-leg-sweatpant-copy", "products_to_show": 6 } }
+      },
+      "block_order": ["r1", "r2", "r3"]
     },
-    "split_1": {
+    "split": {
       "type": "split-section",
       "settings": {
         "eyebrow": "02 — Craftsmanship",
@@ -49,16 +65,7 @@
         "cta_url": "/collections/all",
         "reverse": false
       }
-    },
-    "featured_2": {
-      "type": "featured-collection",
-      "settings": {
-        "heading": "Wide Leg Sweatpants",
-        "collection": "oversized-t-shirt-copy",
-        "products_to_show": 4,
-        "show_view_all": true
-      }
     }
   },
-  "order": ["hero", "ticker", "editorial_1", "featured_1", "split_1", "featured_2"]
+  "order": ["hero", "marquee", "showcase", "featured", "editorial", "rows", "split"]
 }

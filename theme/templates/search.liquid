@@ -1,0 +1,22 @@
+<div class="collection-header">
+  <p class="label reveal">Search</p>
+  <h1 class="collection-header__title reveal">Search</h1>
+  <form action="{{ routes.search_url }}" method="get" role="search" class="reveal" style="margin-top:var(--spacing-sm);max-width:520px;border-bottom:1px solid var(--color-border);display:flex;">
+    <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="Search products…"
+           style="flex:1;background:none;border:none;outline:none;padding:14px 4px;font-size:16px;">
+    <button type="submit" style="font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:0.14em;padding:14px 8px;">Go →</button>
+  </form>
+</div>
+
+{% if search.performed %}
+  <p class="label" style="padding:var(--spacing-md) var(--gutter) 0;">{{ search.results_count }} results for "{{ search.terms | escape }}"</p>
+  <div class="collection-grid stagger">
+    {% for item in search.results %}
+      {% if item.object_type == 'product' %}
+        {% render 'product-card', product: item %}
+      {% endif %}
+    {% else %}
+      <p style="grid-column:1/-1;padding:var(--spacing-lg) 0;color:var(--color-muted);">No results found.</p>
+    {% endfor %}
+  </div>
+{% endif %}

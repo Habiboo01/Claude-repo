@@ -1,0 +1,57 @@
+<section class="section-pad" id="CollectionRows-{{ section.id }}">
+  {% if section.settings.heading != blank %}
+    <div class="grid-head">
+      <h2 class="clip-reveal"><span>{{ section.settings.heading }}</span></h2>
+      {% if section.settings.subheading != blank %}
+        <span class="label reveal">{{ section.settings.subheading }}</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% for block in section.blocks %}
+    {%- assign row_collection = collections[block.settings.collection] -%}
+    {% if row_collection != blank %}
+      <div class="collection-row" {{ block.shopify_attributes }}>
+        <div class="collection-row__head">
+          <a href="{{ row_collection.url }}" class="collection-row__title reveal">{{ block.settings.title | default: row_collection.title }}</a>
+          <a href="{{ row_collection.url }}" class="collection-row__meta reveal">{{ row_collection.all_products_count }} Pieces →</a>
+        </div>
+        <div class="collection-row__scroll stagger">
+          {% for product in row_collection.products limit: block.settings.products_to_show %}
+            {% render 'product-card', product: product %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</section>
+
+{% schema %}
+{
+  "name": "Collection Rows",
+  "tag": "section",
+  "class": "section-collection-rows",
+  "max_blocks": 8,
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Section heading", "default": "Collections" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Index — 2026" }
+  ],
+  "blocks": [
+    {
+      "type": "row",
+      "name": "Collection row",
+      "settings": [
+        { "type": "collection", "id": "collection", "label": "Collection" },
+        { "type": "text", "id": "title", "label": "Row title override (optional)" },
+        { "type": "range", "id": "products_to_show", "label": "Products to show", "min": 3, "max": 12, "step": 1, "default": 6 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collection Rows",
+      "blocks": [ { "type": "row" }, { "type": "row" } ]
+    }
+  ]
+}
+{% endschema %}

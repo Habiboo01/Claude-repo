@@ -2,7 +2,12 @@
   "sections": {
     "main": {
       "type": "product-template",
-      "settings": {}
+      "blocks": {
+        "acc1": { "type": "accordion", "settings": { "title": "Shipping & Returns", "content": "<p>Free shipping on orders over 500 EGP. Standard delivery 2–5 business days within Egypt. Returns accepted within 14 days.</p>" } },
+        "acc2": { "type": "accordion", "settings": { "title": "Size & Fit", "content": "<p>Designed with a relaxed, intentional fit. If you're between sizes, we recommend sizing up.</p>" } },
+        "acc3": { "type": "accordion", "settings": { "title": "Care Instructions", "content": "<p>Cold machine wash or hand wash. Do not tumble dry. Iron on low heat. Dry flat.</p>" } }
+      },
+      "block_order": ["acc1", "acc2", "acc3"]
     }
   },
   "order": ["main"]
