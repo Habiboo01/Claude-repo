@@ -1,0 +1,39 @@
+<div class="auth">
+  <h1 class="auth__title">{{ 'customer.register.title' | t }}</h1>
+
+  {%- form 'create_customer', novalidate: 'novalidate' -%}
+    {%- if form.errors -%}
+      <ul class="form-errors">
+        {%- for field in form.errors -%}
+          <li>{{ form.errors.translated_fields[field] | capitalize }} {{ form.errors.messages[field] }}</li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+
+    <div class="auth__field">
+      <label class="auth__label" for="FirstName">{{ 'customer.register.first_name' | t }}</label>
+      <input type="text" name="customer[first_name]" id="FirstName" autocomplete="given-name">
+    </div>
+    <div class="auth__field">
+      <label class="auth__label" for="LastName">{{ 'customer.register.last_name' | t }}</label>
+      <input type="text" name="customer[last_name]" id="LastName" autocomplete="family-name">
+    </div>
+    <div class="auth__field">
+      <label class="auth__label" for="RegisterEmail">{{ 'customer.register.email' | t }}</label>
+      <input type="email" name="customer[email]" id="RegisterEmail" autocomplete="email" autocapitalize="off" required>
+    </div>
+    <div class="auth__field">
+      <label class="auth__label" for="RegisterPassword">{{ 'customer.register.password' | t }}</label>
+      <input type="password" name="customer[password]" id="RegisterPassword" autocomplete="new-password" required>
+    </div>
+
+    <div class="auth__actions">
+      <button type="submit" class="btn-add-to-cart"><span>{{ 'customer.register.submit' | t }}</span></button>
+    </div>
+  {%- endform -%}
+
+  <div class="auth__alt">
+    {{ 'customer.register.has_account_prompt' | t }}
+    <a href="{{ routes.account_login_url }}" class="auth__link">{{ 'customer.register.sign_in' | t }}</a>
+  </div>
+</div>

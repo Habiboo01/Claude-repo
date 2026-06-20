@@ -1,0 +1,58 @@
+<div class="auth auth--wide">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:var(--spacing-lg);">
+    <h1 class="auth__title" style="text-align:left;margin:0;">{{ 'customer.account.title' | t }}</h1>
+    <a href="{{ routes.account_logout_url }}" class="auth__link" style="margin:0;">{{ 'customer.account.logout' | t }}</a>
+  </div>
+
+  <div class="account-grid">
+    <div>
+      <p class="account-block__title">{{ 'customer.orders.title' | t }}</p>
+      {%- paginate customer.orders by 20 -%}
+        {%- if customer.orders.size > 0 -%}
+          <table class="account-table">
+            <thead>
+              <tr>
+                <th>{{ 'customer.orders.order_number' | t: number: '' }}</th>
+                <th>{{ 'customer.orders.date' | t }}</th>
+                <th>{{ 'customer.orders.payment_status' | t }}</th>
+                <th>{{ 'customer.orders.fulfillment_status' | t }}</th>
+                <th>{{ 'customer.orders.total' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {%- for order in customer.orders -%}
+                <tr>
+                  <td><a href="{{ order.customer_url }}">{{ order.name }}</a></td>
+                  <td>{{ order.created_at | date: '%b %d, %Y' }}</td>
+                  <td><span class="badge">{{ order.financial_status_label }}</span></td>
+                  <td><span class="badge">{{ order.fulfillment_status_label }}</span></td>
+                  <td>{{ order.total_net_amount | money }}</td>
+                </tr>
+              {%- endfor -%}
+            </tbody>
+          </table>
+          {%- if paginate.pages > 1 -%}
+            <div class="pagination" style="justify-content:flex-start;padding:var(--spacing-md) 0;">
+              {%- for part in paginate.parts -%}
+                {%- if part.is_link -%}<a href="{{ part.url }}" class="filter-btn">{{ part.title }}</a>
+                {%- else -%}<span class="filter-btn active">{{ part.title }}</span>{%- endif -%}
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+        {%- else -%}
+          <p class="text-muted">{{ 'customer.orders.none' | t }}</p>
+        {%- endif -%}
+      {%- endpaginate -%}
+    </div>
+
+    <aside>
+      <p class="account-block__title">{{ 'customer.account.details' | t }}</p>
+      {%- if customer.default_address -%}
+        <div style="font-size:14px;line-height:1.8;color:var(--color-muted);">
+          {{ customer.default_address | format_address }}
+        </div>
+      {%- endif -%}
+      <a href="{{ routes.account_addresses_url }}" class="auth__link">{{ 'customer.account.view_addresses' | t }} ({{ customer.addresses_count }})</a>
+    </aside>
+  </div>
+</div>

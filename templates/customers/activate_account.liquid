@@ -1,0 +1,26 @@
+<div class="auth">
+  <h1 class="auth__title">{{ 'customer.activate_account.title' | t }}</h1>
+  <p class="auth__subtext">{{ 'customer.activate_account.subtext' | t }}</p>
+
+  {%- form 'activate_customer_password' -%}
+    {%- if form.errors -%}
+      <ul class="form-errors">
+        {%- for field in form.errors -%}<li>{{ form.errors.messages[field] }}</li>{%- endfor -%}
+      </ul>
+    {%- endif -%}
+
+    <div class="auth__field">
+      <label class="auth__label" for="ActivatePassword">{{ 'customer.activate_account.password' | t }}</label>
+      <input type="password" name="customer[password]" id="ActivatePassword" autocomplete="new-password" required>
+    </div>
+    <div class="auth__field">
+      <label class="auth__label" for="ActivatePasswordConfirm">{{ 'customer.activate_account.password_confirm' | t }}</label>
+      <input type="password" name="customer[password_confirmation]" id="ActivatePasswordConfirm" autocomplete="new-password" required>
+    </div>
+
+    <div class="auth__actions" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+      <button type="submit" name="commit" class="btn-add-to-cart" style="width:auto;"><span>{{ 'customer.activate_account.submit' | t }}</span></button>
+      <button type="submit" name="decline" class="auth__link" style="margin:0;background:none;border:none;">{{ 'customer.activate_account.decline' | t }}</button>
+    </div>
+  {%- endform -%}
+</div>
