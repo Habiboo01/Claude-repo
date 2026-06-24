@@ -1,0 +1,14 @@
+{
+  "sections": {
+    "main": {
+      "type": "product-template",
+      "blocks": {
+        "acc1": { "type": "accordion", "settings": { "title": "Shipping & Returns", "content": "<p>Add your shipping and returns policy here.</p>" } },
+        "acc2": { "type": "accordion", "settings": { "title": "Details", "content": "<p>Add key product details, materials, or ingredients here.</p>" } },
+        "acc3": { "type": "accordion", "settings": { "title": "How to use", "content": "<p>Add usage or care instructions here.</p>" } }
+      },
+      "block_order": ["acc1", "acc2", "acc3"]
+    }
+  },
+  "order": ["main"]
+}

@@ -1,0 +1,57 @@
+<div class="auth auth--wide" id="Addresses">
+  <a href="{{ routes.account_url }}" class="auth__link" style="margin-top:0;">← {{ 'customer.account.return' | t }}</a>
+  <h1 class="auth__title" style="text-align:left;">{{ 'customer.addresses.title' | t }}</h1>
+
+  {%- comment -%} Add new address {%- endcomment -%}
+  <details style="margin-bottom:var(--spacing-lg);">
+    <summary class="btn-secondary" style="width:auto;display:inline-block;cursor:pointer;">{{ 'customer.addresses.add_new' | t }}</summary>
+    <div style="margin-top:var(--spacing-md);">
+      {%- form 'customer_address', customer.new_address -%}
+        {% render 'address-fields', form: form %}
+        <div class="auth__actions"><button type="submit" class="btn-add-to-cart"><span>{{ 'customer.addresses.add' | t }}</span></button></div>
+      {%- endform -%}
+    </div>
+  </details>
+
+  {%- paginate customer.addresses by 10 -%}
+    {%- for address in customer.addresses -%}
+      <div style="padding:var(--spacing-md) 0;border-top:1px solid var(--color-border);">
+        {%- if address == customer.default_address -%}<span class="badge" style="margin-bottom:8px;">{{ 'customer.addresses.default' | t }}</span>{%- endif -%}
+        <div class="text-muted" style="font-size:14px;line-height:1.8;margin:8px 0;">{{ address | format_address }}</div>
+        <details>
+          <summary class="auth__link" style="cursor:pointer;margin-top:0;">{{ 'customer.addresses.edit' | t }}</summary>
+          <div style="margin-top:var(--spacing-md);">
+            {%- form 'customer_address', address -%}
+              {% render 'address-fields', form: form %}
+              <div class="auth__actions" style="display:flex;gap:1rem;">
+                <button type="submit" class="btn-add-to-cart" style="width:auto;"><span>{{ 'customer.addresses.update' | t }}</span></button>
+              </div>
+            {%- endform -%}
+            <a href="#" class="auth__link" data-address-delete="{{ address.url }}" data-confirm="{{ 'customer.addresses.delete_confirm' | t }}">{{ 'customer.addresses.delete' | t }}</a>
+          </div>
+        </details>
+      </div>
+    {%- endfor -%}
+
+    {%- if paginate.pages > 1 -%}
+      <div class="pagination" style="justify-content:flex-start;padding:var(--spacing-md) 0;">
+        {%- for part in paginate.parts -%}
+          {%- if part.is_link -%}<a href="{{ part.url }}" class="filter-btn">{{ part.title }}</a>
+          {%- else -%}<span class="filter-btn active">{{ part.title }}</span>{%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  {%- endpaginate -%}
+</div>
+
+<script>
+  document.querySelectorAll('[data-address-delete]').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.confirm(link.dataset.confirm)) {
+        fetch(link.dataset.addressDelete, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: '_method=delete' })
+          .then(function () { window.location.reload(); });
+      }
+    });
+  });
+</script>

@@ -1,0 +1,95 @@
+<section class="split-section{% if section.settings.reverse %} split-section--reverse{% endif %}" id="Split-{{ section.id }}">
+  <div class="split-section__media reveal-{% if section.settings.reverse %}right{% else %}left{% endif %}">
+    {% if section.settings.image != blank %}
+      <img
+        src="{{ section.settings.image | image_url: width: 1000 }}"
+        srcset="{{ section.settings.image | image_url: width: 600 }} 600w,
+                {{ section.settings.image | image_url: width: 1000 }} 1000w"
+        sizes="50vw"
+        alt="{{ section.settings.image.alt | escape }}"
+        loading="lazy"
+        width="{{ section.settings.image.width }}"
+        height="{{ section.settings.image.height }}"
+      >
+    {% else %}
+      {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg', style: 'width:100%;height:100%;object-fit:cover;' }}
+    {% endif %}
+  </div>
+
+  <div class="split-section__content reveal">
+    {% if section.settings.eyebrow != blank %}
+      <p class="split-section__eyebrow">{{ section.settings.eyebrow }}</p>
+    {% endif %}
+
+    <h2 class="split-section__heading">{{ section.settings.heading }}</h2>
+
+    {% if section.settings.body != blank %}
+      <p class="split-section__body">{{ section.settings.body }}</p>
+    {% endif %}
+
+    {% if section.settings.cta_label != blank %}
+      <a href="{{ section.settings.cta_url }}" class="editorial__link">
+        {{ section.settings.cta_label }}
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    {% endif %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Split Section",
+  "tag": "section",
+  "class": "section-split",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow label",
+      "default": "Why us"
+    },
+    {
+      "type": "textarea",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Made with\ncare"
+    },
+    {
+      "type": "textarea",
+      "id": "body",
+      "label": "Body text",
+      "default": "Describe what makes your product special — the materials, the craft, the thinking behind it. Replace this text with your own."
+    },
+    {
+      "type": "text",
+      "id": "cta_label",
+      "label": "Link label",
+      "default": "Shop Collection"
+    },
+    {
+      "type": "url",
+      "id": "cta_url",
+      "label": "Link URL",
+      "default": "/collections/all"
+    },
+    {
+      "type": "checkbox",
+      "id": "reverse",
+      "label": "Reverse layout (image on right)",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Split Section"
+    }
+  ]
+}
+{% endschema %}

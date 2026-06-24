@@ -1,0 +1,100 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero-banner",
+      "settings": {
+        "eyebrow": "Welcome",
+        "heading": "Your story|starts here",
+        "tagline": "Add a sentence about your brand — what you make and who it's for. Edit everything here in the theme editor.",
+        "cta_label": "Shop the collection",
+        "cta_url": "/collections/all",
+        "show_scroll_indicator": true
+      }
+    },
+    "marquee": {
+      "type": "marquee-ticker",
+      "blocks": {
+        "m1": { "type": "item", "settings": { "text": "New in" } },
+        "m2": { "type": "item", "settings": { "text": "Made for you" } },
+        "m3": { "type": "item", "settings": { "text": "Free shipping" } },
+        "m4": { "type": "item", "settings": { "text": "Shop the collection" } }
+      },
+      "block_order": ["m1", "m2", "m3", "m4"]
+    },
+    "launch": {
+      "type": "featured-collection",
+      "settings": {
+        "heading": "Featured",
+        "collection": "",
+        "products_to_show": 4,
+        "show_view_all": true
+      }
+    },
+    "details": {
+      "type": "split-section",
+      "settings": {
+        "eyebrow": "Why us",
+        "heading": "Made with\ncare",
+        "body": "Describe what makes your product special — the materials, the craft, the thinking behind it. Replace this text with your own.",
+        "cta_label": "Learn more",
+        "cta_url": "/collections/all",
+        "reverse": false
+      }
+    },
+    "layers": {
+      "type": "feature-columns",
+      "settings": {
+        "eyebrow": "Why us",
+        "title": "What sets us apart",
+        "intro": "Add a short line about what makes your product worth choosing.",
+        "show_index": true
+      },
+      "blocks": {
+        "l1": { "type": "column", "settings": { "title": "Quality", "text": "Made with care, from materials you can trust." } },
+        "l2": { "type": "column", "settings": { "title": "Designed for you", "text": "Thoughtful details that make everyday use a pleasure." } },
+        "l3": { "type": "column", "settings": { "title": "Made to last", "text": "Built to stay with you, season after season." } }
+      },
+      "block_order": ["l1", "l2", "l3"]
+    },
+    "story": {
+      "type": "editorial-text",
+      "settings": {
+        "section_number": "Our story",
+        "heading": "About\nus",
+        "body": "Tell your brand's story here. Share what you make, who it's for, and what makes it different — in a sentence or two.",
+        "link_label": "Read our story",
+        "link_url": "/pages/about"
+      }
+    },
+    "gallery": {
+      "type": "image-gallery",
+      "settings": {
+        "eyebrow": "Gallery",
+        "title": "In the wild",
+        "columns": 3,
+        "gap": 8,
+        "ratio": "1",
+        "handle": "@yourbrand"
+      },
+      "blocks": {
+        "g1": { "type": "image" }, "g2": { "type": "image" }, "g3": { "type": "image" },
+        "g4": { "type": "image" }, "g5": { "type": "image" }, "g6": { "type": "image" }
+      },
+      "block_order": ["g1", "g2", "g3", "g4", "g5", "g6"]
+    },
+    "closing": {
+      "type": "statement",
+      "settings": {
+        "eyebrow": "",
+        "text": "<p>Made for <em>you.</em></p>",
+        "subtext": "Add a closing line that captures what your brand is about.",
+        "cta_label": "Shop the collection",
+        "cta_url": "/collections/all",
+        "show_logo": true,
+        "logo_text": "",
+        "bordered": true
+      }
+    }
+  },
+  "order": ["hero", "marquee", "launch", "details", "layers", "story", "gallery", "closing"]
+}

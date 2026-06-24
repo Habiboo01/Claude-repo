@@ -1,0 +1,71 @@
+<section class="editorial" id="Editorial-{{ section.id }}">
+  <div class="editorial__inner">
+    <div>
+      {% if section.settings.section_number != blank %}
+        <p class="editorial__number reveal">{{ section.settings.section_number }}</p>
+      {% endif %}
+      <h2 class="editorial__heading reveal">
+        {{ section.settings.heading | newline_to_br }}
+      </h2>
+    </div>
+    <div>
+      <div class="editorial__divider reveal"></div>
+      {% if section.settings.body != blank %}
+        <p class="editorial__body reveal">{{ section.settings.body }}</p>
+      {% endif %}
+      {% if section.settings.link_label != blank %}
+        <a href="{{ section.settings.link_url }}" class="editorial__link reveal">
+          {{ section.settings.link_label }}
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Editorial Text",
+  "tag": "section",
+  "class": "section-editorial",
+  "settings": [
+    {
+      "type": "text",
+      "id": "section_number",
+      "label": "Section label / number",
+      "default": "01 — About"
+    },
+    {
+      "type": "textarea",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Wear\nYour\nStory"
+    },
+    {
+      "type": "textarea",
+      "id": "body",
+      "label": "Body text",
+      "default": "Tell your brand's story here. Share what you make, who it's for, and what makes it different — in a sentence or two."
+    },
+    {
+      "type": "text",
+      "id": "link_label",
+      "label": "Link label",
+      "default": "Our Story"
+    },
+    {
+      "type": "url",
+      "id": "link_url",
+      "label": "Link URL",
+      "default": "/pages/about"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Editorial Text"
+    }
+  ]
+}
+{% endschema %}

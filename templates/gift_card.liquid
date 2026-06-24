@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="{{ settings.color_bg | default: '#f5efe8' }}">
+  {%- assign gc_value = gift_card.initial_value | money -%}
+  <title>{{ 'gift_cards.issued.title' | t: value: gc_value, shop: shop.name }}</title>
+  {%- if settings.favicon != blank -%}
+    <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+  {%- endif -%}
+
+  {{- 'base.css' | asset_url | stylesheet_tag -}}
+
+  {% style %}
+    {%- if settings.heading_font.family != blank -%}{{ settings.heading_font | font_face: font_display: 'swap' }}{%- endif -%}
+    {%- if settings.body_font.family != blank -%}{{ settings.body_font | font_face: font_display: 'swap' }}{%- endif -%}
+    :root {
+      --color-bg: {{ settings.color_bg | default: '#f5efe8' }};
+      --color-fg: {{ settings.color_fg | default: '#211c18' }};
+      --color-muted: {{ settings.color_muted | default: '#9a8d80' }};
+      --color-card: {{ settings.color_card | default: '#ece3d9' }};
+      --color-border: color-mix(in srgb, {{ settings.color_fg | default: '#211c18' }} {{ settings.border_opacity | default: 16 }}%, transparent);
+      {%- if settings.heading_font.family != blank %}--font-heading: {{ settings.heading_font.family }}, {{ settings.heading_font.fallback_families }};{%- endif %}
+      {%- if settings.body_font.family != blank %}--font-body: {{ settings.body_font.family }}, {{ settings.body_font.fallback_families }};{%- endif %}
+      --heading-tracking: {{ settings.heading_tracking | default: -1 | divided_by: 100.0 }}em;
+      --radius: {{ settings.corner_radius | default: 100 }}px;
+    }
+    @media print { .giftcard__actions { display: none; } }
+  {% endstyle %}
+</head>
+<body>
+  <main class="giftcard" role="main">
+    <div class="giftcard__inner">
+      <p class="giftcard__label">{{ shop.name }} · {{ 'gift_cards.issued.subtext' | t }}</p>
+      <div class="giftcard__amount">{{ gift_card.initial_value | money }}</div>
+
+      <div class="giftcard__card">
+        {%- if gift_card.expired -%}
+          <p class="badge" style="margin-bottom:1rem;">{{ 'gift_cards.issued.expired' | t }}</p>
+        {%- elsif gift_card.expires_on -%}
+          {%- assign gc_expires = gift_card.expires_on | date: '%b %d, %Y' -%}
+          <p class="text-muted" style="font-size:13px;margin-bottom:1rem;">{{ 'gift_cards.issued.expiration_date' | t: expires_on: gc_expires }}</p>
+        {%- endif -%}
+
+        <p class="giftcard__label" style="margin:0;">{{ 'gift_cards.issued.gift_card_code' | t }}</p>
+        <div class="giftcard__code" id="GiftCardCode">{{ gift_card.code | format_code }}</div>
+
+        {%- if gift_card.balance != gift_card.initial_value -%}
+          {%- assign gc_balance = gift_card.balance | money -%}
+          <p class="text-muted" style="font-size:13px;">{{ 'gift_cards.issued.remaining_html' | t: balance: gc_balance }}</p>
+        {%- endif -%}
+      </div>
+
+      <div class="giftcard__actions">
+        <button type="button" class="btn-secondary" style="width:auto;" onclick="navigator.clipboard.writeText('{{ gift_card.code | format_code }}').then(function(){var b=event.target;var t=b.textContent;b.textContent='{{ 'gift_cards.issued.copied' | t }}';setTimeout(function(){b.textContent=t;},1500);});">{{ 'gift_cards.issued.copy_code' | t }}</button>
+        <button type="button" class="btn-secondary" style="width:auto;" onclick="window.print();">{{ 'gift_cards.issued.print' | t }}</button>
+        <a href="{{ shop.url }}" class="btn-add-to-cart" style="width:auto;display:inline-flex;align-items:center;text-decoration:none;"><span>{{ 'gift_cards.issued.shop_link' | t }}</span></a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

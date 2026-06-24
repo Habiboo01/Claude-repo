@@ -1,0 +1,56 @@
+<div class="blog" id="Blog-{{ section.id }}">
+  <div class="blog__head">
+    <p class="label reveal">{{ 'blogs.general.all' | t }}</p>
+    <h1 class="blog__title clip-reveal"><span>{{ blog.title }}</span></h1>
+  </div>
+
+  {%- paginate blog.articles by section.settings.posts_per_page -%}
+    <div class="blog__grid stagger">
+      {%- for article in blog.articles -%}
+        <a href="{{ article.url }}" class="article-card reveal">
+          {%- if article.image and section.settings.show_image -%}
+            <div class="article-card__media">
+              <img src="{{ article.image | image_url: width: 800 }}"
+                   srcset="{{ article.image | image_url: width: 500 }} 500w, {{ article.image | image_url: width: 800 }} 800w"
+                   sizes="(min-width:900px) 33vw, 100vw"
+                   alt="{{ article.image.alt | escape }}" loading="lazy">
+            </div>
+          {%- endif -%}
+          <p class="article-card__meta">
+            {%- if section.settings.show_date -%}{{ article.published_at | date: '%b %d, %Y' }}{%- endif -%}
+            {%- if section.settings.show_author and article.author -%} · {{ 'blogs.general.by_author' | t: author: article.author }}{%- endif -%}
+          </p>
+          <h2 class="article-card__title">{{ article.title }}</h2>
+          {%- if section.settings.show_excerpt -%}
+            <p class="article-card__excerpt">{{ article.excerpt_or_content | strip_html | truncatewords: 24 }}</p>
+          {%- endif -%}
+        </a>
+      {%- endfor -%}
+    </div>
+
+    {%- if paginate.pages > 1 -%}
+      <div class="pagination">
+        {%- if paginate.previous -%}<a href="{{ paginate.previous.url }}" class="filter-btn">← {{ 'general.pagination.previous' | t }}</a>{%- endif -%}
+        {%- for part in paginate.parts -%}
+          {%- if part.is_link -%}<a href="{{ part.url }}" class="filter-btn">{{ part.title }}</a>
+          {%- else -%}<span class="filter-btn active">{{ part.title }}</span>{%- endif -%}
+        {%- endfor -%}
+        {%- if paginate.next -%}<a href="{{ paginate.next.url }}" class="filter-btn">{{ 'general.pagination.next' | t }} →</a>{%- endif -%}
+      </div>
+    {%- endif -%}
+  {%- endpaginate -%}
+</div>
+
+{% schema %}
+{
+  "name": "Blog posts",
+  "tag": "section",
+  "settings": [
+    { "type": "range", "id": "posts_per_page", "label": "Posts per page", "min": 3, "max": 24, "step": 3, "default": 9 },
+    { "type": "checkbox", "id": "show_image", "label": "Show featured image", "default": true },
+    { "type": "checkbox", "id": "show_date", "label": "Show date", "default": true },
+    { "type": "checkbox", "id": "show_author", "label": "Show author", "default": false },
+    { "type": "checkbox", "id": "show_excerpt", "label": "Show excerpt", "default": true }
+  ]
+}
+{% endschema %}

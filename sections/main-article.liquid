@@ -1,0 +1,84 @@
+<article class="article" id="Article-{{ section.id }}">
+  <a href="{{ blog.url }}" class="auth__link" style="margin:0 0 var(--spacing-md);">← {{ 'blogs.article.back_to_blog' | t: title: blog.title }}</a>
+
+  <p class="article__meta reveal">
+    {%- if section.settings.show_date -%}{{ article.published_at | date: '%b %d, %Y' }}{%- endif -%}
+    {%- if section.settings.show_author and article.author -%} · {{ 'blogs.general.by_author' | t: author: article.author }}{%- endif -%}
+  </p>
+  <h1 class="article__title reveal">{{ article.title }}</h1>
+
+  {%- if article.image and section.settings.show_image -%}
+    <div class="article__hero reveal-scale">
+      <img src="{{ article.image | image_url: width: 1600 }}"
+           srcset="{{ article.image | image_url: width: 800 }} 800w, {{ article.image | image_url: width: 1600 }} 1600w"
+           sizes="(min-width:760px) 760px, 100vw"
+           alt="{{ article.image.alt | escape }}" loading="eager">
+    </div>
+  {%- endif -%}
+
+  <div class="article__body rte reveal">{{ article.content }}</div>
+
+  {%- if section.settings.show_tags and article.tags.size > 0 -%}
+    <div class="article__footer">
+      <p class="account-block__title">{{ 'blogs.general.tags' | t }}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        {%- for tag in article.tags -%}
+          <a href="{{ blog.url }}/tagged/{{ tag | handleize }}" class="filter-btn">{{ tag }}</a>
+        {%- endfor -%}
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- if blog.comments_enabled? -%}
+    <div class="article__footer" id="comments">
+      <p class="account-block__title">{{ 'blogs.article.comments' | t: count: article.comments_count }}</p>
+
+      {%- if article.comments_count > 0 -%}
+        {%- for comment in article.comments -%}
+          <div class="comment">
+            <p class="comment__author">{{ comment.author }}</p>
+            <p class="comment__date">{{ comment.created_at | date: '%b %d, %Y' }}</p>
+            <div class="rte" style="margin-top:8px;">{{ comment.content }}</div>
+          </div>
+        {%- endfor -%}
+      {%- endif -%}
+
+      {%- form 'new_comment', article -%}
+        <h3 style="margin:var(--spacing-md) 0 var(--spacing-sm);">{{ 'blogs.article.comment_form_title' | t }}</h3>
+        {%- if form.errors -%}
+          <ul class="form-errors">{%- for field in form.errors -%}<li>{{ form.errors.messages[field] }}</li>{%- endfor -%}</ul>
+        {%- endif -%}
+        {%- if form.posted_successfully? -%}
+          <p class="form-success">{% if blog.moderated? %}{{ 'blogs.article.success_moderated' | t }}{% else %}{{ 'blogs.article.success' | t }}{% endif %}</p>
+        {%- endif -%}
+        <div class="auth__field">
+          <label class="auth__label" for="CommentName">{{ 'blogs.article.name' | t }}</label>
+          <input type="text" name="comment[author]" id="CommentName" value="{{ form.author }}" required>
+        </div>
+        <div class="auth__field">
+          <label class="auth__label" for="CommentEmail">{{ 'blogs.article.email' | t }}</label>
+          <input type="email" name="comment[email]" id="CommentEmail" value="{{ form.email }}" autocapitalize="off" required>
+        </div>
+        <div class="auth__field">
+          <label class="auth__label" for="CommentBody">{{ 'blogs.article.message' | t }}</label>
+          <textarea name="comment[body]" id="CommentBody" rows="4" required>{{ form.body }}</textarea>
+        </div>
+        {%- if blog.moderated? -%}<p class="text-muted" style="font-size:12px;margin-bottom:var(--spacing-sm);">{{ 'blogs.article.moderated' | t }}</p>{%- endif -%}
+        <button type="submit" class="btn-add-to-cart" style="width:auto;"><span>{{ 'blogs.article.post' | t }}</span></button>
+      {%- endform -%}
+    </div>
+  {%- endif -%}
+</article>
+
+{% schema %}
+{
+  "name": "Blog post",
+  "tag": "section",
+  "settings": [
+    { "type": "checkbox", "id": "show_image", "label": "Show featured image", "default": true },
+    { "type": "checkbox", "id": "show_date", "label": "Show date", "default": true },
+    { "type": "checkbox", "id": "show_author", "label": "Show author", "default": true },
+    { "type": "checkbox", "id": "show_tags", "label": "Show tags", "default": true }
+  ]
+}
+{% endschema %}

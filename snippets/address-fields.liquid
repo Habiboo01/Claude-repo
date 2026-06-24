@@ -1,0 +1,55 @@
+{%- comment -%}
+  Address form fields. Usage: {% render 'address-fields', form: form %}
+{%- endcomment -%}
+{%- assign uid = form.id | default: 'new' -%}
+
+<div class="auth__field">
+  <label class="auth__label" for="Address-FirstName-{{ uid }}">{{ 'customer.addresses.first_name' | t }}</label>
+  <input type="text" id="Address-FirstName-{{ uid }}" name="address[first_name]" value="{{ form.first_name }}" autocomplete="given-name">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-LastName-{{ uid }}">{{ 'customer.addresses.last_name' | t }}</label>
+  <input type="text" id="Address-LastName-{{ uid }}" name="address[last_name]" value="{{ form.last_name }}" autocomplete="family-name">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-Company-{{ uid }}">{{ 'customer.addresses.company' | t }}</label>
+  <input type="text" id="Address-Company-{{ uid }}" name="address[company]" value="{{ form.company }}" autocomplete="organization">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-Address1-{{ uid }}">{{ 'customer.addresses.address1' | t }}</label>
+  <input type="text" id="Address-Address1-{{ uid }}" name="address[address1]" value="{{ form.address1 }}" autocomplete="address-line1">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-Address2-{{ uid }}">{{ 'customer.addresses.address2' | t }}</label>
+  <input type="text" id="Address-Address2-{{ uid }}" name="address[address2]" value="{{ form.address2 }}" autocomplete="address-line2">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-City-{{ uid }}">{{ 'customer.addresses.city' | t }}</label>
+  <input type="text" id="Address-City-{{ uid }}" name="address[city]" value="{{ form.city }}" autocomplete="address-level2">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-Country-{{ uid }}">{{ 'customer.addresses.country' | t }}</label>
+  <select id="Address-Country-{{ uid }}" name="address[country]" data-default="{{ form.country }}" autocomplete="country">{{ all_country_option_tags }}</select>
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-Province-{{ uid }}">{{ 'customer.addresses.province' | t }}</label>
+  <input type="text" id="Address-Province-{{ uid }}" name="address[province]" value="{{ form.province }}" autocomplete="address-level1">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-Zip-{{ uid }}">{{ 'customer.addresses.zip' | t }}</label>
+  <input type="text" id="Address-Zip-{{ uid }}" name="address[zip]" value="{{ form.zip }}" autocomplete="postal-code" autocapitalize="characters">
+</div>
+<div class="auth__field">
+  <label class="auth__label" for="Address-Phone-{{ uid }}">{{ 'customer.addresses.phone' | t }}</label>
+  <input type="tel" id="Address-Phone-{{ uid }}" name="address[phone]" value="{{ form.phone }}" autocomplete="tel">
+</div>
+<label style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--color-muted);margin-bottom:var(--spacing-sm);">
+  {{ form.set_as_default_checkbox }} {{ 'customer.addresses.set_default' | t }}
+</label>
+
+<script>
+  (function () {
+    var select = document.getElementById('Address-Country-{{ uid }}');
+    if (select && select.dataset.default) { select.value = select.dataset.default; }
+  })();
+</script>

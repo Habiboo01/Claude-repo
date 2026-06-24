@@ -1,1 +1,6 @@
 *.zip
+
+# Downloaded media / scratch assets (not part of the theme)
+*.mp4
+*.mov
+*.webm

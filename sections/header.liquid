@@ -1,0 +1,92 @@
+<div class="cursor" aria-hidden="true">
+  <div class="cursor__dot"></div>
+  <div class="cursor__circle"></div>
+</div>
+
+{% if section.settings.show_announcement and section.settings.announcement_text != blank %}
+  <div class="announcement-bar" role="status">{{ section.settings.announcement_text }}</div>
+{% endif %}
+
+<header class="site-header{% if section.settings.show_announcement and section.settings.announcement_text != blank %} site-header--with-announcement{% endif %}" role="banner">
+  <div class="site-header__left">
+    <button class="menu-trigger" data-menu-open aria-label="Open menu">
+      <span class="menu-trigger__dot"></span>
+      Menu
+    </button>
+    {% if section.settings.show_shop_link %}
+      <a href="{{ routes.all_products_collection_url }}" class="header-link">Shop</a>
+    {% endif %}
+  </div>
+
+  <a href="{{ routes.root_url }}" class="site-header__logo" aria-label="{{ shop.name }} home">
+    {% if section.settings.logo != blank %}
+      <img src="{{ section.settings.logo | image_url: width: 240 }}" alt="{{ shop.name }}">
+    {% else %}
+      {{ shop.name }}
+    {% endif %}
+  </a>
+
+  <div class="site-header__right">
+    <a href="{{ routes.search_url }}" class="header-link">Search</a>
+    {% if shop.customer_accounts_enabled %}
+      <a href="{{ routes.account_url }}" class="header-link">Account</a>
+    {% endif %}
+    <button class="header-cart" data-cart-open aria-label="Open cart">
+      Cart <span class="header-cart__count">[<span class="cart-count">{{ cart.item_count }}</span>]</span>
+    </button>
+  </div>
+</header>
+
+<!-- Fullscreen Menu Overlay -->
+<nav class="menu-overlay" aria-label="Main navigation">
+  <div class="menu-overlay__top">
+    <span class="label">{{ shop.name }} — Index</span>
+    <button class="menu-overlay__close" data-menu-close aria-label="Close menu">
+      Close <span class="menu-overlay__close-x"></span>
+    </button>
+  </div>
+
+  <div class="menu-overlay__body">
+    <div class="menu-overlay__links">
+      {% for link in linklists[section.settings.main_menu].links %}
+        <a href="{{ link.url }}" class="menu-overlay__link" style="--i: {{ forloop.index0 }};">
+          <span class="idx">0{{ forloop.index }}</span>{{ link.title }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="menu-overlay__aside">
+      {% if section.settings.menu_image != blank %}
+        <img src="{{ section.settings.menu_image | image_url: width: 600 }}" alt="" loading="lazy" style="aspect-ratio:4/5;object-fit:cover;width:100%;">
+      {% endif %}
+      <div>
+        <h4>Connect</h4>
+        {% if section.settings.instagram_url != blank %}<a href="{{ section.settings.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+        {% if section.settings.tiktok_url != blank %}<a href="{{ section.settings.tiktok_url }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
+        <a href="{{ routes.search_url }}">Search</a>
+        {% if shop.customer_accounts_enabled %}<a href="{{ routes.account_url }}">Account</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+
+{% render 'cart-drawer' %}
+
+{% schema %}
+{
+  "name": "Header",
+  "tag": "header",
+  "class": "section-header",
+  "settings": [
+    { "type": "checkbox", "id": "show_announcement", "label": "Show announcement bar", "default": true },
+    { "type": "text", "id": "announcement_text", "label": "Announcement text", "default": "Complimentary shipping on orders over $50" },
+    { "type": "image_picker", "id": "logo", "label": "Logo" },
+    { "type": "link_list", "id": "main_menu", "label": "Main menu", "default": "main-menu" },
+    { "type": "checkbox", "id": "show_shop_link", "label": "Show 'Shop' link in header", "default": true },
+    { "type": "header", "content": "Menu overlay" },
+    { "type": "image_picker", "id": "menu_image", "label": "Menu feature image" },
+    { "type": "url", "id": "instagram_url", "label": "Instagram URL" },
+    { "type": "url", "id": "tiktok_url", "label": "TikTok URL" }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,73 @@
+{%- comment -%} Customer login + password recovery {%- endcomment -%}
+<div class="auth" id="CustomerLogin">
+
+  <div id="login-view">
+    <h1 class="auth__title">{{ 'customer.login.title' | t }}</h1>
+
+    {%- form 'customer_login', novalidate: 'novalidate' -%}
+      {%- if form.errors -%}
+        <ul class="form-errors">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+
+      <div class="auth__field">
+        <label class="auth__label" for="CustomerEmail">{{ 'customer.login.email' | t }}</label>
+        <input type="email" name="customer[email]" id="CustomerEmail" autocomplete="email" autocapitalize="off" required>
+      </div>
+
+      {%- if form.password_needed -%}
+        <div class="auth__field">
+          <label class="auth__label" for="CustomerPassword">{{ 'customer.login.password' | t }}</label>
+          <input type="password" name="customer[password]" id="CustomerPassword" autocomplete="current-password" required>
+        </div>
+        <a href="#recover" class="auth__link" onclick="document.getElementById('login-view').hidden=true;document.getElementById('recover-view').hidden=false;return false;">{{ 'customer.login.forgot_password' | t }}</a>
+      {%- endif -%}
+
+      <div class="auth__actions">
+        <button type="submit" class="btn-add-to-cart"><span>{{ 'customer.login.sign_in' | t }}</span></button>
+      </div>
+    {%- endform -%}
+
+    {%- if shop.checkout.guest_login -%}
+      <div class="auth__alt">
+        <p>{{ 'customer.login.guest_title' | t }}</p>
+        {%- form 'guest_login' -%}
+          <div class="auth__actions"><button type="submit" class="btn-secondary">{{ 'customer.login.guest_continue' | t }}</button></div>
+        {%- endform -%}
+      </div>
+    {%- endif -%}
+
+    <div class="auth__alt">
+      {{ 'customer.login.create_account_prompt' | t }}
+      <a href="{{ routes.account_register_url }}" class="auth__link">{{ 'customer.login.create_account' | t }}</a>
+    </div>
+  </div>
+
+  <div id="recover-view" hidden>
+    <h1 class="auth__title">{{ 'customer.recover_password.title' | t }}</h1>
+    <p class="auth__subtext">{{ 'customer.recover_password.subtext' | t }}</p>
+
+    {%- form 'recover_customer_password' -%}
+      {%- if form.errors -%}
+        <ul class="form-errors">
+          {%- for field in form.errors -%}<li>{{ form.errors.messages[field] }}</li>{%- endfor -%}
+        </ul>
+      {%- endif -%}
+      {%- if form.posted_successfully? -%}
+        <p class="form-success">{{ 'customer.recover_password.success' | t }}</p>
+      {%- endif -%}
+      <div class="auth__field">
+        <label class="auth__label" for="RecoverEmail">{{ 'customer.login.email' | t }}</label>
+        <input type="email" name="email" id="RecoverEmail" autocomplete="email" autocapitalize="off" required>
+      </div>
+      <div class="auth__actions">
+        <button type="submit" class="btn-add-to-cart"><span>{{ 'customer.reset_password.submit' | t }}</span></button>
+      </div>
+    {%- endform -%}
+    <a href="#login" class="auth__link" onclick="document.getElementById('recover-view').hidden=true;document.getElementById('login-view').hidden=false;return false;">{{ 'customer.reset_password.cancel' | t }}</a>
+  </div>
+
+</div>

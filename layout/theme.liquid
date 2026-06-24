@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="{{ settings.color_bg | default: '#f5efe8' }}">
+
+  {%- if settings.favicon != blank -%}
+    <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+  {%- endif -%}
+
+  <title>
+    {{ page_title }}
+    {%- if current_tags %} &ndash; tagged "{{ current_tags | join: ', ' }}"{% endif -%}
+    {%- if current_page != 1 %} &ndash; Page {{ current_page }}{% endif -%}
+    {%- unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless -%}
+  </title>
+
+  {%- if page_description -%}
+    <meta name="description" content="{{ page_description | escape }}">
+  {%- endif -%}
+
+  {%- if page_description -%}
+    <meta property="og:description" content="{{ page_description | escape }}">
+  {%- endif -%}
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:title" content="{{ page_title | escape }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ shop.name }}">
+  {%- if product.featured_image -%}
+    <meta property="og:image" content="{{ product.featured_image | image_url: width: 1200 }}">
+  {%- elsif collection.image -%}
+    <meta property="og:image" content="{{ collection.image | image_url: width: 1200 }}">
+  {%- endif -%}
+
+  {{ content_for_header }}
+
+  {{- 'base.css' | asset_url | stylesheet_tag -}}
+
+  {% style %}
+    {%- if settings.heading_font.family != blank -%}
+      {{ settings.heading_font | font_face: font_display: 'swap' }}
+    {%- endif -%}
+    {%- if settings.body_font.family != blank -%}
+      {{ settings.body_font | font_face: font_display: 'swap' }}
+    {%- endif -%}
+    :root {
+      --color-bg: {{ settings.color_bg | default: '#f5efe8' }};
+      --color-fg: {{ settings.color_fg | default: '#211c18' }};
+      --color-muted: {{ settings.color_muted | default: '#9a8d80' }};
+      --color-card: {{ settings.color_card | default: '#ece3d9' }};
+      --color-accent: {{ settings.color_accent | default: '#b67b5e' }};
+      --color-border: color-mix(in srgb, {{ settings.color_fg | default: '#211c18' }} {{ settings.border_opacity | default: 16 }}%, transparent);
+      {%- if settings.heading_font.family != blank %}
+      --font-heading: {{ settings.heading_font.family }}, {{ settings.heading_font.fallback_families }};
+      {%- endif %}
+      {%- if settings.body_font.family != blank %}
+      --font-body: {{ settings.body_font.family }}, {{ settings.body_font.fallback_families }};
+      {%- endif %}
+      --heading-tracking: {{ settings.heading_tracking | default: -1 | divided_by: 100.0 }}em;
+      --radius: {{ settings.corner_radius | default: 100 }}px;
+      --max-width: {{ settings.page_width | default: 1600 }}px;
+    }
+    {%- unless settings.animations_reveal_on_scroll %}
+    .reveal, .reveal-left, .reveal-right, .reveal-scale { opacity: 1 !important; transform: none !important; }
+    .clip-reveal > span { transform: none !important; }
+    {%- endunless %}
+  {% endstyle %}
+
+  <script>
+    document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
+  </script>
+</head>
+
+<body class="{% if settings.animations_reveal_on_scroll %}animate--page-load{% endif %}{% if settings.enable_custom_cursor %} has-custom-cursor{% endif %}">
+
+  {%- sections 'header-group' -%}
+
+  <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
+    {{ content_for_layout }}
+  </main>
+
+  {%- sections 'footer-group' -%}
+
+  <div class="cart-backdrop"></div>
+  <div class="page-transition"></div>
+
+  <script src="{{ 'theme.js' | asset_url }}" defer></script>
+</body>
+</html>
