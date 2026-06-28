@@ -1602,6 +1602,7 @@ function ym(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,
 function fmtMonth(s) { const [y,m]=s.split('-'); return new Date(+y,+m-1,1).toLocaleString('default',{month:'long',year:'numeric'}); }
 function inMonth(dateStr, mk) { if(!mk) return true; const d=parseDate(dateStr); return d?ym(d)===mk:false; }
 function parseDate(s) { if(!s) return null; const d=new Date(s); return isNaN(d)?null:d; }
+function parseDateLocal(s){ if(!s) return null; const p=String(s).split('-').map(Number); return p.length===3?new Date(p[0],p[1]-1,p[2]):null; }
 function getMonth(id) { const el=document.getElementById(id); return el?el.value:''; }
 
 // ════════════════════════════════════════
@@ -1747,8 +1748,8 @@ function calcProdRange(name, from, to) {
     if (r.agent_name.trim() !== name.trim()) return false;
     if (!from && !to) return true;
     const d = parseDate(r.activity_date); if (!d) return false;
-    if (from && d < new Date(from)) return false;
-    if (to   && d > new Date(to))   return false;
+    if (from && d < parseDateLocal(from)) return false;
+    if (to   && d > parseDateLocal(to))   return false;
     return true;
   });
   if (!rows.length) return null;
@@ -1792,8 +1793,8 @@ function aggregateAuxRows(rows, name, from, to, mk) {
       if (mk) return inMonth(e.date, mk);
       if (!from && !to) return true;
       const d=parseDate(e.date); if(!d) return false;
-      if (from && d<new Date(from)) return false;
-      if (to   && d>new Date(to))   return false;
+      if (from && d<parseDateLocal(from)) return false;
+      if (to   && d>parseDateLocal(to))   return false;
       return true;
     })
     .reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
@@ -1846,8 +1847,8 @@ function calcQualityRange(name, from, to) {
     if (r['Agent Name'] !== name) return false;
     if (!from && !to) return true;
     const d = parseDate(r['Timestamp']); if (!d) return false;
-    if (from && d < new Date(from)) return false;
-    if (to   && d > new Date(to))   return false;
+    if (from && d < parseDateLocal(from)) return false;
+    if (to   && d > parseDateLocal(to))   return false;
     return true;
   });
   if (!rows.length) return null;
@@ -1898,8 +1899,8 @@ function aggPerfFromRaw(agentName, from, to) {
   let rows = S.rRows.filter(r => rcVal(r,'agent_name') === agentName);
   if (from || to) rows = rows.filter(r => {
     const d = parseDate(rcDate(r)); if (!d) return true;
-    if (from && d < new Date(from)) return false;
-    if (to   && d > new Date(to))   return false;
+    if (from && d < parseDateLocal(from)) return false;
+    if (to   && d > parseDateLocal(to))   return false;
     return true;
   });
   if (!rows.length) return null;
@@ -1937,7 +1938,7 @@ function weeklyPerf(rows){
 // Raw data rows → per-week AHT/FRT/CSAT derived from S.rRows.
 function weeklyPerfFromRaw(rRows, from, to){
   let rows = rRows;
-  if (from || to) rows = rows.filter(r=>{ const d=parseDate(rcDate(r)); if(!d) return true; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
+  if (from || to) rows = rows.filter(r=>{ const d=parseDate(rcDate(r)); if(!d) return true; if(from&&d<parseDateLocal(from)) return false; if(to&&d>parseDateLocal(to)) return false; return true; });
   const byW={}; rows.forEach(r=>{ const w=weekStart(rcDate(r)); if(!w) return; (byW[w]=byW[w]||[]).push(r); });
   return Object.keys(byW).sort().map(w=>{
     const wr=byW[w];
@@ -2119,9 +2120,9 @@ function renderOverview() {
   const PR = a => hasRange ? calcProdRange(a,from,to)    : calcProd(a,mk);
   const useRawPerf = S.rRows.length > 0;
   const PF = a => useRawPerf ? aggPerfFromRaw(a,pFrom,pTo) : aggPerf(getAgentPerfRows(a,pFrom,pTo));
-  const inScope = ts => { if(!hasRange) return inMonth(ts,mk); const d=parseDate(ts); if(!d) return false; if(from&&d<new Date(from))return false; if(to&&d>new Date(to))return false; return true; };
+  const inScope = ts => { if(!hasRange) return inMonth(ts,mk); const d=parseDate(ts); if(!d) return false; if(from&&d<parseDateLocal(from))return false; if(to&&d>parseDateLocal(to))return false; return true; };
   const scopeLabel = hasRange
-    ? `${from?new Date(from).toLocaleDateString('en-GB'):'…'} – ${to?new Date(to).toLocaleDateString('en-GB'):'…'}`
+    ? `${from?(parseDateLocal(from)||new Date(from)).toLocaleDateString('en-GB'):'…'} – ${to?(parseDateLocal(to)||new Date(to)).toLocaleDateString('en-GB'):'…'}`
     : (mk?fmtMonth(mk):'All Time');
 
   const _allAgents = allAgents();
@@ -2282,8 +2283,8 @@ function renderQuality() {
     if (!agents.includes(r['Agent Name'])) return false;
     if (!from && !to) return true;
     const d = parseDate(r['Timestamp']); if (!d) return false;
-    if (from && d < new Date(from)) return false;
-    if (to   && d > new Date(to))   return false;
+    if (from && d < parseDateLocal(from)) return false;
+    if (to   && d > parseDateLocal(to))   return false;
     return true;
   });
   if (!rows.length) { document.getElementById('qualityContent').innerHTML=emptyHtml('No quality data','Sync to load or widen your filters'); return; }
@@ -2561,8 +2562,8 @@ function drillAgentAux(name, from, to) {
     if (r.agent_name.trim()!==name.trim()) return false;
     if (!from && !to) return true;
     const d=parseDate(r.activity_date); if(!d) return false;
-    if (from && d<new Date(from)) return false;
-    if (to   && d>new Date(to))   return false;
+    if (from && d<parseDateLocal(from)) return false;
+    if (to   && d>parseDateLocal(to))   return false;
     return true;
   }).sort((a,b)=>new Date(a.activity_date)-new Date(b.activity_date));
 
@@ -2864,7 +2865,7 @@ function renderWow(){
     let perfRows=[]; agents.forEach(a=>{ perfRows=perfRows.concat(getAgentPerfRows(a,from,to)); });
     wp=weeklyPerf(perfRows);
   }
-  const qRows=S.qRows.filter(r=>{ if(!aset.has(r['Agent Name'])) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
+  const qRows=S.qRows.filter(r=>{ if(!aset.has(r['Agent Name'])) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<parseDateLocal(from)) return false; if(to&&d>parseDateLocal(to)) return false; return true; });
   let wq=weeklyQA(qRows);
   if(wp.length>12) wp=wp.slice(-12);
   if(wq.length>12) wq=wq.slice(-12);
@@ -2922,7 +2923,7 @@ function rcFilteredRows(){
     if(statusF && rcVal(r,'ticket_status')!==statusF) return false;
     if(typeF && rcVal(r,'conversation_type')!==typeF) return false;
     if(domF && rcVal(r,'domain')!==domF) return false;
-    if(from||to){ const d=parseDate(rcDate(r)); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; }
+    if(from||to){ const d=parseDate(rcDate(r)); if(!d) return false; if(from&&d<parseDateLocal(from)) return false; if(to&&d>parseDateLocal(to)) return false; }
     return true;
   });
 }
@@ -3206,11 +3207,12 @@ function renderAgent() {
     qaHtml=`<div class="card">
       <div class="card-hd"><span class="card-title">QA Reviews</span><span class="badge bp">${q.total} total · avg ${qs}% · sorted by ${AGQ.col} ${AGQ.dir<0?'↓':'↑'}</span></div>
       <div class="tbl-wrap card-bd-0"><table class="tbl">
-        <thead><tr>${th('date','Date')}${th('score','Score')}<th>Ticket</th><th>Comment</th><th>Dispute</th></tr></thead>
+        <thead><tr>${th('date','Date')}${th('score','Score')}<th>Failed Attrs</th><th>Ticket</th><th>Comment</th><th>Dispute</th></tr></thead>
         <tbody>${recent.map(r=>{
           const s=getScore(r); const cls=scoreCls(s);
           const ts=r['Timestamp']?new Date(r['Timestamp']).toLocaleDateString('en-GB'):'—';
           const lnk=r['Tickets Link']||'';
+          const failed=qaFailedAttrs(r);
           const disputed=isDisputed(r);
           const dispute = disputed
             ? `<span class="badge ba" title="${(recByTicketA[lnk.trim().toLowerCase()]?.reason||'Dispute submitted').replace(/"/g,'&quot;')}">⚖ Disputed</span>`
@@ -3218,6 +3220,7 @@ function renderAgent() {
           return `<tr>
             <td style="font-size:11px">${ts}</td>
             <td>${s!==null?`<span class="sc-badge ${cls}">${s.toFixed(1)}%</span>`:'—'}</td>
+            <td style="font-size:11px;color:var(--red)">${failed.length?failed.join(', '):'—'}</td>
             <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>`:'—'}</td>
             <td style="font-size:11.5px;color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Comment']||'—'}</td>
             <td style="white-space:nowrap">${dispute}</td>
@@ -3233,7 +3236,7 @@ function renderAgent() {
     ? weeklyPerfFromRaw(S.rRows.filter(r=>rcVal(r,'agent_name')===name), from, to)
     : weeklyPerf(getAgentPerfRows(name,from,to));
   if(agWp.length>12) agWp=agWp.slice(-12);
-  const agQrows=S.qRows.filter(r=>{ if(r['Agent Name']!==name) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
+  const agQrows=S.qRows.filter(r=>{ if(r['Agent Name']!==name) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<parseDateLocal(from)) return false; if(to&&d>parseDateLocal(to)) return false; return true; });
   let agWq=weeklyQA(agQrows); if(agWq.length>12) agWq=agWq.slice(-12);
   const haveWow = agWp.length>1 || agWq.length>1;
   const wowHtml = haveWow ? `<div style="font-size:11px;color:var(--text3);margin:6px 2px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Week-over-Week</div>
