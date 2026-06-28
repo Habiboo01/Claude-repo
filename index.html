@@ -1147,7 +1147,7 @@ function resolveIdentities(sets){
   const norm=v=>String(v==null?'':v).trim(), lc=v=>norm(v).toLowerCase();
   const idReverse={}; Object.keys(S.agentIds||{}).forEach(n=>{ const id=String(S.agentIds[n]||'').toUpperCase(); if(id) idReverse[id]=n; });
   const knownIds=new Set(Object.keys(idReverse));
-  const order=['quality','performance','timeline','schedule'];
+  const order=['quality','performance','timeline','raw','schedule'];
 
   // Detect which column in a set of keyed-object rows holds email / id / name.
   function detect(rows){
@@ -1178,10 +1178,11 @@ function resolveIdentities(sets){
       obs.push({ekey,ikey,name,anchor,src});
     });
   }
-  const dets={ quality:detect(sets.q), performance:detect(sets.p), timeline:detect(sets.t) };
+  const dets={ quality:detect(sets.q), performance:detect(sets.p), timeline:detect(sets.t), raw:detect(sets.r||[]) };
   ingest('quality', sets.q, dets.quality);
   ingest('performance', sets.p, dets.performance);
   ingest('timeline', sets.t, dets.timeline);
+  if(sets.r&&sets.r.length) ingest('raw', sets.r, dets.raw);
 
   // Group observations by union root and choose a canonical name for each cluster.
   const groups={}; obs.forEach(o=>{ (groups[find(o.anchor)]=groups[find(o.anchor)]||[]).push(o); });
@@ -1341,7 +1342,7 @@ async function syncAll(silent=false) {
 
   // Identity — auto-detect email/ID columns and build a resolver so the same person spelled
   // differently across reports collapses to one canonical name before any name-based matching.
-  const ID = resolveIdentities({q, p, t, sch});
+  const ID = resolveIdentities({q, p, t, sch, r: raw});
   const qd=ID.dets.quality, pd=ID.dets.performance, td=ID.dets.timeline;
 
   // Quality — normalize + canonicalize agent name
