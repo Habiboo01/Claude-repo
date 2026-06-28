@@ -480,6 +480,20 @@ select.inp{cursor:pointer}
           <div id="identityEditor"><div style="color:var(--text3);font-size:13px;padding:12px 0">Sync data to detect identities.</div></div>
         </div>
       </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-hd"><span class="card-title">Name Aliases</span><button class="btn btn-accent btn-sm" onclick="addAliasRow()">+ Add Alias</button><button class="btn btn-accent btn-sm" onclick="saveAliases()" style="margin-left:6px">💾 Save & Re-sync</button></div>
+        <div class="card-bd">
+          <div class="alert alert-i">ℹ Use this to manually merge two agents who share no email or ID (e.g. the same person with a maiden name in one sheet and a married name in another). The "From" name is replaced by the "To" name everywhere — they appear as one agent.</div>
+          <div style="display:grid;grid-template-columns:1fr 24px 1fr 32px;gap:8px;padding:0 0 8px;border-bottom:1px solid var(--border);margin-bottom:6px">
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">From (alias)</div>
+            <div></div>
+            <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">To (canonical)</div>
+            <div></div>
+          </div>
+          <div id="aliasEditor"></div>
+        </div>
+      </div>
     </section>
 
     <!-- EXCEPTIONS -->
@@ -839,6 +853,7 @@ const S = {
   disputed: { links:new Set(), records:[] }, // disputed ticket links + parsed dispute records
   agentIds: {}, exceptions: [], gasUrl: null,
   identity: {}, identityClusters: [], // identity overrides (key→canonical name) + detected clusters
+  aliases: {}, // name alias map: lowercase original → canonical name
   auxConfig: {},      // { 'Available': 'Available'|'Productive'|'Non-Productive', ... }
   cfgTargets: {...DEFAULT_TARGETS}, // admin-configurable targets
   charts: {},
@@ -949,6 +964,7 @@ function loadLocal() {
     if (k.toLowerCase() === 'available' && S.auxConfig[k] === 'Productive') S.auxConfig[k] = 'Available';
   });
   S.cfgTargets = {...DEFAULT_TARGETS, ...(ls.get('t_targets') || {})};
+  S.aliases    = ls.get('t_aliases') || {};
   // Note: qRows/pRows/aRows/tRows are NOT cached in localStorage — they're large
   // datasets re-fetched fresh from Google Sheets on every sync. Caching them
   // risks exceeding the localStorage quota (5-10MB per site).
@@ -991,7 +1007,7 @@ async function cloudRead() {
 async function cloudSaveAll() {
   if (!SUPA_ON() || !S.adminPass) return false;
   try {
-    const data = { agentIds:S.agentIds, agentIdentity:S.identity, exceptions:S.exceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
+    const data = { agentIds:S.agentIds, agentIdentity:S.identity, agentAliases:S.aliases, exceptions:S.exceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
     const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/rpc/save_config`, 8000, {
       method:'POST', headers: supaHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ pw:S.adminPass, new_data:data })
@@ -1040,6 +1056,7 @@ async function pullGASConfig() {
   if (!data) return;
   if (data.agentIds)   { S.agentIds   = data.agentIds;   ls.set('t_ids', S.agentIds); }
   if (data.agentIdentity){ S.identity = data.agentIdentity; ls.set('t_identity', S.identity); }
+  if (data.agentAliases) { S.aliases  = data.agentAliases;  ls.set('t_aliases', S.aliases); }
   if (data.exceptions) { S.exceptions = data.exceptions; ls.set('t_exc', S.exceptions); }
   if (data.auxConfig)  { S.auxConfig  = data.auxConfig;  ls.set('t_aux', S.auxConfig); }
   if (data.cfgTargets) { S.cfgTargets = {...DEFAULT_TARGETS, ...data.cfgTargets}; ls.set('t_targets', S.cfgTargets); }
@@ -1145,6 +1162,7 @@ function normName(s){
 }
 function resolveIdentities(sets){
   const norm=v=>String(v==null?'':v).trim(), lc=v=>norm(v).toLowerCase();
+  const _al=sets.aliases||{}; const alias=n=>_al[n.toLowerCase().trim()]||n;
   const idReverse={}; Object.keys(S.agentIds||{}).forEach(n=>{ const id=String(S.agentIds[n]||'').toUpperCase(); if(id) idReverse[id]=n; });
   const knownIds=new Set(Object.keys(idReverse));
   const order=['quality','performance','timeline','raw','schedule'];
@@ -1170,7 +1188,7 @@ function resolveIdentities(sets){
   const obs=[]; // {ekey,ikey,name,anchor,src}
   function ingest(src, rows, det){
     (rows||[]).forEach(r=>{
-      const email=det.email?lc(r[det.email]):'', id=det.id?norm(r[det.id]).toUpperCase():'', name=det.name?norm(r[det.name]):'';
+      const email=det.email?lc(r[det.email]):'', id=det.id?norm(r[det.id]).toUpperCase():'', name=det.name?alias(norm(r[det.name])):'';
       const ekey=(email&&EMAIL_RE.test(email))?'e:'+email:'', ikey=id?'i:'+id:'';
       if(!ekey&&!ikey&&!name) return;
       if(ekey&&ikey) union(ekey,ikey);                 // a row carrying both keys bridges the two
@@ -1205,7 +1223,7 @@ function resolveIdentities(sets){
   });
 
   function resolve(name,email,id){
-    name=norm(name); email=lc(email); id=norm(id).toUpperCase();
+    name=alias(norm(name)); email=lc(email); id=norm(id).toUpperCase();
     const ekey=(email&&EMAIL_RE.test(email))?'e:'+email:'', ikey=id?'i:'+id:'';
     let root=null;
     if(ekey&&parent[ekey]!=null) root=find(ekey);
@@ -1342,7 +1360,7 @@ async function syncAll(silent=false) {
 
   // Identity — auto-detect email/ID columns and build a resolver so the same person spelled
   // differently across reports collapses to one canonical name before any name-based matching.
-  const ID = resolveIdentities({q, p, t, sch, r: raw});
+  const ID = resolveIdentities({q, p, t, sch, r: raw, aliases: S.aliases});
   const qd=ID.dets.quality, pd=ID.dets.performance, td=ID.dets.timeline;
 
   // Quality — normalize + canonicalize agent name
@@ -1441,6 +1459,7 @@ async function syncAll(silent=false) {
   buildMonthFilters();
   refreshIdsEditor();
   refreshIdentityEditor();
+  refreshAliasesEditor();
   refreshExcAgents();
   if (S.mode === 'admin') {
     renderOverview(); applyProdVisibility();
@@ -2000,7 +2019,7 @@ function aTab(id, el) {
   if (id==='schedule')     renderSchedule();
   if (id==='exceptions')   renderExcList();
   if (id==='config')     { renderConfigCenter(); refreshAdminUsers(); }
-  if (id==='agentids')   { refreshIdsEditor(); refreshIdentityEditor(); }
+  if (id==='agentids')   { refreshIdsEditor(); refreshIdentityEditor(); refreshAliasesEditor(); }
 }
 
 // ════════════════════════════════════════
@@ -2749,6 +2768,40 @@ async function saveIdentity() {
   toast('Identity map saved ✓ — re-syncing');
   await syncAll(true);
   refreshIdentityEditor();
+}
+
+function refreshAliasesEditor() {
+  const el = document.getElementById('aliasEditor'); if (!el) return;
+  const pairs = Object.entries(S.aliases);
+  el.innerHTML = (pairs.length ? pairs : [['','']]).map(([from,to],i)=>`
+    <div class="alias-row" style="display:grid;grid-template-columns:1fr 24px 1fr 32px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <input class="inp inp-sm alias-from" value="${(from||'').replace(/"/g,'&quot;')}" placeholder="Sandy Ahmed"/>
+      <span style="color:var(--text3);text-align:center">→</span>
+      <input class="inp inp-sm alias-to"  value="${(to||'').replace(/"/g,'&quot;')}" placeholder="Sandy Fawzy"/>
+      <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="this.closest('.alias-row').remove()">✕</button>
+    </div>`).join('');
+}
+function addAliasRow() {
+  const el = document.getElementById('aliasEditor'); if (!el) return;
+  const row = document.createElement('div');
+  row.className='alias-row';
+  row.style.cssText='display:grid;grid-template-columns:1fr 24px 1fr 32px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)';
+  row.innerHTML=`<input class="inp inp-sm alias-from" placeholder="Sandy Ahmed"/><span style="color:var(--text3);text-align:center">→</span><input class="inp inp-sm alias-to" placeholder="Sandy Fawzy"/><button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="this.closest('.alias-row').remove()">✕</button>`;
+  el.appendChild(row);
+}
+async function saveAliases() {
+  S.aliases = {};
+  document.querySelectorAll('#aliasEditor .alias-row').forEach(row=>{
+    const from=(row.querySelector('.alias-from')||{}).value||'';
+    const to=(row.querySelector('.alias-to')||{}).value||'';
+    if (from.trim() && to.trim()) S.aliases[from.trim().toLowerCase()] = to.trim();
+  });
+  ls.set('t_aliases', S.aliases);
+  await gasWrite('agentAliases', S.aliases);
+  toast('Aliases saved ✓ — re-syncing');
+  await syncAll(true);
+  refreshAliasesEditor();
+  refreshIdsEditor();
 }
 
 // ════════════════════════════════════════
