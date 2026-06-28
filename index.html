@@ -10,6 +10,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 :root{
+  --bg:#f4f5fa;--bg1:#ffffff;--bg2:#ffffff;--bg3:#eef0f6;
+  --glass:rgba(0,0,0,.025);--glass-h:rgba(0,0,0,.05);
+  --border:rgba(0,0,0,.10);--border-s:rgba(0,0,0,.16);
+  --text:#0a0a14;--text2:#5a5a6e;--text3:#8a8a9a;
+  --accent:#7c5af0;--accent2:#6d3ff0;--accent-g:rgba(124,90,240,.10);
+  --blue:#2563eb;--blue-g:rgba(37,99,235,.10);
+  --green:#16a34a;--green-g:rgba(22,163,74,.12);
+  --red:#dc2626;--red-g:rgba(220,38,38,.10);
+  --amber:#d97706;--amber-g:rgba(217,119,6,.12);
+  --topbar:rgba(255,255,255,.9);--gridline:rgba(124,90,240,.04);--nullbar:#d4d4e0;
+  --r:8px;--r2:12px;--r3:16px;
+  --fd:'Syne',sans-serif;--f:'DM Sans',sans-serif;
+}
+:root[data-theme="dark"]{
   --bg:#070710;--bg1:#0d0d1c;--bg2:#121226;--bg3:#181830;
   --glass:rgba(255,255,255,.035);--glass-h:rgba(255,255,255,.06);
   --border:rgba(255,255,255,.07);--border-s:rgba(255,255,255,.12);
@@ -19,12 +33,11 @@
   --green:#22c55e;--green-g:rgba(34,197,94,.12);
   --red:#ef4444;--red-g:rgba(239,68,68,.12);
   --amber:#f59e0b;--amber-g:rgba(245,158,11,.12);
-  --r:8px;--r2:12px;--r3:16px;
-  --fd:'Syne',sans-serif;--f:'DM Sans',sans-serif;
+  --topbar:rgba(7,7,16,.92);--gridline:rgba(124,90,240,.025);--nullbar:#3e3e60;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--f);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,90,240,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(124,90,240,.025) 1px,transparent 1px);background-size:52px 52px;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--gridline) 1px,transparent 1px),linear-gradient(90deg,var(--gridline) 1px,transparent 1px);background-size:52px 52px;pointer-events:none;z-index:0}
 
 /* SCREENS */
 .screen{display:none;position:relative;z-index:1;min-height:100vh}
@@ -49,7 +62,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .login-hint{font-size:11.5px;color:var(--text3);margin-top:4px}
 
 /* TOPBAR */
-.topbar{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(7,7,16,.92);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;gap:12px}
+.topbar{position:fixed;top:0;left:0;right:0;height:52px;background:var(--topbar);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;gap:12px}
 .logo{font-family:var(--fd);font-size:19px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
 .logo span{color:var(--accent2)}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -67,7 +80,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .btn-danger{background:var(--red-g);border-color:rgba(239,68,68,.25);color:var(--red)}
 
 /* SIDEBAR */
-.sidebar{position:fixed;left:0;top:52px;bottom:0;width:220px;background:rgba(7,7,16,.7);backdrop-filter:blur(16px);border-right:1px solid var(--border);padding:14px 10px;z-index:90;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar{position:fixed;left:0;top:52px;bottom:0;width:220px;background:var(--topbar);backdrop-filter:blur(16px);border-right:1px solid var(--border);padding:14px 10px;z-index:90;display:flex;flex-direction:column;overflow-y:auto}
 .nav-lbl{font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3);padding:10px 10px 5px;margin-top:4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border:1px solid transparent;white-space:nowrap}
 .nav-item:hover{background:var(--glass-h);color:var(--text)}
@@ -125,7 +138,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .tbl th.sortable:hover{color:var(--text)}
 .tbl tr.totals td{border-top:1px solid var(--border-s);font-weight:700;color:var(--text);background:var(--bg1)}
 .cfg-lbl{font-size:11px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px}
-.tbl td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text2);vertical-align:middle}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:var(--glass);color:var(--text)}
 .tbl-wrap{overflow-x:auto}
@@ -189,7 +202,7 @@ select.inp{cursor:pointer}
 .sync-card h4{font-family:var(--fd);font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text)}
 
 /* SPINNER */
-.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--border-s);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 
 /* EMPTY */
@@ -206,7 +219,7 @@ select.inp{cursor:pointer}
 
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--border-s);border-radius:3px}
 
 @media(max-width:860px){
   .sidebar{transform:translateX(-220px)}.main-wrap{margin-left:0}
@@ -244,13 +257,14 @@ select.inp{cursor:pointer}
 <!-- ═══════════════ ADMIN ═══════════════ -->
 <div class="screen" id="adminScreen">
   <header class="topbar">
-    <div class="logo">telda<span>~</span><span style="font-size:11px;color:var(--text3);font-family:var(--f);font-weight:400;margin-left:6px">Admin</span></div>
+    <div class="logo">telda<span>~</span><span style="font-size:11px;color:var(--text3);font-family:var(--f);font-weight:400;margin-left:6px">Admin · <span id="adminNameBadge" style="color:var(--accent2)">—</span></span></div>
     <div class="topbar-right">
       <div class="pill"><span class="dot dot-a" id="syncDot"></span><span id="syncStatus">Not synced</span></div>
       <button class="btn" onclick="syncAll()"><span id="syncSpin" style="display:none" class="spin"></span> Sync</button>
       <button class="btn btn-ghost" onclick="openConfig()">⚙ Configure</button>
       <button class="btn" onclick="exportConfig()">⬇ Export</button>
       <label class="btn" style="cursor:pointer">⬆ Import<input type="file" accept=".json" style="display:none" onchange="importConfig(this)"/></label>
+      <button class="btn btn-ghost btn-sm" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
     </div>
   </header>
@@ -258,30 +272,39 @@ select.inp{cursor:pointer}
   <nav class="sidebar" id="adminNav">
     <div class="nav-lbl">Overview</div>
     <div class="nav-item active" onclick="aTab('overview',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+      <svg style="color:#7c5af0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
     </div>
     <div class="nav-lbl">Reports</div>
     <div class="nav-item" onclick="aTab('quality',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Quality
+      <svg style="color:#f59e0b" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Quality
     </div>
     <div class="nav-item" onclick="aTab('productivity',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Productivity
+      <svg style="color:#22c55e" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Productivity
     </div>
     <div class="nav-item" onclick="aTab('performance',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Performance
+      <svg style="color:#3b7ef8" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Performance
+    </div>
+    <div class="nav-item" onclick="aTab('wow',this)">
+      <svg style="color:#06b6d4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Week-over-Week
+    </div>
+    <div class="nav-item" onclick="aTab('rootcause',this)">
+      <svg style="color:#14b8a6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Root Cause
+    </div>
+    <div class="nav-item" onclick="aTab('schedule',this)">
+      <svg style="color:#ec4899" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Schedule
     </div>
     <div class="nav-lbl">Management</div>
     <div class="nav-item" onclick="aTab('agentids',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Agent IDs
+      <svg style="color:#9b7ff8" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Agent IDs
     </div>
     <div class="nav-item" onclick="aTab('exceptions',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Exceptions
+      <svg style="color:#ef4444" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Exceptions
     </div>
     <div class="nav-item" onclick="aTab('config',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Configuration
+      <svg style="color:#84cc16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Configuration
     </div>
     <div class="nav-item" onclick="aTab('setup',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M1 12h4M19 12h4M12 1v4M12 19v4"/></svg>Setup Wizard
+      <svg style="color:#f97316" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M1 12h4M19 12h4M12 1v4M12 19v4"/></svg>Setup Wizard
     </div>
   </nav>
 
@@ -292,6 +315,11 @@ select.inp{cursor:pointer}
         <div><h1>Operations Overview</h1><p id="overviewMeta">Sync data to begin</p></div>
         <div class="ph-right">
           <select class="inp inp-sm" id="adminMonth" onchange="renderOverview()" style="width:auto"></select>
+          <span style="font-size:11px;color:var(--text3)">From</span>
+          <input type="date" class="inp inp-sm" id="ovFrom" onchange="renderOverview()" style="width:auto"/>
+          <span style="font-size:11px;color:var(--text3)">To</span>
+          <input type="date" class="inp inp-sm" id="ovTo" onchange="renderOverview()" style="width:auto"/>
+          <button class="btn btn-sm" onclick="document.getElementById('ovFrom').value='';document.getElementById('ovTo').value='';renderOverview()">Clear</button>
           <button class="btn btn-sm" onclick="toggleAgentFilter()">👥 Filter Agents</button>
         </div>
       </div>
@@ -315,6 +343,7 @@ select.inp{cursor:pointer}
         <input type="date" class="inp inp-sm" id="qualFrom" onchange="renderQuality()" style="width:130px"/>
           <span style="color:var(--text3);font-size:12px">→</span>
           <input type="date" class="inp inp-sm" id="qualTo" onchange="renderQuality()" style="width:130px"/>
+          <input type="text" class="inp inp-sm" id="qualWD" placeholder="WD / WB Date…" oninput="QS.page=1;renderQuality()" style="width:120px"/>
         <div style="position:relative">
           <button class="btn btn-sm" onclick="openAgentPicker('qual',renderQuality)">👥 Agents <span id="qualAgentCount"></span></button>
           <div id="qualAgentPickerDrop" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:200;background:var(--bg2);border:1px solid var(--border-s);border-radius:var(--r2);padding:12px;min-width:260px;max-height:320px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.4)">
@@ -394,11 +423,63 @@ select.inp{cursor:pointer}
       <div id="performanceContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/></svg><h3>No performance data</h3><p>Sync to load</p></div></div>
     </section>
 
+    <!-- WEEK OVER WEEK -->
+    <section class="tab" id="at-wow">
+      <div class="ph"><div><h1>Week-over-Week</h1><p>AHT · ART · CSAT · QA trended by week</p></div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Filter</span>
+        <input type="date" class="inp inp-sm" id="wowFrom" onchange="renderWow()" style="width:130px"/>
+        <span style="color:var(--text3);font-size:12px">→</span>
+        <input type="date" class="inp inp-sm" id="wowTo" onchange="renderWow()" style="width:130px"/>
+        <input type="text" class="inp inp-sm" id="wowSearch" placeholder="Search agent…" style="width:160px;margin-left:auto" oninput="renderWow()"/>
+      </div>
+      <div id="wowContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><h3>No data yet</h3><p>Sync your sheets first</p></div></div>
+    </section>
+
+    <!-- ROOT CAUSE -->
+    <section class="tab" id="at-rootcause">
+      <div class="ph"><div><h1>Root Cause</h1><p>CSAT &amp; repeat-rate drivers from the support-desk raw data</p></div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Filter</span>
+        <input type="date" class="inp inp-sm" id="rcFrom" onchange="renderRootCause()" style="width:130px"/>
+        <span style="color:var(--text3);font-size:12px">→</span>
+        <input type="date" class="inp inp-sm" id="rcTo" onchange="renderRootCause()" style="width:130px"/>
+        <select class="inp inp-sm" id="rcDim" onchange="renderRootCause()" style="width:auto"><option value="assigned_label">By Label</option><option value="main_category">By Main Category</option><option value="sub_category_1">By Sub-category</option><option value="assigned_group">By Group</option><option value="telda_user_id">By User</option></select>
+        <select class="inp inp-sm" id="rcStatus" onchange="renderRootCause()" style="width:auto"><option value="">All statuses</option></select>
+        <select class="inp inp-sm" id="rcType" onchange="renderRootCause()" style="width:auto"><option value="">Agent &amp; Bot</option></select>
+        <select class="inp inp-sm" id="rcDomain" onchange="renderRootCause()" style="width:auto"><option value="">All domains</option></select>
+        <input type="text" class="inp inp-sm" id="rcSearch" placeholder="Search agent…" style="width:160px;margin-left:auto" oninput="renderRootCause()"/>
+      </div>
+      <div id="rootcauseContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><h3>No raw data yet</h3><p>Add a Raw Data sheet in Setup, then Sync</p></div></div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section class="tab" id="at-schedule">
+      <div class="ph"><div><h1>Schedule & Adherence</h1><p>Scheduled shift vs actual logged time</p></div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Filter</span>
+        <input type="date" class="inp inp-sm" id="schedFrom" onchange="renderSchedule()" style="width:130px"/>
+        <span style="color:var(--text3);font-size:12px">→</span>
+        <input type="date" class="inp inp-sm" id="schedTo" onchange="renderSchedule()" style="width:130px"/>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;white-space:nowrap"><input type="checkbox" id="schedLoggedIn" onchange="renderSchedule()" style="accent-color:var(--accent)"/> Logged-in only</label>
+        <input type="text" class="inp inp-sm" id="schedSearch" placeholder="Search agent…" style="width:160px;margin-left:auto" oninput="renderSchedule()"/>
+      </div>
+      <div id="scheduleContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><h3>No schedule data</h3><p>Add a Schedule sheet in Setup Wizard, then Sync</p></div></div>
+    </section>
+
     <!-- AGENT IDs -->
     <section class="tab" id="at-agentids">
-      <div class="ph"><div><h1>Agent ID Management</h1><p>Agents log in using their assigned ID</p></div><div class="ph-right"><button class="btn btn-accent" onclick="saveIds()">💾 Save All IDs</button></div></div>
+      <div class="ph"><div><h1>Agent Identity</h1><p>Agents log in using their assigned ID</p></div><div class="ph-right"><button class="btn btn-accent" onclick="saveIds()">💾 Save All IDs</button></div></div>
       <div class="alert alert-i">ℹ Agent names are pulled from the Quality sheet after sync. Assign each agent a unique ID — they'll use it to log in. IDs sync across devices via your Google Apps Script if configured.</div>
       <div class="card"><div class="card-bd" id="idsEditor"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><h3>No agents found</h3><p>Sync quality data first</p></div></div></div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-hd"><span class="card-title">Cross-Report Identity Matching</span><button class="btn btn-accent btn-sm" onclick="saveIdentity()">💾 Save & Re-sync</button></div>
+        <div class="card-bd">
+          <div class="alert alert-i">ℹ The same agent can be spelled differently in different reports. We auto-link them by their shared <strong>email</strong> or <strong>Agent ID</strong> and unify them under one canonical name. Rows below show every matched identity — edit the <strong>Canonical name</strong> to override, then Save &amp; Re-sync.</div>
+          <div id="identityEditor"><div style="color:var(--text3);font-size:13px;padding:12px 0">Sync data to detect identities.</div></div>
+        </div>
+      </div>
     </section>
 
     <!-- EXCEPTIONS -->
@@ -473,6 +554,21 @@ select.inp{cursor:pointer}
       </div>
 
       <div class="card">
+        <div class="card-hd"><span class="card-title">Breaks, Shrinkage &amp; Disputes</span></div>
+        <div class="card-bd">
+          <div class="alert alert-i">ℹ Agents exceeding the daily break limit are flagged red on Productivity. Shrinkage = all Non-Productive time (shown with a breakdown). The Dispute link appears on QA tickets scoring under 100%.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px">
+            <div><div class="cfg-lbl">Max Daily Break (min)</div><input type="number" class="inp" id="cfgMaxBreak" step="1" min="0"/></div>
+            <div><div class="cfg-lbl">Max Offline + Personal (min)</div><input type="number" class="inp" id="cfgMaxOffline" step="1" min="0"/></div>
+          </div>
+          <div class="cfg-lbl">Dispute Google Form URL</div>
+          <input type="text" class="inp" id="cfgDisputeUrl" placeholder="https://docs.google.com/forms/d/e/…/viewform" style="margin-bottom:6px"/>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Shown as a "Dispute" link on QA tickets &lt; 100%. Agent name, ticket link and score are appended as query params for Form pre-fill if your form supports it.</div>
+          <button class="btn btn-accent" onclick="saveTargets()">💾 Save</button>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-hd">
           <span class="card-title">AUX Classification</span>
           <button class="btn btn-accent btn-sm" onclick="addAuxRow()">+ Add AUX</button>
@@ -480,6 +576,30 @@ select.inp{cursor:pointer}
         <div class="card-bd">
           <div class="alert alert-i">ℹ Every status_name seen in your Timeline sheet is listed below. Classify each as <strong>Available</strong> (counts toward both Available and Productive), <strong>Productive</strong>, or <strong>Non-Productive</strong>. New/unrecognized statuses are auto-added as Non-Productive when detected during sync — review and reclassify as needed.</div>
           <div id="auxConfigList"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><span class="card-title">🔑 Admin Accounts</span></div>
+        <div class="card-bd">
+          <div class="alert alert-i">ℹ Each admin logs in with their own <strong>password</strong> (the password is the identifier, like an Agent ID — so it must be unique). Any admin can add, reset, or remove admins. Passwords are stored bcrypt-hashed in Supabase.</div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:6px 0 8px">Change my password</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px">
+            <input class="inp inp-sm" id="myOldPw" type="password" placeholder="Current password" style="width:180px"/>
+            <input class="inp inp-sm" id="myNewPw" type="password" placeholder="New password" style="width:180px"/>
+            <button class="btn btn-accent btn-sm" onclick="changeMyPassword()">Update my password</button>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:6px 0 8px">Add admin</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px">
+            <input class="inp inp-sm" id="newAdminName" placeholder="Name (e.g. mostafa)" style="width:180px"/>
+            <input class="inp inp-sm" id="newAdminPw" type="password" placeholder="Password" style="width:180px"/>
+            <button class="btn btn-accent btn-sm" onclick="addAdminUser()">+ Add admin</button>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin:6px 0 8px">All admins</div>
+          <div id="adminUsersList"><div style="color:var(--text3);font-size:13px;padding:8px 0">Loading…</div></div>
         </div>
       </div>
     </section>
@@ -502,11 +622,13 @@ select.inp{cursor:pointer}
             <h4>📊 Quality Sheet</h4>
             <label>Sheet ID</label><input class="inp inp-sm" id="cfgQId" placeholder="1BxiMVs0X…"/>
             <label>Tab Name</label><input class="inp inp-sm" id="cfgQTab" value="Quality"/>
+            <label>Tab GID (optional, more reliable)</label><input class="inp inp-sm" id="cfgQGid" placeholder="e.g. 123456789"/>
           </div>
           <div class="sync-card">
             <h4>📈 Performance Sheet</h4>
             <label>Sheet ID</label><input class="inp inp-sm" id="cfgPId" placeholder="1BxiMVs0X…"/>
             <label>Tab Name</label><input class="inp inp-sm" id="cfgPTab" value="Performance"/>
+            <label>Tab GID (optional, more reliable)</label><input class="inp inp-sm" id="cfgPGid" placeholder="e.g. 123456789"/>
           </div>
           <div class="sync-card">
             <h4>🕐 Agent Status Timeline Sheet</h4>
@@ -515,6 +637,29 @@ select.inp{cursor:pointer}
             <label>Tab GID (optional, more reliable)</label><input class="inp inp-sm" id="cfgAGid" placeholder="e.g. 123456789"/>
             <div style="font-size:11px;color:var(--text3);margin-top:4px">Raw AUX/status event log — replaces the old daily Adherence summary</div>
             <div style="font-size:11px;color:var(--text3);margin-top:4px">Find GID in the tab's URL: …#gid=123456789. If set, this is used instead of Tab Name.</div>
+          </div>
+          <div class="sync-card">
+            <h4>🗓️ Schedule Sheet</h4>
+            <label>Sheet ID</label><input class="inp inp-sm" id="cfgSId" placeholder="1BxiMVs0X…"/>
+            <label>Tab Name</label><input class="inp inp-sm" id="cfgSTab" value="Schedule"/>
+            <label>Tab GID (optional)</label><input class="inp inp-sm" id="cfgSGid" placeholder="e.g. 123456789"/>
+            <label>Range (optional)</label><input class="inp inp-sm" id="cfgSRange" placeholder="e.g. B1:NL18"/>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">Shifts per agent. Columns auto-detected: agent name · date · shift start · shift end · shift label.</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">Range limits the import to those cells (row 1 = headers). Leave blank for the whole tab.</div>
+          </div>
+          <div class="sync-card">
+            <h4>⚖️ Dispute Responses Sheet</h4>
+            <label>Sheet ID</label><input class="inp inp-sm" id="cfgDId" placeholder="1BxiMVs0X…"/>
+            <label>Tab Name</label><input class="inp inp-sm" id="cfgDTab" value="Form Responses 1"/>
+            <label>Tab GID (optional)</label><input class="inp inp-sm" id="cfgDGid" placeholder="e.g. 123456789"/>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">The Google Form responses (Form → Responses → link to Sheets). Disputed tickets are matched by ticket link and shown on the Overview &amp; Quality tabs.</div>
+          </div>
+          <div class="sync-card">
+            <h4>🔍 Raw Data Sheet (Root Cause)</h4>
+            <label>Sheet ID</label><input class="inp inp-sm" id="cfgRId" placeholder="1BxiMVs0X…"/>
+            <label>Tab Name</label><input class="inp inp-sm" id="cfgRTab" value="Query result"/>
+            <label>Tab GID (optional)</label><input class="inp inp-sm" id="cfgRGid" placeholder="e.g. 123456789"/>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">Per-conversation support-desk export (csat_score, csat_comment, assigned_label, ticket_status, repeat_flag…). Powers the Root Cause tab.</div>
           </div>
           <div class="sync-card">
             <h4>🔐 Admin Password</h4>
@@ -581,6 +726,7 @@ select.inp{cursor:pointer}
     <div class="logo">telda<span>~</span></div>
     <div class="topbar-right">
       <div class="pill"><span class="dot dot-g"></span><span id="agentNameBadge">—</span></div>
+      <button class="btn btn-ghost btn-sm" id="themeToggleAg" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
     </div>
   </header>
@@ -676,30 +822,100 @@ const DEFAULT_TARGETS = {
   artTargetSec:        60,
   csatTargetPct:       80,   // higher is better for CSAT/resolution
   resolutionTargetPct: 85,
+  maxDailyBreakMin:    60,   // flag a day when total break minutes exceed this
+  maxOfflinePersonalMin: 30, // allowed offline+personal minutes/day
+  disputeFormUrl:      'https:\/\/docs.google.com/forms/d/e/1FAIpQLSdSDuc4Mz_YYYOww06PzkQV0k0DX0bYI_qPjUd9xu_C8S3ZOA/viewform',   // Google Form link shown on QA tickets < 100%
+  breakStatuses:       [],   // AUX names counted as Break (empty ⇒ name heuristic)
+  offlineStatuses:     [],   // AUX names counted as Offline/Personal (empty ⇒ heuristic)
+  shrinkageStatuses:   [],   // AUX names counted as Shrinkage (empty ⇒ all Non-Productive)
 };
 
 // ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
 const S = {
-  mode: null, agentId: null, agentName: null, adminPass: null,
-  qRows: [], pRows: [], aRows: [], tRows: [], // tRows = timeline/status log rows
+  mode: null, agentId: null, agentName: null, adminPass: null, adminUser: null,
+  qRows: [], pRows: [], aRows: [], tRows: [], sRows: [], dRows: [], rRows: [], // sRows = schedule, dRows = dispute responses, rRows = raw support-desk data (Root Cause)
+  disputed: { links:new Set(), records:[] }, // disputed ticket links + parsed dispute records
   agentIds: {}, exceptions: [], gasUrl: null,
+  identity: {}, identityClusters: [], // identity overrides (key→canonical name) + detected clusters
   auxConfig: {},      // { 'Available': 'Available'|'Productive'|'Non-Productive', ... }
   cfgTargets: {...DEFAULT_TARGETS}, // admin-configurable targets
   charts: {},
 };
 
+// ── Status role helpers (Break / Offline-Personal / Shrinkage) ──
+// If the admin configured an explicit list use it; otherwise fall back to name heuristics.
+function isBreakStatus(name){
+  const cfg=S.cfgTargets.breakStatuses||[];
+  if (cfg.length) return cfg.includes(name);
+  return /break/i.test(name);
+}
+function isOfflineStatus(name){
+  const cfg=S.cfgTargets.offlineStatuses||[];
+  if (cfg.length) return cfg.includes(name);
+  return /personal|offline|unavailable/i.test(name);
+}
+function isShrinkageStatus(name){
+  const cfg=S.cfgTargets.shrinkageStatuses||[];
+  if (cfg.length) return cfg.includes(name);
+  return (S.auxConfig[name]||'Non-Productive')==='Non-Productive'; // default: all non-productive
+}
+
+// Safe localStorage — the Apps Script web app renders inside a sandboxed cross-site
+// iframe; with strict privacy settings localStorage can THROW, which would kill all
+// page JS (login buttons stop responding). Never let storage access throw.
+function lsGetRaw(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function lsSetRaw(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+
 // Quality tab UI state (coaching, search, pagination) — coached marks persist in localStorage
 const QS = {
-  coached: new Set(JSON.parse(localStorage.getItem('coachedTickets')||'[]')),
+  coached: new Set((()=>{ try { return JSON.parse(lsGetRaw('coachedTickets')||'[]'); } catch(e){ return []; } })()),
   page: 1, pageSize: 15, search: '', coachedFilter: 'all',
 };
 function qualThreshold(){ const el=document.getElementById('qualThreshold'); return el ? (parseFloat(el.value)||90) : 90; }
 function ticketKey(r){ return (r['Tickets Link']||'')+'|'+(r['Agent Name']||'')+'|'+(r['Timestamp']||''); }
+// Build the dispute Google Form link, appending agent/ticket/score as query params for prefill.
+function disputeLink(r, s){
+  const base=(S.cfgTargets.disputeFormUrl||'').trim();
+  if(!base) return '#';
+  const sep = base.indexOf('?')>-1 ? '&' : '?';
+  const p = 'agent='+encodeURIComponent(r['Agent Name']||'')
+    + '&ticket='+encodeURIComponent(r['Tickets Link']||'')
+    + '&score='+encodeURIComponent(s!=null?s:'');
+  return base + sep + p;
+}
+// Parse the dispute Google Form responses sheet into a set of disputed ticket links + records.
+// Columns are auto-detected (forms vary): the ticket URL, the agent name, a timestamp and a reason.
+function buildDisputed(dRows){
+  const links = new Set();
+  const records = [];
+  const known = new Set(allAgents());
+  (dRows||[]).forEach(row=>{
+    const vals = Object.keys(row).map(k=>({k, v:(row[k]==null?'':String(row[k])).trim()})).filter(o=>o.v);
+    // ticket: first value that looks like a URL but is NOT the Google Form itself
+    const ticket = (vals.find(o=>/^https?:/i.test(o.v) && !/docs\.google\.com\/forms/i.test(o.v))||{}).v || '';
+    // agent: a value that matches a known agent name (case-insensitive)
+    const agent = (vals.find(o=>known.has(o.v) || [...known].some(n=>n.toLowerCase()===o.v.toLowerCase()))||{}).v || '';
+    // timestamp: a column literally named Timestamp, else the first date-looking value
+    const tsRaw = row['Timestamp'] || (vals.find(o=>/timestamp|date|time/i.test(o.k))||{}).v || (vals[0]||{}).v || '';
+    // reason: the longest free-text value that isn't the ticket/agent/timestamp
+    const reason = vals.filter(o=>o.v!==ticket && o.v!==agent && o.v!==tsRaw && !/^https?:/i.test(o.v))
+                       .sort((a,b)=>b.v.length-a.v.length).map(o=>o.v)[0] || '';
+    if (ticket) links.add(ticket.toLowerCase());
+    records.push({ agent, ticket, ts:tsRaw, reason });
+  });
+  return { links, records };
+}
+// A QA review row is disputed if its ticket link appears in the dispute responses.
+function isDisputed(r){
+  const l=(r['Tickets Link']||'').trim().toLowerCase();
+  return !!l && S.disputed.links.has(l);
+}
+
 function toggleCoach(key){
   if (QS.coached.has(key)) QS.coached.delete(key); else QS.coached.add(key);
-  localStorage.setItem('coachedTickets', JSON.stringify([...QS.coached]));
+  lsSetRaw('coachedTickets', JSON.stringify([...QS.coached]));
   cloudSaveAll(); // sync coached state to all devices (admin password already in memory)
   renderQuality();
 }
@@ -724,6 +940,7 @@ const ls = {
 function loadLocal() {
   S.agentIds   = ls.get('t_ids')  || {};
   S.exceptions = ls.get('t_exc')  || [];
+  S.identity   = ls.get('t_identity') || {};
   S.gasUrl     = ls.get('t_gas')  || null;
   S.auxConfig  = ls.get('t_aux')  || {...DEFAULT_AUX_CONFIG};
   // Migration: a status literally named "Available" should use the new 'Available' class
@@ -746,7 +963,7 @@ function cfg() { return ls.get('t_cfg') || {}; }
 // Supabase row so every device auto-loads it — no Setup Wizard needed. Data still comes
 // from Google Sheets. Writes are gated by the admin password via SECURITY DEFINER RPCs.
 // ── PASTE YOUR SUPABASE PROJECT URL + ANON KEY BELOW ──
-const SUPABASE_URL      = 'https://zucferpmdriltuxvolmb.supabase.co';
+const SUPABASE_URL      = 'https:\/\/zucferpmdriltuxvolmb.supabase.co'; // \/\/ avoids Apps Script's // comment-stripper
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1Y2ZlcnBtZHJpbHR1eHZvbG1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwODU3MjAsImV4cCI6MjA5NzY2MTcyMH0.tLxorDVryjWcMu37tDY-59SU7a_L5y6bDqNlswDea28'; // public anon key
 const SUPA_ON = () => /^https:\/\/.+\.supabase\.co/.test(SUPABASE_URL) && (SUPABASE_ANON_KEY||'').length > 20;
 const supaHeaders = (extra={}) => Object.assign({ apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }, extra);
@@ -774,7 +991,7 @@ async function cloudRead() {
 async function cloudSaveAll() {
   if (!SUPA_ON() || !S.adminPass) return false;
   try {
-    const data = { agentIds:S.agentIds, exceptions:S.exceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
+    const data = { agentIds:S.agentIds, agentIdentity:S.identity, exceptions:S.exceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
     const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/rpc/save_config`, 8000, {
       method:'POST', headers: supaHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ pw:S.adminPass, new_data:data })
@@ -797,16 +1014,37 @@ async function cloudVerify(pw) {
   } catch(e) { console.warn('cloudVerify failed:', e.message); return null; }
 }
 
+// ── Multi-admin accounts (Supabase RPCs) ──
+// Generic RPC caller for the admin-management functions. Returns the parsed JSON, or null on error.
+async function rpc(fn, body, ms=8000){
+  if (!SUPA_ON()) return null;
+  try {
+    const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, ms, {
+      method:'POST', headers: supaHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body)
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e){ console.warn('rpc '+fn+' failed:', e.message); return null; }
+}
+// Login: resolve the admin whose password this is. Returns username, '' (no match), or null (offline).
+async function cloudAdminLogin(pw){ const v = await rpc('admin_login', { pw }, 6000); return v==null ? null : (v||''); }
+async function cloudListAdmins(){ const v = await rpc('list_admins', { actor_pw:S.adminPass }); return Array.isArray(v)?v:[]; }
+async function cloudCreateAdmin(name, pw){ return await rpc('create_admin', { actor_pw:S.adminPass, new_user:name, new_pw:pw }); }
+async function cloudResetAdmin(name, pw){ return await rpc('reset_admin_password', { actor_pw:S.adminPass, target_user:name, new_pw:pw }); }
+async function cloudDeleteAdmin(name){ return await rpc('delete_admin', { actor_pw:S.adminPass, target_user:name }); }
+async function cloudChangeMyPw(oldPw, newPw){ return await rpc('change_my_password', { old_pw:oldPw, new_pw:newPw }); }
+
 // Merge the cloud config into state + localStorage cache. (Names kept for existing call sites.)
 async function pullGASConfig() {
   const data = await cloudRead();
   if (!data) return;
   if (data.agentIds)   { S.agentIds   = data.agentIds;   ls.set('t_ids', S.agentIds); }
+  if (data.agentIdentity){ S.identity = data.agentIdentity; ls.set('t_identity', S.identity); }
   if (data.exceptions) { S.exceptions = data.exceptions; ls.set('t_exc', S.exceptions); }
   if (data.auxConfig)  { S.auxConfig  = data.auxConfig;  ls.set('t_aux', S.auxConfig); }
   if (data.cfgTargets) { S.cfgTargets = {...DEFAULT_TARGETS, ...data.cfgTargets}; ls.set('t_targets', S.cfgTargets); }
   if (data.cfg)        { ls.set('t_cfg', data.cfg); }
-  if (data.coached)    { QS.coached = new Set(data.coached); localStorage.setItem('coachedTickets', JSON.stringify(data.coached)); }
+  if (data.coached)    { QS.coached = new Set(data.coached); lsSetRaw('coachedTickets', JSON.stringify(data.coached)); }
 }
 async function pushGASConfig() { return cloudSaveAll(); }
 // Back-compat shim: every per-key write now persists the full blob to Supabase.
@@ -833,13 +1071,17 @@ async function doLogin() {
   if (loginMode === 'admin') {
     const pass = document.getElementById('adminPassInp').value.trim();
     err.textContent = 'Checking…';
-    // Prefer Supabase verification; fall back to local password if cloud is unreachable.
-    const cloudOk = await cloudVerify(pass);
-    const ok = cloudOk === null ? (pass === (cfg().pass || 'admin123')) : cloudOk;
-    if (!ok) { err.textContent = 'Incorrect password.'; return; }
+    // Prefer Supabase multi-admin login; fall back to the local password if cloud is unreachable.
+    const who = await cloudAdminLogin(pass);   // username | '' (no match) | null (offline)
+    let user;
+    if (who === null) { user = (pass === (cfg().pass || 'admin123')) ? 'local' : null; } // offline fallback
+    else { user = who || null; }
+    if (!user) { err.textContent = 'Incorrect password.'; return; }
     err.textContent = '';
     S.mode = 'admin';
     S.adminPass = pass; // kept in memory to authorize cloud saves this session
+    S.adminUser = user;
+    const nb = document.getElementById('adminNameBadge'); if (nb) nb.textContent = user;
     showScreen('adminScreen');
     await pullGASConfig();
     await syncAll(true);
@@ -875,7 +1117,7 @@ async function doLogin() {
 }
 
 function logout() {
-  S.mode = null; S.agentId = null; S.agentName = null;
+  S.mode = null; S.agentId = null; S.agentName = null; S.adminPass = null; S.adminUser = null;
   document.getElementById('agentIdInp').value = '';
   document.getElementById('adminPassInp').value = '';
   showScreen('loginScreen');
@@ -884,6 +1126,167 @@ function logout() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+}
+
+// ════════════════════════════════════════
+// AGENT IDENTITY RESOLUTION (reconcile the same person across reports)
+// Reports key on the agent NAME, which can be spelled differently per sheet. We auto-detect an
+// email / agent-ID column in each report, cluster rows that share a key (union-find over email+id),
+// pick ONE canonical name per cluster, and expose resolve() so syncAll can rewrite every row's name
+// before any name-based matching runs. Keyless rows are left untouched (they can't be reconciled).
+// ════════════════════════════════════════
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+function resolveIdentities(sets){
+  const norm=v=>String(v==null?'':v).trim(), lc=v=>norm(v).toLowerCase();
+  const idReverse={}; Object.keys(S.agentIds||{}).forEach(n=>{ const id=String(S.agentIds[n]||'').toUpperCase(); if(id) idReverse[id]=n; });
+  const knownIds=new Set(Object.keys(idReverse));
+  const order=['quality','performance','timeline','schedule'];
+
+  // Detect which column in a set of keyed-object rows holds email / id / name.
+  function detect(rows){
+    if(!rows||!rows.length||typeof rows[0]!=='object'||Array.isArray(rows[0])) return {email:'',id:'',name:''};
+    const keys=Object.keys(rows[0]); const sample=rows.slice(0,40);
+    const frac=(k,test)=>{ let n=0,t=0; sample.forEach(r=>{ const v=norm(r[k]); if(v){t++; if(test(v))n++;} }); return t?n/t:0; };
+    let email='',id='',name='';
+    keys.forEach(k=>{ if(!email && frac(k,v=>EMAIL_RE.test(v))>=0.5) email=k; });
+    id = keys.find(k=>/agent.?added.?id|agent.?id|employee.?id|emp.?id|^id$/i.test(k)) || '';
+    if(!id && knownIds.size) keys.forEach(k=>{ if(!id && frac(k,v=>knownIds.has(v.toUpperCase()))>=0.5) id=k; });
+    name = keys.find(k=>/agent.*name|^agent$|^name$|employee.?name/i.test(k)) || keys.find(k=>/name/i.test(k)) || '';
+    return {email,id,name};
+  }
+
+  // Union-find over string keys ("e:<email>" / "i:<id>" / "n:<name>").
+  const parent={};
+  const find=x=>{ if(parent[x]==null) parent[x]=x; while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; };
+  const union=(a,b)=>{ const ra=find(a),rb=find(b); if(ra!==rb) parent[ra]=rb; };
+
+  const obs=[]; // {ekey,ikey,name,anchor,src}
+  function ingest(src, rows, det){
+    (rows||[]).forEach(r=>{
+      const email=det.email?lc(r[det.email]):'', id=det.id?norm(r[det.id]).toUpperCase():'', name=det.name?norm(r[det.name]):'';
+      const ekey=(email&&EMAIL_RE.test(email))?'e:'+email:'', ikey=id?'i:'+id:'';
+      if(!ekey&&!ikey&&!name) return;
+      if(ekey&&ikey) union(ekey,ikey);                 // a row carrying both keys bridges the two
+      const anchor=ekey||ikey||('n:'+lc(name));         // keyless rows anchor on their own name only
+      obs.push({ekey,ikey,name,anchor,src});
+    });
+  }
+  const dets={ quality:detect(sets.q), performance:detect(sets.p), timeline:detect(sets.t) };
+  ingest('quality', sets.q, dets.quality);
+  ingest('performance', sets.p, dets.performance);
+  ingest('timeline', sets.t, dets.timeline);
+
+  // Group observations by union root and choose a canonical name for each cluster.
+  const groups={}; obs.forEach(o=>{ (groups[find(o.anchor)]=groups[find(o.anchor)]||[]).push(o); });
+  const canonByRoot={}; const clusters=[];
+  Object.keys(groups).forEach(root=>{
+    const g=groups[root];
+    const emails=[...new Set(g.map(o=>o.ekey).filter(Boolean).map(k=>k.slice(2)))];
+    const ids=[...new Set(g.map(o=>o.ikey).filter(Boolean).map(k=>k.slice(2)))];
+    const names=g.map(o=>o.name).filter(Boolean);
+    let canon='';
+    for(const k of [...ids.map(i=>'i:'+i), ...emails.map(e=>'e:'+e)]){ if(S.identity[k]){ canon=S.identity[k]; break; } } // (a) admin override
+    if(!canon) for(const i of ids){ if(idReverse[i]){ canon=idReverse[i]; break; } }                                   // (b) curated Agent-ID name
+    if(!canon){                                                                                                          // (c) source priority then frequency
+      const byName={}; g.forEach(o=>{ if(!o.name) return; const e=byName[o.name]=byName[o.name]||{count:0,pri:9}; e.count++; e.pri=Math.min(e.pri, order.indexOf(o.src)); });
+      canon=Object.keys(byName).sort((a,b)=> byName[a].pri-byName[b].pri || byName[b].count-byName[a].count || a.localeCompare(b))[0]||'';
+    }
+    canonByRoot[root]=canon;
+    const spellings=[...new Set(names)];
+    if(emails.length||ids.length) clusters.push({email:emails[0]||'', id:ids[0]||'', emails, ids, spellings, canonical:canon, multi:spellings.length>1});
+  });
+
+  function resolve(name,email,id){
+    name=norm(name); email=lc(email); id=norm(id).toUpperCase();
+    const ekey=(email&&EMAIL_RE.test(email))?'e:'+email:'', ikey=id?'i:'+id:'';
+    let root=null;
+    if(ekey&&parent[ekey]!=null) root=find(ekey);
+    else if(ikey&&parent[ikey]!=null) root=find(ikey);
+    return (root!=null && canonByRoot[root]) ? canonByRoot[root] : name;
+  }
+  clusters.sort((a,b)=> (b.multi?1:0)-(a.multi?1:0) || (a.canonical||'').localeCompare(b.canonical||''));
+  S.identityClusters=clusters;
+  return { resolve, clusters, dets };
+}
+
+// ════════════════════════════════════════
+// SCHEDULE (shift) NORMALIZATION + LOOKUP
+// ════════════════════════════════════════
+// Auto-detect the agent / date / shift-start / shift-end / shift-label columns.
+// Parse the Schedule sheet. Supports two shapes:
+//  • Long table: columns agent / date / shift start / end / label (objects or arrays).
+//  • Wide roster matrix (this deployment): a header row, then a row of dates across the
+//    columns, then one row per agent whose cells hold that day's shift START (e.g. "4 PM")
+//    or a status code (WO/SL/AL/blank = not a working shift).
+// Only the TOP table is read — iteration stops at the first blank-name row or a second
+// header, so the Admins/Team-Leads table beneath the roster is excluded.
+const MON3 = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function parseRosterDate(v, year){
+  const s = String(v==null?'':v).trim(); if(!s) return null;
+  if(/\d{4}/.test(s)){ const d=parseDate(s); if(d && !isNaN(d)) return d.toISOString().slice(0,10); } // already a full date
+  const m = s.match(/^(\d{1,2})[\s\-\/]+([A-Za-z]{3,})/); // "1-Jan", "23 Jan", "1/Feb"
+  if(m){ const mo=MON3[m[2].slice(0,3).toLowerCase()]; if(mo!=null){ const y=year||new Date().getFullYear(); return new Date(Date.UTC(y, mo, +m[1])).toISOString().slice(0,10); } }
+  return null;
+}
+function normalizeSchedule(rows, year){
+  if (!rows || !rows.length) return [];
+  const norm = s => String(s==null?'':s).trim();
+  const lc   = s => norm(s).toLowerCase();
+  const hit  = (c, ...res) => res.some(re => re.test(c));
+  // Accept keyed objects (legacy) by flattening them into header + value arrays.
+  if (!Array.isArray(rows[0])) { const keys=Object.keys(rows[0]); rows=[keys, ...rows.map(o=>keys.map(k=>o[k]))]; }
+
+  // 1) Header row = first row that contains a "Name" / "Agent" cell.
+  let hi = rows.findIndex(row => Array.isArray(row) && row.some(c => hit(lc(c), /^name$/, /agent.*name/, /^agent$/, /employee/)));
+  if (hi < 0) hi = 0;
+  const hdr = (rows[hi]||[]).map(lc);
+  const nameCol = hdr.findIndex(c => hit(c, /^name$/, /agent.*name/, /^agent$/, /employee/));
+  if (nameCol < 0) return [];
+  const isHeaderRow = row => Array.isArray(row) && hit(lc(row[nameCol]), /^name$/, /agent.*name/, /^agent$/, /employee/);
+  const emailCol = hdr.findIndex(c => hit(c, /e-?mail/)); // for cross-report identity matching
+
+  // 2) Long table? explicit date + start columns present in the header.
+  const dCol = hdr.findIndex(c => hit(c, /^date$/, /activity.*date/, /work.*date/));
+  const sCol = hdr.findIndex(c => hit(c, /shift.*start/, /start.*time/, /^start$/, /clock.?in/, /^in$/, /^from$/));
+  const eCol = hdr.findIndex(c => hit(c, /shift.*end/, /end.*time/, /^end$/, /clock.?out/, /^out$/, /^to$/));
+  const lCol = hdr.findIndex(c => hit(c, /shift.*name/, /shift.*type/, /^shift$/, /roster/));
+  const out = [];
+  if (dCol >= 0 && sCol >= 0) {
+    for (let i=hi+1; i<rows.length; i++){
+      const r=rows[i]; const name=norm(r[nameCol]); if(!name) continue;
+      if (isHeaderRow(r)) break;
+      const date=normDateStr(r[dCol]); if(!date) continue;
+      out.push({agent_name:name, date, shift_start:norm(r[sCol]), shift_end:eCol>=0?norm(r[eCol]):'', shift_label:lCol>=0?norm(r[lCol]):''});
+    }
+    return out;
+  }
+
+  // 3) Wide roster matrix: find the row of dates (usually right below the header) and map
+  //    each date-bearing column. Fall back to dates living in the header row itself.
+  const mapDates = row => { const m={}; (row||[]).forEach((cell,ci)=>{ const d=parseRosterDate(cell, year); if(d) m[ci]=d; }); return m; };
+  let colDate = mapDates(rows[hi+1]); let agentStart = hi+2;
+  if (!Object.keys(colDate).length) { colDate = mapDates(rows[hi]); agentStart = hi+1; }
+  const dateCols = Object.keys(colDate).map(Number);
+  if (!dateCols.length) return [];
+  for (let i=agentStart; i<rows.length; i++){
+    const r=rows[i]; const name=norm(r[nameCol]);
+    if (!name) break;            // blank name ⇒ end of the top roster table
+    if (isHeaderRow(r)) break;   // a second header ⇒ start of the Admins/Team-Leads table
+    const email = emailCol>=0 ? norm(r[emailCol]) : '';
+    dateCols.forEach(ci => {
+      const cell=norm(r[ci]); if(!cell) return;        // truly empty ⇒ no scheduled entry
+      const mins=parseClockMin(cell);
+      if (mins!=null) out.push({agent_name:name, email, date:colDate[ci], shift_start:cell, shift_end:'', shift_label:''});
+      else out.push({agent_name:name, email, date:colDate[ci], shift_start:'', shift_end:'', shift_label:cell.toUpperCase(), off:true}); // WO/AL/SL… ⇒ scheduled time off, keep the reason
+    });
+  }
+  return out;
+}
+function normDateStr(v){ const d=parseDate(v); return d ? d.toISOString().slice(0,10) : (v?String(v).trim().slice(0,10):''); }
+// Find the scheduled shift for an agent on a given activity_date (yyyy-mm-dd)
+function scheduleFor(name, dateStr){
+  const d = String(dateStr).slice(0,10);
+  return S.sRows.find(r => r.agent_name===name && r.date===d) || null;
 }
 
 // ════════════════════════════════════════
@@ -897,37 +1300,51 @@ async function syncAll(silent=false) {
   if (spin) spin.style.display = 'inline-block';
   if (stat) stat.textContent = 'Syncing…';
 
-  const fetchSheet = async (id, tab, gid) => {
+  const fetchSheet = async (id, tab, gid, range, raw) => {
     if (!id || (!tab && !gid)) return [];
-    const url = gid
-      ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(gid)}`
-      : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+    let url = gid
+      ? `https:\/\/docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(gid)}`
+      : `https:\/\/docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+    if (range) url += `&range=${encodeURIComponent(range)}`; // limit import to a cell range, e.g. B1:NL18
     try {
       const res = await fetchWithTimeout(url, 10000);
       if (!res.ok) { console.warn('Sheet fetch failed', tab||gid, res.status); return []; }
       const txt = await res.text();
       if (!txt || txt.trim().length < 5) { console.warn('Sheet fetch returned empty', tab||gid); return []; }
-      const parsed = await new Promise(r => Papa.parse(txt, {header:true, skipEmptyLines:true, complete: d=>r(d.data), error:()=>r([])}));
+      // raw ⇒ array-of-arrays (keep blank rows so table boundaries are detectable); else keyed objects
+      const parsed = await new Promise(r => Papa.parse(txt, {header:!raw, skipEmptyLines:raw?false:true, complete: d=>r(d.data), error:()=>r([])}));
       if (!parsed.length) console.warn('Sheet parsed but 0 rows — check tab name/gid:', tab||gid, url);
       return parsed;
     } catch (e) { console.warn('Sheet fetch error/timeout', tab||gid, e.message); return []; }
   };
 
   try {
-    const [q, p, t] = await Promise.all([
-      fetchSheet(c.qId, c.qTab),
-      fetchSheet(c.pId, c.pTab),
+    const [q, p, t, sch, disp, raw] = await Promise.all([
+      fetchSheet(c.qId, c.qTab, c.qGid),
+      fetchSheet(c.pId, c.pTab, c.pGid),
       fetchSheet(c.tId || c.aId, c.tTab || c.aTab, c.tGid || c.aGid), // tId/tTab = Timeline sheet (replaces old Adherence)
+      fetchSheet(c.sId, c.sTab || 'Schedule', c.sGid, c.sRange, true), // Schedule (raw rows — handles the wide roster matrix); optional range e.g. B1:NL18
+      fetchSheet(c.dId, c.dTab || 'Form Responses 1', c.dGid),        // Dispute Google Form responses
+      fetchSheet(c.rId, c.rTab || 'Query result', c.rGid),            // Raw support-desk data (Root Cause)
     ]);
 
-  // Quality — normalize agent name column
+  // Disputes — store raw form responses; parsed into a disputed set after agents are known (below)
+  S.dRows = disp || [];
+
+  // Identity — auto-detect email/ID columns and build a resolver so the same person spelled
+  // differently across reports collapses to one canonical name before any name-based matching.
+  const ID = resolveIdentities({q, p, t, sch});
+  const qd=ID.dets.quality, pd=ID.dets.performance, td=ID.dets.timeline;
+
+  // Quality — normalize + canonicalize agent name
   S.qRows = q.filter(r => (r['Agent Name']||r['agent_name']||'').trim())
-    .map(r => ({...r, 'Agent Name': (r['Agent Name']||r['agent_name']||r['Agent']||'').trim()}));
+    .map(r => ({...r, 'Agent Name': ID.resolve((r['Agent Name']||r['agent_name']||r['Agent']||'').trim(), r[qd.email], r[qd.id])}));
 
   // Performance — normalize to new schema (used for AHT/ART/CSAT/resolution; NOT for login/logout anymore)
   S.pRows = p.filter(r => (r['agent_name']||r['Agent Name']||'').trim())
     .map(r => ({
-      agent_name:          (r['agent_name']||r['Agent Name']||'').trim(),
+      agent_name:          ID.resolve((r['agent_name']||r['Agent Name']||'').trim(), r[pd.email], r[pd.id]),
+      email:               pd.email?String(r[pd.email]||'').trim():'',
       detected_shift:      r['detected_shift']||'',
       work_date:           r['work_date']||r['date']||'',
       first_hour:          r['first_hour']||'',
@@ -951,7 +1368,7 @@ async function syncAll(silent=false) {
     .map(r => ({
       log_id:        r['log_id']||'',
       agent_added_id:(r['agent_added_id']||'').toString().trim(),
-      agent_name:    (r['agent_name']||r['Agent Name']||'').trim(),
+      agent_name:    ID.resolve((r['agent_name']||r['Agent Name']||'').trim(), r[td.email], r['agent_added_id']||r[td.id]),
       activity_date: r['activity_date']||'',
       status_name:   (r['status_name']||'').trim(),
       status_start:  r['status_start']||'',
@@ -961,6 +1378,17 @@ async function syncAll(silent=false) {
       is_last_status_of_day:  String(r['is_last_status_of_day'])==='1'||String(r['is_last_status_of_day']).toLowerCase()==='true',
       chats_during_status: parseFloat(r['chats_during_status']||0),
     }));
+
+  // Schedule — parse the roster (top table only) now that we can infer the year from the timeline dates.
+  // The roster's date cells are "1-Jan" style with no year; pick the year the actual activity data uses.
+  const schedYear = (()=>{ const ys={}; S.tRows.forEach(r=>{ const y=String(r.activity_date||'').slice(0,4); if(/^\d{4}$/.test(y)) ys[y]=(ys[y]||0)+1; }); const top=Object.keys(ys).sort((a,b)=>ys[b]-ys[a])[0]; return top?+top:new Date().getFullYear(); })();
+  S.sRows = normalizeSchedule(sch, schedYear);
+  // Canonicalize roster names via the email captured per row (joins schedule to the other reports).
+  S.sRows.forEach(r => { r.agent_name = ID.resolve(r.agent_name, r.email||'', ''); });
+
+  // Raw support-desk data (Root Cause) — keep all columns; canonicalize the agent name.
+  S.rRows = (raw||[]).filter(r => r && Object.values(r).some(v => String(v||'').trim()))
+    .map(r => ({ ...r, agent_name: ID.resolve((r.agent_name||r['Agent Name']||'').trim(), r.agent_email, r.user_added_id) }));
 
   // Discover any AUX status_name not yet classified — auto-add as Non-Productive default so nothing is silently dropped
   let auxUpdated = false;
@@ -985,6 +1413,9 @@ async function syncAll(silent=false) {
   // Build the per-agent/per-date AUX summary (the actual productivity engine)
   S.aRows = buildAuxSummary(S.tRows);
 
+  // Now that agents are known, parse dispute responses (matches ticket links + agent names)
+  S.disputed = buildDisputed(S.dRows);
+
   // qRows/pRows/tRows/aRows live only in memory (S.*) — not persisted to localStorage.
   // They're cheap to refetch on every sync and avoid quota issues entirely.
 
@@ -994,14 +1425,22 @@ async function syncAll(silent=false) {
   if (dot)  dot.style.background = 'var(--green)';
 
   const ss = document.getElementById('setupSyncStatus');
-  if (ss) ss.textContent = `✓ Synced ${now.toLocaleTimeString()} — ${S.qRows.length} quality · ${S.tRows.length} timeline events (${S.aRows.length} agent-days) · ${S.pRows.length} performance`;
+  if (ss) ss.textContent = `✓ Synced ${now.toLocaleTimeString()} — ${S.qRows.length} quality · ${S.tRows.length} timeline events (${S.aRows.length} agent-days) · ${S.pRows.length} performance · ${S.sRows.length} schedule · ${S.disputed.records.length} disputes`;
 
   // Pull GAS config, then refresh all UI
   await pullGASConfig();
   buildMonthFilters();
   refreshIdsEditor();
+  refreshIdentityEditor();
   refreshExcAgents();
-  if (S.mode === 'admin') { renderOverview(); applyProdVisibility(); }
+  if (S.mode === 'admin') {
+    renderOverview(); applyProdVisibility();
+    // Refresh whichever report tab is currently open so new data shows without a tab switch
+    const act=document.querySelector('#adminScreen .tab.active');
+    if (act) { const id=act.id.replace('at-','');
+      if (id==='quality') renderQuality(); else if (id==='productivity') renderProductivity();
+      else if (id==='performance') renderPerformance(); else if (id==='wow') renderWow(); else if (id==='rootcause') renderRootCause(); else if (id==='schedule') renderSchedule(); }
+  }
   if (S.mode === 'agent') { renderAgent(); }
   } catch (err) {
     console.error('Sync failed:', err);
@@ -1027,11 +1466,23 @@ function saveSheetConfig() {
     ...c,
     qId:  document.getElementById('cfgQId').value.trim(),
     qTab: document.getElementById('cfgQTab').value.trim()||'Quality',
+    qGid: (document.getElementById('cfgQGid')||{}).value?.trim()||'',
     pId:  document.getElementById('cfgPId').value.trim(),
     pTab: document.getElementById('cfgPTab').value.trim()||'Performance',
+    pGid: (document.getElementById('cfgPGid')||{}).value?.trim()||'',
     aId:  document.getElementById('cfgAId').value.trim(),
     aTab: document.getElementById('cfgATab').value.trim()||'Query result',
     aGid: document.getElementById('cfgAGid').value.trim(),
+    sId:  (document.getElementById('cfgSId')||{}).value?.trim()||'',
+    sTab: (document.getElementById('cfgSTab')||{}).value?.trim()||'Schedule',
+    sGid: (document.getElementById('cfgSGid')||{}).value?.trim()||'',
+    sRange: (document.getElementById('cfgSRange')||{}).value?.trim()||'',
+    dId:  (document.getElementById('cfgDId')||{}).value?.trim()||'',
+    dTab: (document.getElementById('cfgDTab')||{}).value?.trim()||'Form Responses 1',
+    dGid: (document.getElementById('cfgDGid')||{}).value?.trim()||'',
+    rId:  (document.getElementById('cfgRId')||{}).value?.trim()||'',
+    rTab: (document.getElementById('cfgRTab')||{}).value?.trim()||'Query result',
+    rGid: (document.getElementById('cfgRGid')||{}).value?.trim()||'',
     pass: document.getElementById('cfgPass').value.trim()||c.pass||'admin123',
   });
   const st = document.getElementById('sheetSaveStatus');
@@ -1074,11 +1525,17 @@ function loadWizardState() {
   const c = cfg();
   if (c.qId) document.getElementById('cfgQId').value = c.qId;
   if (c.qTab) document.getElementById('cfgQTab').value = c.qTab;
+  if (c.qGid) { const e=document.getElementById('cfgQGid'); if(e) e.value = c.qGid; }
   if (c.pId) document.getElementById('cfgPId').value = c.pId;
   if (c.pTab) document.getElementById('cfgPTab').value = c.pTab;
+  if (c.pGid) { const e=document.getElementById('cfgPGid'); if(e) e.value = c.pGid; }
   if (c.aId) document.getElementById('cfgAId').value = c.aId;
   if (c.aTab) document.getElementById('cfgATab').value = c.aTab;
   if (c.aGid) document.getElementById('cfgAGid').value = c.aGid;
+  const setV=(id,v)=>{const e=document.getElementById(id); if(e&&v) e.value=v;};
+  setV('cfgSId', c.sId); setV('cfgSTab', c.sTab); setV('cfgSGid', c.sGid); setV('cfgSRange', c.sRange);
+  setV('cfgDId', c.dId); setV('cfgDTab', c.dTab); setV('cfgDGid', c.dGid);
+  setV('cfgRId', c.rId); setV('cfgRTab', c.rTab); setV('cfgRGid', c.rGid);
   if (S.gasUrl) document.getElementById('cfgGasUrl').value = S.gasUrl;
   document.getElementById('gasCode').textContent = GAS_SCRIPT;
   if (c.qId && c.pId && c.aId) document.getElementById('wiz2num').classList.add('done');
@@ -1090,6 +1547,7 @@ function exportConfig() {
   const data = {
     cfg: cfg(),
     agentIds: S.agentIds,
+    agentIdentity: S.identity,
     exceptions: S.exceptions,
     gasUrl: S.gasUrl,
     exportedAt: new Date().toISOString(),
@@ -1111,6 +1569,7 @@ function importConfig(input) {
       const data = JSON.parse(e.target.result);
       if (data.cfg)        ls.set('t_cfg', data.cfg);
       if (data.agentIds)   { S.agentIds   = data.agentIds;   ls.set('t_ids', S.agentIds); }
+      if (data.agentIdentity){ S.identity = data.agentIdentity; ls.set('t_identity', S.identity); }
       if (data.exceptions) { S.exceptions = data.exceptions; ls.set('t_exc', S.exceptions); }
       if (data.gasUrl)     { S.gasUrl = data.gasUrl;         ls.set('t_gas', S.gasUrl); }
       toast('Config imported ✓ — refresh to apply');
@@ -1194,13 +1653,21 @@ function buildAuxSummary(tRows) {
     //   'Available'     → counts toward BOTH Available and Productive
     //   'Productive'    → counts toward Productive only
     //   'Non-Productive'→ neither
+    // Also tag Break / Offline-Personal / Shrinkage buckets for WFM reporting.
     let availableSec=0, productiveSec=0, nonProductiveSec=0;
+    let breakSec=0, offlinePersonalSec=0, shrinkageSec=0;
+    const shrinkageBreakdown={}; // status -> seconds (shrinkage only)
     Object.keys(auxTotals).forEach(name => {
       const cls = S.auxConfig[name] || 'Non-Productive';
       if (cls === 'Available')      { availableSec += auxTotals[name]; productiveSec += auxTotals[name]; }
       else if (cls === 'Productive'){ productiveSec += auxTotals[name]; }
       else                          { nonProductiveSec += auxTotals[name]; }
+      if (isBreakStatus(name))   breakSec += auxTotals[name];
+      if (isOfflineStatus(name)) offlinePersonalSec += auxTotals[name];
+      if (isShrinkageStatus(name)) { shrinkageSec += auxTotals[name]; shrinkageBreakdown[name]=(shrinkageBreakdown[name]||0)+auxTotals[name]; }
     });
+    // Break count = number of break EVENTS in the day (breaks come 2–3×/day)
+    const breakCount = events.filter(e => isBreakStatus(e.status_name) && !((e===last)&&!e.status_end)).length;
 
     const discrepancySec = Math.round(totalLoggedSec - sumAll);
 
@@ -1211,8 +1678,15 @@ function buildAuxSummary(tRows) {
       available_sec: availableSec,
       productive_sec: productiveSec,
       non_productive_sec: nonProductiveSec,
+      break_sec: breakSec,
+      break_count: breakCount,
+      offline_personal_sec: offlinePersonalSec,
+      shrinkage_sec: shrinkageSec,
+      shrinkage_breakdown: shrinkageBreakdown,
       discrepancy_sec: discrepancySec,
       aux_totals: auxTotals,
+      first_start: first.status_start,
+      last_start: last.status_start,
       events,
     });
   }
@@ -1242,8 +1716,8 @@ window.debugRawTimeline = async function() {
   const tab = c.tTab || c.aTab;
   const gid = c.tGid || c.aGid;
   const url = gid
-    ? `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(gid)}`
-    : `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+    ? `https:\/\/docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(gid)}`
+    : `https:\/\/docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
   console.log('Fetching URL:', url);
   const res = await fetch(url);
   const txt = await res.text();
@@ -1292,13 +1766,20 @@ function aggregateAuxRows(rows, name, from, to, mk) {
   const shiftSecs = (S.cfgTargets.shiftMinHrs || 6) * 3600;
   let totLogged=0, totAvail=0, totProductive=0, totNonProductive=0, totDiscrepancy=0, totTarget=0;
   let shiftDays=0, overtimeDays=0, overtimeSec=0;
-  const auxTotals = {}; // status_name -> seconds (across the range)
+  let totBreak=0, totBreakCount=0, totOfflinePersonal=0, totShrinkage=0, breakExceededDays=0;
+  const auxTotals = {};          // status_name -> seconds (across the range)
+  const shrinkageBreakdown = {}; // status_name -> seconds (shrinkage only)
+  const maxBreakSec = (S.cfgTargets.maxDailyBreakMin || 0) * 60;
   rows.forEach(r => {
     totLogged += r.total_logged_sec;
     totAvail  += r.available_sec;
     totProductive += r.productive_sec;
     totNonProductive += r.non_productive_sec;
     totDiscrepancy += r.discrepancy_sec;
+    totBreak += r.break_sec||0; totBreakCount += r.break_count||0;
+    totOfflinePersonal += r.offline_personal_sec||0; totShrinkage += r.shrinkage_sec||0;
+    if (maxBreakSec>0 && (r.break_sec||0) > maxBreakSec) breakExceededDays++;
+    if (r.shrinkage_breakdown) Object.keys(r.shrinkage_breakdown).forEach(k=>shrinkageBreakdown[k]=(shrinkageBreakdown[k]||0)+r.shrinkage_breakdown[k]);
     // Shift vs overtime: a day with productive >= shiftMin is a real shift (adds to target);
     // a day below it (e.g. 1–2h) is OVERTIME — it doesn't add to target or count as a shift.
     if (r.productive_sec >= shiftSecs) { totTarget += reqSecs; shiftDays++; }
@@ -1320,10 +1801,13 @@ function aggregateAuxRows(rows, name, from, to, mk) {
   const achievedSec = totProductive + excMins*60;
   const diff = Math.round((achievedSec-totTarget)/60); // missing/overtime vs target (shift days only)
   const pct  = totTarget>0 ? Math.round(achievedSec/totTarget*100) : (achievedSec>0?200:0);
+  const shrinkagePct = totLogged>0 ? Math.round(totShrinkage/totLogged*100) : 0;
   return {
     days: shiftDays, allDays: rows.length, overtimeDays, overtimeSec,
     totLogged, totAvail, totProductive, totNonProductive, totDiscrepancy,
     totTarget, diff, excMins, auxTotals,
+    totBreak, totBreakCount, totOfflinePersonal, totShrinkage, shrinkagePct,
+    shrinkageBreakdown, breakExceededDays, breakExceeded: breakExceededDays>0,
     achievedSec, pct: Math.min(200,pct),
     // legacy field names kept for compatibility with existing render code
     totProd: achievedSec,
@@ -1336,7 +1820,15 @@ function aggregateAuxRows(rows, name, from, to, mk) {
 function getScore(r) {
   const raw = r['Final score']||r['Final Score']||r['Score']||'';
   const n   = parseFloat(String(raw).replace('%','').replace(',','.'));
-  return isNaN(n)?null:n;
+  if (isNaN(n)) return null;
+  return n <= 1 ? n * 100 : n;
+}
+
+const QA_META = new Set(['Timestamp','Score','Agent Name','Tickets Link','Comment',
+  'Final score','Final Score','Agent mail','WB Date','WD','Column 35','Column 28','Column 34',
+  'Column 31','Column 32','Column 33']);
+function qaFailedAttrs(r) {
+  return Object.keys(r).filter(k => !QA_META.has(k) && /^no$/i.test(String(r[k]||'').trim()));
 }
 
 function calcQuality(name, mk) {
@@ -1345,6 +1837,23 @@ function calcQuality(name, mk) {
   const scores = rows.map(getScore).filter(s=>s!==null);
   if (!scores.length) return null;
   const avg    = scores.reduce((a,b)=>a+b,0)/scores.length;
+  return { avg:+avg.toFixed(1), total:rows.length, passing:scores.filter(s=>s>=90).length, scores, rows };
+}
+
+// Same as calcQuality but filtered by an explicit date range (used by the Overview date picker).
+function calcQualityRange(name, from, to) {
+  const rows = S.qRows.filter(r => {
+    if (r['Agent Name'] !== name) return false;
+    if (!from && !to) return true;
+    const d = parseDate(r['Timestamp']); if (!d) return false;
+    if (from && d < new Date(from)) return false;
+    if (to   && d > new Date(to))   return false;
+    return true;
+  });
+  if (!rows.length) return null;
+  const scores = rows.map(getScore).filter(s=>s!==null);
+  if (!scores.length) return null;
+  const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
   return { avg:+avg.toFixed(1), total:rows.length, passing:scores.filter(s=>s>=90).length, scores, rows };
 }
 
@@ -1385,6 +1894,23 @@ function aggPerf(rows) {
 // legacy compat
 function getPerfRow(name) { const r=getAgentPerfRows(name,'',''); return r.length?aggPerf(r):null; }
 
+// ── Week-over-Week helpers ──
+// Sunday (week start) as yyyy-mm-dd, timezone-safe. Weeks run Sunday→Saturday.
+function weekStart(v){ const d=parseDate(v); if(!d||isNaN(d)) return ''; const u=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); u.setUTCDate(u.getUTCDate()-u.getUTCDay()); return u.toISOString().slice(0,10); }
+function weekLabel(monStr){ const d=parseDate(monStr); return d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):monStr; }
+// Performance rows → per-week AHT/ART/CSAT (reuse aggPerf for the bucket math).
+function weeklyPerf(rows){
+  const byW={}; (rows||[]).forEach(r=>{ const w=weekStart(r.work_date); if(!w) return; (byW[w]=byW[w]||[]).push(r); });
+  return Object.keys(byW).sort().map(w=>{ const a=aggPerf(byW[w]); return { week:w, label:weekLabel(w), aht:+a.avg_aht_min, art:+a.avg_art_sec, csat:+a.csat_pct, n:byW[w].length }; });
+}
+// Quality rows → per-week average QA score.
+function weeklyQA(rows){
+  const byW={}; (rows||[]).forEach(r=>{ const s=getScore(r); if(s===null) return; const w=weekStart(r['Timestamp']); if(!w) return; (byW[w]=byW[w]||[]).push(s); });
+  return Object.keys(byW).sort().map(w=>({ week:w, label:weekLabel(w), qa:+(byW[w].reduce((x,y)=>x+y,0)/byW[w].length).toFixed(1), n:byW[w].length }));
+}
+// Latest-week minus previous-week for a given key (null if <2 weeks).
+function wowDelta(series,key){ if(!series||series.length<2) return null; const a=series[series.length-1][key], b=series[series.length-2][key]; if(a==null||b==null) return null; return +(a-b).toFixed(1); }
+
 // ════════════════════════════════════════
 // ALL AGENT NAMES
 // ════════════════════════════════════════
@@ -1407,8 +1933,12 @@ function aTab(id, el) {
   if (id==='quality')      renderQuality();
   if (id==='productivity') renderProductivity();
   if (id==='performance')  renderPerformance();
+  if (id==='wow')          renderWow();
+  if (id==='rootcause')    renderRootCause();
+  if (id==='schedule')     renderSchedule();
   if (id==='exceptions')   renderExcList();
-  if (id==='config')       renderConfigCenter();
+  if (id==='config')     { renderConfigCenter(); refreshAdminUsers(); }
+  if (id==='agentids')   { refreshIdsEditor(); refreshIdentityEditor(); }
 }
 
 // ════════════════════════════════════════
@@ -1426,6 +1956,9 @@ function renderConfigCenter() {
   set('cfgArtTarget',     t.artTargetSec ?? 60);
   set('cfgCsatTarget',    t.csatTargetPct ?? 80);
   set('cfgResolutionTarget', t.resolutionTargetPct ?? 85);
+  set('cfgMaxBreak',   t.maxDailyBreakMin ?? 60);
+  set('cfgMaxOffline', t.maxOfflinePersonalMin ?? 30);
+  set('cfgDisputeUrl', t.disputeFormUrl ?? '');
   const hideInp = document.getElementById('cfgHideProd');
   if (hideInp) hideInp.checked = !!t.hideProductivity;
   renderAuxConfigList();
@@ -1453,7 +1986,7 @@ function renderAuxConfigList() {
       <div></div>
     </div>
     ${names.map(n => `
-    <div style="display:grid;grid-template-columns:1fr 180px 80px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03)" data-aux-row="${n}">
+    <div style="display:grid;grid-template-columns:1fr 180px 80px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)" data-aux-row="${n}">
       <input class="inp inp-sm" value="${n}" disabled style="color:var(--text);opacity:.8"/>
       <select class="inp inp-sm" data-aux-select="${n}">
         <option value="Available" ${S.auxConfig[n]==='Available'?'selected':''}>Available</option>
@@ -1504,6 +2037,9 @@ async function saveTargets() {
   t.artTargetSec        = num('cfgArtTarget', 60);
   t.csatTargetPct       = num('cfgCsatTarget', 80);
   t.resolutionTargetPct = num('cfgResolutionTarget', 85);
+  t.maxDailyBreakMin    = num('cfgMaxBreak', 60);
+  t.maxOfflinePersonalMin = num('cfgMaxOffline', 30);
+  const du=document.getElementById('cfgDisputeUrl'); if(du) t.disputeFormUrl = du.value.trim();
   const hideInp = document.getElementById('cfgHideProd');
   t.hideProductivity = hideInp ? hideInp.checked : false;
   ls.set('t_targets', t);
@@ -1518,26 +2054,66 @@ async function saveTargets() {
 // ADMIN OVERVIEW
 // ════════════════════════════════════════
 function renderOverview() {
-  const mk = getMonth('adminMonth');
+  const from = (document.getElementById('ovFrom')||{}).value||'';
+  const to   = (document.getElementById('ovTo')||{}).value||'';
+  const hasRange = !!(from||to);
+  // An explicit From/To range overrides the month dropdown.
+  const mk = hasRange ? '' : getMonth('adminMonth');
+  // Effective range for the Performance sheet (which has no month concept): derive month bounds when a month is picked.
+  let pFrom=from, pTo=to;
+  if (mk){ const [yy,mm]=mk.split('-').map(Number); pFrom=`${mk}-01`; pTo=new Date(yy,mm,0).toISOString().slice(0,10); }
+  // Unified scope accessors used throughout the overview.
+  const QA = a => hasRange ? calcQualityRange(a,from,to) : calcQuality(a,mk);
+  const PR = a => hasRange ? calcProdRange(a,from,to)    : calcProd(a,mk);
+  const PF = a => aggPerf(getAgentPerfRows(a,pFrom,pTo));
+  const inScope = ts => { if(!hasRange) return inMonth(ts,mk); const d=parseDate(ts); if(!d) return false; if(from&&d<new Date(from))return false; if(to&&d>new Date(to))return false; return true; };
+  const scopeLabel = hasRange
+    ? `${from?new Date(from).toLocaleDateString('en-GB'):'…'} – ${to?new Date(to).toLocaleDateString('en-GB'):'…'}`
+    : (mk?fmtMonth(mk):'All Time');
+
   const _allAgents = allAgents();
   const _sel = getSelectedAgents();
   const agents = _sel.length ? _allAgents.filter(a=>_sel.includes(a)) : _allAgents;
   if (!agents.length) { document.getElementById('overviewContent').innerHTML=emptyHtml('No data','Sync your sheets first'); return; }
-  document.getElementById('overviewMeta').textContent = `${agents.length} agents · ${mk?fmtMonth(mk):'All Time'}`;
+  document.getElementById('overviewMeta').textContent = `${agents.length} agents · ${scopeLabel}`;
   const hp = prodHidden();
 
   let totTickets=0, allScores=[], totMissing=0;
   agents.forEach(a=>{
-    const q=calcQuality(a,mk); const p=calcProd(a,mk);
+    const q=QA(a); const p=PR(a);
     if(q){ totTickets+=q.total; allScores.push(...q.scores); }
     if(p&&p.diff<0) totMissing+=Math.abs(p.diff);
   });
   const avgQ = allScores.length?(allScores.reduce((a,b)=>a+b,0)/allScores.length).toFixed(1):'—';
   const pass  = allScores.length?Math.round(allScores.filter(s=>s>=90).length/allScores.length*100):null;
 
+  // ── Disputes — QA reviews whose ticket link appears in the dispute form responses ──
+  const disputedRows = S.qRows.filter(r => agents.includes(r['Agent Name']) && inScope(r['Timestamp']) && isDisputed(r));
+  const totDisputed = disputedRows.length;
+  const recByTicket = {};
+  S.disputed.records.forEach(rec=>{ if(rec.ticket) recByTicket[rec.ticket.toLowerCase()] = rec; });
+  const dispTrs = disputedRows.map(r=>{
+    const s=getScore(r);
+    const ts=r['Timestamp']?new Date(r['Timestamp']).toLocaleDateString('en-GB'):'—';
+    const lnk=r['Tickets Link']||'';
+    const rec=recByTicket[lnk.trim().toLowerCase()]||{};
+    return `<tr>
+      <td style="font-size:11px">${ts}</td>
+      <td style="color:var(--text)">${r['Agent Name']||'—'}</td>
+      <td>${s!==null?`<span class="sc-badge ${scoreCls(s)}">${s.toFixed(1)}%</span>`:'—'}</td>
+      <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>`:'—'}</td>
+      <td style="font-size:11.5px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(rec.reason||'').replace(/"/g,'&quot;')}">${rec.reason||'—'}</td>
+    </tr>`;
+  }).join('');
+  const disputedCard = `<div class="card">
+    <div class="card-hd"><span class="card-title">⚖️ Disputed Tickets</span><span class="badge ${totDisputed?'ba':'bg'}">${totDisputed} disputed</span></div>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Date</th><th>Agent</th><th>Score</th><th>Ticket</th><th>Reason</th></tr></thead>
+    <tbody>${dispTrs||`<tr><td colspan="5" style="color:var(--text3);padding:20px;text-align:center">No disputed tickets${S.dRows.length?'':'. Link the dispute responses sheet in Setup → Dispute Responses Sheet to track these.'}</td></tr>`}</tbody></table></div>
+  </div>`;
+
   const T = S.cfgTargets;
   const rows = agents.map(a=>{
-    const q=calcQuality(a,mk), p=calcProd(a,mk), perf=getPerfRow(a);
+    const q=QA(a), p=PR(a), perf=PF(a);
     const s=q?q.avg:null;
     const diffLabel=p?(p.diff<0?`<span class="cr">-${Math.abs(p.diff)}m</span>`:`<span class="cg">+${p.diff}m</span>`):'—';
     return `<tr>
@@ -1554,8 +2130,8 @@ function renderOverview() {
 
   // ── Chart datasets (per agent) ──
   const cData = agents.map(a => {
-    const q=calcQuality(a,mk), p=calcProd(a,mk), perf=getPerfRow(a);
-    return { a, qa:q?q.avg:null, prod:p?p.pct:null, csat:perf?parseFloat(perf.csat_pct):null, aht:perf?parseFloat(perf.avg_aht_min):null };
+    const q=QA(a), p=PR(a), perf=PF(a);
+    return { a, qa:q?q.avg:null, prod:p?p.pct:null, csat:perf?parseFloat(perf.csat_pct):null, aht:perf?parseFloat(perf.avg_aht_min):null, art:perf?parseFloat(perf.avg_art_sec):null };
   });
   const passCount = allScores.filter(s=>s>=90).length;
   const nearCount = allScores.filter(s=>s>=80&&s<90).length;
@@ -1564,20 +2140,27 @@ function renderOverview() {
   // ── Top / bottom performer cards ──
   const _by=(arr,key,dir)=>[...arr].sort((x,y)=>(y[key]-x[key])*dir).slice(0,3);
   const withQA=cData.filter(d=>d.qa!=null), withProd=cData.filter(d=>d.prod!=null);
+  const withAHT=cData.filter(d=>d.aht!=null), withART=cData.filter(d=>d.art!=null), withCSAT=cData.filter(d=>d.csat!=null);
   const perfCard=(title,items,key,unit,color)=>`<div class="card" style="margin:0"><div class="card-hd"><span class="card-title">${title}</span></div><div class="card-bd" style="padding:10px 16px">${items.length?items.map(d=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--text2)">${d.a}</span><span style="color:${color};font-weight:700">${d[key]}${unit}</span></div>`).join(''):'<span style="color:var(--text3);font-size:12px">No data</span>'}</div></div>`;
   const perfCards=`<div class="charts-grid" style="margin-bottom:16px">
     ${perfCard('🏆 Top QA', _by(withQA,'qa',1),'qa','%','var(--green)')}
     ${perfCard('⚠ Needs Attention · QA', _by(withQA,'qa',-1),'qa','%','var(--red)')}
     ${hp?'':perfCard('🏆 Top Productivity', _by(withProd,'prod',1),'prod','%','var(--green)')}
     ${hp?'':perfCard('⚠ Lowest Productivity', _by(withProd,'prod',-1),'prod','%','var(--red)')}
+  </div>
+  <div class="charts-grid" style="margin-bottom:16px">
+    ${perfCard('⚠ Highest AHT', _by(withAHT,'aht',1),'aht',' min','var(--red)')}
+    ${perfCard('⚠ Highest ART', _by(withART,'art',1),'art','s','var(--red)')}
+    ${perfCard('⚠ Lowest CSAT', _by(withCSAT,'csat',-1),'csat','%','var(--red)')}
   </div>`;
 
   document.getElementById('overviewContent').innerHTML=`
     <div class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cp">${agents.length}</div><div class="m-sub">in system</div></div>
-      <div class="metric"><div class="m-lbl">Tickets</div><div class="m-val cb">${totTickets.toLocaleString()}</div><div class="m-sub">${mk?fmtMonth(mk):'all time'}</div></div>
+      <div class="metric"><div class="m-lbl">Tickets</div><div class="m-val cb">${totTickets.toLocaleString()}</div><div class="m-sub">${scopeLabel}</div></div>
       <div class="metric"><div class="m-lbl">Avg QA Score</div><div class="m-val ${parseFloat(avgQ)>=90?'cg':parseFloat(avgQ)>=80?'ca':'cr'}">${avgQ}${avgQ!=='—'?'%':''}</div><div class="m-sub">all agents</div></div>
       <div class="metric"><div class="m-lbl">Pass Rate</div><div class="m-val ${pass>=90?'cg':pass>=80?'ca':'cr'}">${pass!==null?pass+'%':'—'}</div><div class="m-sub">≥ 90% threshold</div></div>
+      <div class="metric"><div class="m-lbl">Disputed</div><div class="m-val ${totDisputed?'ca':'cg'}">${totDisputed}</div><div class="m-sub">QA tickets disputed</div></div>
       ${hp?'':`<div class="metric"><div class="m-lbl">Total Missing</div><div class="m-val cr">${totMissing}m</div><div class="m-sub">across all agents</div></div>`}
     </div>
     ${perfCards}
@@ -1587,8 +2170,9 @@ function renderOverview() {
       ${hp?'':chartCard('Productivity Achievement %','ovProdChart')}
       ${chartCard('CSAT by Agent','ovCsatChart')}
     </div>
+    ${disputedCard}
     <div class="card">
-      <div class="card-hd"><span class="card-title">Agent Summary</span><span class="badge bp">${agents.length} agents · ${mk?fmtMonth(mk):'All Time'}</span></div>
+      <div class="card-hd"><span class="card-title">Agent Summary</span><span class="badge bp">${agents.length} agents · ${scopeLabel}</span></div>
       <div class="tbl-wrap card-bd-0">
         <table class="tbl"><thead><tr><th>Agent</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>ART</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
         <tbody>${rows}</tbody></table>
@@ -1600,20 +2184,20 @@ function renderOverview() {
   mkChart('ovQaChart', {
     type:'bar',
     data:{ labels, datasets:[{ label:'Avg QA %', data:cData.map(d=>d.qa),
-      backgroundColor:cData.map(d=>d.qa==null?'#3e3e60':d.qa>=90?hexA('#22c55e',.75):d.qa>=80?hexA('#f59e0b',.75):hexA('#ef4444',.75)),
+      backgroundColor:cData.map(d=>d.qa==null?cssVar('--nullbar','#3e3e60'):d.qa>=90?hexA('#22c55e',.75):d.qa>=80?hexA('#f59e0b',.75):hexA('#ef4444',.75)),
       borderRadius:5, borderWidth:0 }] },
     options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis({min:0,max:100,ticks:{callback:v=>v+'%'}}) } }
   });
   mkChart('ovDistChart', {
     type:'doughnut',
     data:{ labels:['Pass (≥90%)','Near miss (80–89%)','Fail (<80%)'], datasets:[{ data:[passCount,nearCount,failCount],
-      backgroundColor:[hexA('#22c55e',.8),hexA('#f59e0b',.8),hexA('#ef4444',.8)], borderColor:'#121226', borderWidth:2 }] },
+      backgroundColor:[hexA('#22c55e',.8),hexA('#f59e0b',.8),hexA('#ef4444',.8)], borderColor:cssVar('--bg2','#121226'), borderWidth:2 }] },
     options:{ cutout:'62%', plugins:{legend:{position:'bottom'}} }
   });
   if (!hp) mkChart('ovProdChart', {
     type:'bar',
     data:{ labels, datasets:[{ label:'Achievement %', data:cData.map(d=>d.prod),
-      backgroundColor:cData.map(d=>d.prod==null?'#3e3e60':d.prod>=100?hexA('#22c55e',.75):d.prod>=80?hexA('#f59e0b',.75):hexA('#ef4444',.75)),
+      backgroundColor:cData.map(d=>d.prod==null?cssVar('--nullbar','#3e3e60'):d.prod>=100?hexA('#22c55e',.75):d.prod>=80?hexA('#f59e0b',.75):hexA('#ef4444',.75)),
       borderRadius:5, borderWidth:0 }] },
     options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis({min:0,ticks:{callback:v=>v+'%'}}) } }
   });
@@ -1651,6 +2235,10 @@ function renderQuality() {
   });
   if (!rows.length) { document.getElementById('qualityContent').innerHTML=emptyHtml('No quality data','Sync to load or widen your filters'); return; }
 
+  const disputeUrl = (S.cfgTargets.disputeFormUrl||'').trim();
+  const recByTicketQ = {};
+  S.disputed.records.forEach(rec=>{ if(rec.ticket) recByTicketQ[rec.ticket.toLowerCase()] = rec; });
+
   // ── KPIs ──
   const scores  = rows.map(getScore).filter(s=>s!==null);
   const avg     = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
@@ -1658,6 +2246,7 @@ function renderQuality() {
   const failing = scores.filter(s=>s<thresh).length;
   const passRate= scores.length ? Math.round(passing/scores.length*100) : null;
   const coachedCount = rows.filter(r=>QS.coached.has(ticketKey(r))).length;
+  const disputedCount = rows.filter(isDisputed).length;
 
   // ── Per-agent averages (chart + used below) ──
   const byAgent={};
@@ -1677,6 +2266,7 @@ function renderQuality() {
 
   // ── Table rows: apply search + coached filter, then paginate ──
   const q=(QS.search||'').toLowerCase();
+  const wdQ=((document.getElementById('qualWD')||{}).value||'').toLowerCase();
   let view = rows.filter(r=>{
     const s=getScore(r); const key=ticketKey(r);
     const isCoached=QS.coached.has(key); const needs=s!==null&&s<thresh;
@@ -1684,6 +2274,7 @@ function renderQuality() {
     if (QS.coachedFilter==='coached' && !isCoached)           return false;
     if (QS.coachedFilter==='pass'    && (needs||isCoached))   return false;
     if (q){ const txt=[r['Agent Name'],r['Tickets Link'],r['Comment'],String(s)].join(' ').toLowerCase(); if(!txt.includes(q)) return false; }
+    if (wdQ && !String(r['WD']||r['WB Date']||'').toLowerCase().includes(wdQ)) return false;
     return true;
   });
   view = applySort(view, 'qual', {
@@ -1694,8 +2285,8 @@ function renderQuality() {
 
   // CSV cache (whole filtered view, not just current page)
   _csvCache.quality = {
-    headers:['Date','Agent','Score','Ticket','Comment','Coached'],
-    rows: view.map(r=>{ const s=getScore(r); return [ r['Timestamp']?new Date(r['Timestamp']).toLocaleDateString('en-GB'):'', r['Agent Name']||'', s==null?'':s, r['Tickets Link']||'', r['Comment']||'', QS.coached.has(ticketKey(r))?'yes':'' ]; }),
+    headers:['Date','Agent','Score','Failed Attributes','Ticket','Comment','Coached'],
+    rows: view.map(r=>{ const s=getScore(r); return [ r['Timestamp']?new Date(r['Timestamp']).toLocaleDateString('en-GB'):'', r['Agent Name']||'', s==null?'':s, qaFailedAttrs(r).join(', '), r['Tickets Link']||'', r['Comment']||'', QS.coached.has(ticketKey(r))?'yes':'' ]; }),
   };
 
   const total=view.length, pages=Math.max(1,Math.ceil(total/QS.pageSize));
@@ -1713,13 +2304,20 @@ function renderQuality() {
       : needs
         ? `<button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber)" onclick="toggleCoach('${key.replace(/'/g,"\\'")}')">Mark Coached</button>`
         : `<span class="badge bg">Pass</span>`;
-    return `<tr style="${coached?'background:rgba(124,90,240,.05)':''}">
+    const disputed = isDisputed(r);
+    // Already-disputed tickets show a badge; otherwise offer the Dispute link on tickets < 100%
+    const dispute = disputed
+      ? `<span class="badge ba" style="margin-left:6px" title="${(recByTicketQ[(r['Tickets Link']||'').trim().toLowerCase()]?.reason||'Disputed via the agent dispute form').replace(/"/g,'&quot;')}">⚖ Disputed</span>`
+      : (disputeUrl && s!==null && s<100 ? `<a class="btn btn-sm" style="margin-left:6px;border-color:var(--blue);color:var(--blue)" target="_blank" href="${disputeLink(r,s)}">Dispute</a>` : '');
+    const fa=qaFailedAttrs(r);
+    return `<tr style="${disputed?'background:rgba(245,158,11,.06)':coached?'background:rgba(124,90,240,.05)':''}">
       <td style="font-size:11px">${ts}</td>
       <td style="color:var(--text)">${r['Agent Name']||'—'}</td>
       <td>${s!==null?`<span class="sc-badge ${cls}">${s.toFixed(1)}%</span>`:'—'}</td>
+      <td style="font-size:11px;max-width:220px">${fa.length?fa.map(a=>`<span class="badge" style="background:rgba(239,68,68,.12);color:var(--red);margin:1px 2px;display:inline-block;white-space:nowrap">${a}</span>`).join(''):'<span style="color:var(--text3)">—</span>'}</td>
       <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>`:'—'}</td>
       <td style="font-size:11.5px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Comment']||'').replace(/"/g,'&quot;')}">${r['Comment']||'—'}</td>
-      <td>${action}</td>
+      <td style="white-space:nowrap">${action}${dispute}</td>
     </tr>`;
   }).join('');
 
@@ -1742,6 +2340,7 @@ function renderQuality() {
       <div class="metric"><div class="m-lbl">Pass Rate</div><div class="m-val ${passRate>=90?'cg':passRate>=80?'ca':'cr'}">${passRate!=null?passRate+'%':'—'}</div><div class="m-sub">≥ ${thresh}%</div></div>
       <div class="metric"><div class="m-lbl">Coaching Needed</div><div class="m-val cr">${failing}</div><div class="m-sub">&lt; ${thresh}% threshold</div></div>
       <div class="metric"><div class="m-lbl">Coached</div><div class="m-val cp">${coachedCount}</div><div class="m-sub">marked done</div></div>
+      <div class="metric"><div class="m-lbl">Disputed</div><div class="m-val ${disputedCount?'ca':'cg'}">${disputedCount}</div><div class="m-sub">agent disputes</div></div>
     </div>
     <div class="charts-grid">
       ${chartCard('Avg Score by Agent','qaAgentChart')}
@@ -1749,7 +2348,7 @@ function renderQuality() {
       ${chartCard('Avg Score Over Time','qaTrendChart')}
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Ticket-Level QA Reviews</span><div style="display:flex;gap:8px;align-items:center"><span class="badge bp">${total} records</span>${csvBtn('quality')}</div></div>
-    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${sortableTh('qual','date','Date')}${sortableTh('qual','agent','Agent')}${sortableTh('qual','score','Score')}<th>Ticket</th><th>Comment</th><th>Coaching</th></tr></thead><tbody>${trs||`<tr><td colspan="6" style="color:var(--text3);padding:20px;text-align:center">No tickets match your filters</td></tr>`}</tbody></table></div>${pag}</div>`;
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${sortableTh('qual','date','Date')}${sortableTh('qual','agent','Agent')}${sortableTh('qual','score','Score')}<th>Failed Attributes</th><th>Ticket</th><th>Comment</th><th>Coaching</th></tr></thead><tbody>${trs||`<tr><td colspan="7" style="color:var(--text3);padding:20px;text-align:center">No tickets match your filters</td></tr>`}</tbody></table></div>${pag}</div>`;
 
   // ── Charts ──
   mkChart('qaAgentChart', {
@@ -1762,7 +2361,7 @@ function renderQuality() {
   mkChart('qaDistChart', {
     type:'doughnut',
     data:{ labels:[`Pass (≥${thresh}%)`,`Near miss (${near}–${thresh}%)`,`Fail (<${near}%)`], datasets:[{ data:[passC,warnC,failC],
-      backgroundColor:[hexA('#22c55e',.8),hexA('#f59e0b',.8),hexA('#ef4444',.8)], borderColor:'#121226', borderWidth:2 }] },
+      backgroundColor:[hexA('#22c55e',.8),hexA('#f59e0b',.8),hexA('#ef4444',.8)], borderColor:cssVar('--bg2','#121226'), borderWidth:2 }] },
     options:{ cutout:'62%', plugins:{legend:{position:'bottom'}} }
   });
   mkChart('qaTrendChart', {
@@ -1793,7 +2392,7 @@ function renderProductivity() {
   if (!data.length) { document.getElementById('productivityContent').innerHTML=emptyHtml('No timeline data','No data for this period'); return; }
   data = applySort(data, 'prod', {
     agent:x=>x.a, days:x=>x.p.days, overtime:x=>x.p.overtimeSec, logged:x=>x.p.totLogged,
-    productive:x=>x.p.achievedSec, pct:x=>x.p.pct, variance:x=>x.p.diff, discrepancy:x=>x.p.totDiscrepancy,
+    productive:x=>x.p.achievedSec, pct:x=>x.p.pct, variance:x=>x.p.diff, brk:x=>x.p.totBreak, discrepancy:x=>x.p.totDiscrepancy,
   });
 
   const rows = data.map(({a,p})=>{
@@ -1804,6 +2403,10 @@ function renderProductivity() {
       ? `<span class="cr" style="cursor:pointer" onclick="drillAgentAux('${a.replace(/'/g,"\\\\'")}','${from}','${to}')" title="Click to investigate">⚠ ${discMin}m</span>`
       : `<span style="color:var(--text3)">—</span>`;
     const ot = p.overtimeDays>0 ? `<span class="ca">${p.overtimeDays}d · ${(p.overtimeSec/3600).toFixed(1)}h</span>` : `<span style="color:var(--text3)">—</span>`;
+    const brkMin=Math.round(p.totBreak/60);
+    const brkCell = p.breakExceeded
+      ? `<span class="cr" title="Exceeded the ${S.cfgTargets.maxDailyBreakMin}m daily limit on ${p.breakExceededDays} day(s)">⚠ ${brkMin}m</span>`
+      : `<span>${brkMin}m</span>`;
     return `<tr>
       <td style="color:var(--text)">${a}</td>
       <td>${p.days} days</td>
@@ -1812,14 +2415,15 @@ function renderProductivity() {
       <td>${(p.achievedSec/3600).toFixed(1)}h / ${(p.totTarget/3600).toFixed(1)}h</td>
       <td><div class="prod-bar-bg"><div class="prod-bar-fill" style="width:${Math.min(100,p.pct)}%;background:${pc}"></div></div><span style="font-size:11px;color:${pc}">${p.pct}%</span></td>
       <td>${dl}</td>
+      <td>${brkCell}<br><span style="font-size:10px;color:var(--text3)">${p.totBreakCount} breaks</span></td>
       <td>${discHtml}</td>
     </tr>`;
   }).join('');
 
   // CSV cache for the productivity table
   _csvCache.productivity = {
-    headers:['Agent','Shift Days','Overtime Days','Overtime Hours','Total Logged (h)','Productive (h)','Required (h)','Achievement %','Variance (min)','Discrepancy (min)'],
-    rows: data.map(({a,p})=>[a,p.days,p.overtimeDays,(p.overtimeSec/3600).toFixed(2),(p.totLogged/3600).toFixed(2),(p.achievedSec/3600).toFixed(2),(p.totTarget/3600).toFixed(2),p.pct,p.diff,Math.round(p.totDiscrepancy/60)]),
+    headers:['Agent','Shift Days','Overtime Days','Overtime Hours','Total Logged (h)','Productive (h)','Required (h)','Achievement %','Variance (min)','Break (min)','Break count','Break exceeded','Discrepancy (min)'],
+    rows: data.map(({a,p})=>[a,p.days,p.overtimeDays,(p.overtimeSec/3600).toFixed(2),(p.totLogged/3600).toFixed(2),(p.achievedSec/3600).toFixed(2),(p.totTarget/3600).toFixed(2),p.pct,p.diff,Math.round(p.totBreak/60),p.totBreakCount,p.breakExceeded?'yes':'',Math.round(p.totDiscrepancy/60)]),
   };
 
   // ── AUX breakdown (each status duration + totals across all agents) ──
@@ -1843,6 +2447,15 @@ function renderProductivity() {
     rows: auxData.map(({a,p})=>[a,...statuses.map(st=>((p.auxTotals[st]||0)/3600).toFixed(2)),(p.totLogged/3600).toFixed(2)]),
   };
 
+  // ── Shrinkage aggregate (all agents) + breakdown by status ──
+  const shrinkAgg={}; let shrinkTotalSec=0;
+  data.forEach(x=>{ shrinkTotalSec+=x.p.totShrinkage||0; Object.keys(x.p.shrinkageBreakdown||{}).forEach(k=>shrinkAgg[k]=(shrinkAgg[k]||0)+x.p.shrinkageBreakdown[k]); });
+  const shrinkLabels=Object.keys(shrinkAgg).sort((a,b)=>shrinkAgg[b]-shrinkAgg[a]);
+  const shrinkVals=shrinkLabels.map(k=>+(shrinkAgg[k]/3600).toFixed(2));
+  const shrinkagePctAll = grandTotalSec>0 ? Math.round(shrinkTotalSec/grandTotalSec*100) : 0;
+  const shrinkRows = shrinkLabels.map(k=>`<tr><td style="color:var(--text)">${k}</td><td>${(shrinkAgg[k]/3600).toFixed(1)}h</td><td>${shrinkTotalSec>0?Math.round(shrinkAgg[k]/shrinkTotalSec*100):0}%</td></tr>`).join('') || `<tr><td colspan="3" style="color:var(--text3)">No shrinkage in range</td></tr>`;
+  const breakOverAgents = data.filter(x=>x.p.breakExceeded).length;
+
   // ── Chart datasets ──
   const prd = data; const prLabels=prd.map(x=>x.a);
 
@@ -1850,19 +2463,28 @@ function renderProductivity() {
     <div class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cp">${data.length}</div><div class="m-sub">with data</div></div>
       <div class="metric"><div class="m-lbl">Total Duration</div><div class="m-val cb">${(grandTotalSec/3600).toFixed(0)}h</div><div class="m-sub">all agents · logged</div></div>
-      <div class="metric"><div class="m-lbl">Productive</div><div class="m-val cg">${(data.reduce((s,x)=>s+x.p.totProductive,0)/3600).toFixed(0)}h</div><div class="m-sub">all agents</div></div>
-      <div class="metric"><div class="m-lbl">Overtime Days</div><div class="m-val ca">${data.reduce((s,x)=>s+x.p.overtimeDays,0)}</div><div class="m-sub">&lt; ${S.cfgTargets.shiftMinHrs||6}h productive</div></div>
+      <div class="metric"><div class="m-lbl">Shrinkage</div><div class="m-val ${shrinkagePctAll>=30?'cr':shrinkagePctAll>=20?'ca':'cg'}">${shrinkagePctAll}%</div><div class="m-sub">${(shrinkTotalSec/3600).toFixed(0)}h non-productive</div></div>
+      <div class="metric"><div class="m-lbl">Over Break Limit</div><div class="m-val ${breakOverAgents?'cr':'cg'}">${breakOverAgents}</div><div class="m-sub">agents &gt; ${S.cfgTargets.maxDailyBreakMin}m/day</div></div>
     </div>
     <div class="charts-grid">
       ${chartCard('Productivity Achievement % by Agent','prodAchChart',`target ${reqHrs}h/day`)}
       ${chartCard('Productive vs Non-Productive Hours','prodSplitChart')}
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Productivity vs Target (${reqHrs}h/day required)</span><div style="display:flex;gap:8px;align-items:center"><span class="badge bp">${from&&to?from+' → '+to:'All Time'}</span>${csvBtn('productivity')}</div></div>
-    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${sortableTh('prod','agent','Agent')}${sortableTh('prod','days','Shift Days')}${sortableTh('prod','overtime','Overtime')}${sortableTh('prod','logged','Total Logged')}${sortableTh('prod','productive','Productive / Required')}${sortableTh('prod','pct','Achievement')}${sortableTh('prod','variance','Variance')}${sortableTh('prod','discrepancy','Discrepancy')}</tr></thead><tbody>${rows}</tbody></table></div></div>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${sortableTh('prod','agent','Agent')}${sortableTh('prod','days','Shift Days')}${sortableTh('prod','overtime','Overtime')}${sortableTh('prod','logged','Total Logged')}${sortableTh('prod','productive','Productive / Required')}${sortableTh('prod','pct','Achievement')}${sortableTh('prod','variance','Variance')}${sortableTh('prod','brk','Break')}${sortableTh('prod','discrepancy','Discrepancy')}</tr></thead><tbody>${rows}</tbody></table></div></div>
+    <div class="card"><div class="card-hd"><span class="card-title">Shrinkage</span><span class="badge bp">${shrinkagePctAll}% of logged time</span></div>
+      <div class="card-bd-0" style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <div style="padding:18px"><div style="position:relative;height:220px"><canvas id="shrinkChart"></canvas></div></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Category</th><th>Hours</th><th>% of shrinkage</th></tr></thead><tbody>${shrinkRows}
+          <tr class="totals"><td>Total shrinkage</td><td>${(shrinkTotalSec/3600).toFixed(1)}h</td><td>100%</td></tr></tbody></table></div>
+      </div></div>
     <div class="card"><div class="card-hd"><span class="card-title">AUX Duration Breakdown</span><div style="display:flex;gap:8px;align-items:center"><span class="badge bp">each status · Idle = non-productive</span>${csvBtn('aux')}</div></div>
     <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${auxHead}</tr></thead><tbody>${auxRows}${auxTotalsRow}</tbody></table></div></div>
     <div id="auxDrilldown"></div>`;
   saveFilters();
+  if (shrinkLabels.length) mkChart('shrinkChart', { type:'doughnut',
+    data:{ labels:shrinkLabels, datasets:[{ data:shrinkVals, backgroundColor:chartColors(shrinkLabels.length,.8), borderColor:cssVar('--bg2','#121226'), borderWidth:2 }] },
+    options:{ cutout:'58%', plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>c.label+': '+c.parsed.toFixed(1)+'h'}}} } });
 
   mkChart('prodAchChart', {
     type:'bar',
@@ -2008,7 +2630,7 @@ function refreshIdsEditor() {
       <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Agent ID</div>
     </div>
     ${agents.map(a=>`
-    <div style="display:grid;grid-template-columns:1fr 180px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03)">
+    <div style="display:grid;grid-template-columns:1fr 180px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
       <div style="font-size:13px;color:var(--text)">${a}</div>
       <input class="inp inp-sm" data-agent="${a}" value="${S.agentIds[a]||''}" placeholder="e.g. AG001" style="font-family:monospace;letter-spacing:1px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"/>
     </div>`).join('')}`;
@@ -2022,6 +2644,96 @@ async function saveIds() {
   ls.set('t_ids', S.agentIds);
   await gasWrite('agentIds', S.agentIds);
   toast('Agent IDs saved ✓');
+}
+
+// Cross-report identity matching editor — lists each auto-detected cluster (shared email/ID +
+// the spellings seen across reports) with an editable canonical name. Multi-spelling clusters
+// (the actual mismatches being fixed) are highlighted.
+function refreshIdentityEditor() {
+  const el = document.getElementById('identityEditor'); if (!el) return;
+  const cl = S.identityClusters || [];
+  if (!cl.length) { el.innerHTML = `<div style="color:var(--text3);font-size:13px;padding:12px 0">No identities detected yet — Sync data (reports need an email or Agent ID column).</div>`; return; }
+  const merged = cl.filter(c=>c.multi).length;
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">${cl.length} identities · <span style="color:var(--amber)">${merged} merged from multiple spellings</span></div>
+    <div style="display:grid;grid-template-columns:1.3fr 1.6fr 1fr;gap:8px;padding:0 0 8px;border-bottom:1px solid var(--border);margin-bottom:6px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Shared Key</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Names seen in reports</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Canonical name</div>
+    </div>
+    ${cl.map(c=>{
+      const key = c.id ? '#'+c.id : (c.email? '✉ '+c.email : '—');
+      const keyAttr = (c.id?'i:'+c.id:(c.email?'e:'+c.email:'')).replace(/"/g,'&quot;');
+      const sp = (c.spellings||[]).map(s=>`<span class="badge ${c.multi?'ba':'bp'}" style="margin:0 4px 4px 0;display:inline-block">${s}</span>`).join('')||'—';
+      return `<div style="display:grid;grid-template-columns:1.3fr 1.6fr 1fr;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);${c.multi?'background:rgba(245,158,11,.05)':''}">
+        <div style="font-size:12px;font-family:monospace;color:var(--text2)">${key}${c.emails&&c.emails.length>1?` <span style="color:var(--text3)">+${c.emails.length-1}</span>`:''}</div>
+        <div>${sp}</div>
+        <input class="inp inp-sm" data-key="${keyAttr}" value="${(c.canonical||'').replace(/"/g,'&quot;')}" placeholder="canonical name"/>
+      </div>`;
+    }).join('')}`;
+}
+
+async function saveIdentity() {
+  document.querySelectorAll('#identityEditor input[data-key]').forEach(inp=>{
+    const key=inp.dataset.key, val=inp.value.trim();
+    if (!key) return;
+    if (val) S.identity[key]=val; else delete S.identity[key];
+  });
+  ls.set('t_identity', S.identity);
+  await gasWrite('agentIdentity', S.identity);
+  toast('Identity map saved ✓ — re-syncing');
+  await syncAll(true);
+  refreshIdentityEditor();
+}
+
+// ════════════════════════════════════════
+// ADMIN ACCOUNTS (multi-admin management)
+// ════════════════════════════════════════
+const ADMIN_MSG = { ok:'Done ✓', denied:'Not authorized', dup_name:'That name is already taken', dup_pw:'That password is already used by another admin — choose a different one', no_user:'Admin not found', last_admin:'Cannot delete the last admin', bad_old:'Current password is incorrect' };
+function adminToast(res){ if(res==null){ toast('Cloud unreachable — admin accounts need Supabase',true); return false; } const ok=res==='ok'; toast(ADMIN_MSG[res]||String(res), !ok); return ok; }
+
+async function refreshAdminUsers(){
+  const el=document.getElementById('adminUsersList'); if(!el) return;
+  if(!SUPA_ON()){ el.innerHTML=`<div style="color:var(--text3);font-size:13px;padding:8px 0">Multi-admin needs Supabase. Currently using the single local password.</div>`; return; }
+  el.innerHTML=`<div style="color:var(--text3);font-size:13px;padding:8px 0">Loading…</div>`;
+  const admins=await cloudListAdmins();
+  if(!admins.length){ el.innerHTML=`<div style="color:var(--text3);font-size:13px;padding:8px 0">No admins found (or cloud unreachable). Run the SQL setup so the Admin Accounts table exists.</div>`; return; }
+  el.innerHTML = admins.map(a=>{
+    const me = a.username===S.adminUser;
+    const created = a.created_at ? new Date(a.created_at).toLocaleDateString('en-GB') : '';
+    const nameEsc = (a.username||'').replace(/'/g,"\\'");
+    return `<div style="display:grid;grid-template-columns:1fr 200px auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;color:var(--text)">${a.username}${me?' <span class="badge bp" style="margin-left:6px">you</span>':''}<div style="font-size:11px;color:var(--text3)">added ${created}</div></div>
+      <input class="inp inp-sm" type="password" placeholder="New password" data-reset="${a.username.replace(/"/g,'&quot;')}" style="width:100%"/>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="resetAdminPassword('${nameEsc}')">Reset</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteAdminUser('${nameEsc}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function addAdminUser(){
+  const name=(document.getElementById('newAdminName').value||'').trim();
+  const pw=(document.getElementById('newAdminPw').value||'').trim();
+  if(!name||!pw){ toast('Enter a name and password',true); return; }
+  if(adminToast(await cloudCreateAdmin(name,pw))){ document.getElementById('newAdminName').value=''; document.getElementById('newAdminPw').value=''; refreshAdminUsers(); }
+}
+async function resetAdminPassword(name){
+  const inp=document.querySelector(`#adminUsersList input[data-reset="${name.replace(/"/g,'&quot;')}"]`);
+  const pw=inp?inp.value.trim():'';
+  if(!pw){ toast('Type a new password in the row first',true); return; }
+  if(adminToast(await cloudResetAdmin(name,pw))){ if(inp) inp.value=''; toast(`Password reset for ${name} ✓`); if(name===S.adminUser) S.adminPass=pw; }
+}
+async function deleteAdminUser(name){
+  if(!confirm(`Remove admin "${name}"? They will no longer be able to log in.`)) return;
+  if(adminToast(await cloudDeleteAdmin(name))) refreshAdminUsers();
+}
+async function changeMyPassword(){
+  const oldPw=(document.getElementById('myOldPw').value||'').trim();
+  const newPw=(document.getElementById('myNewPw').value||'').trim();
+  if(!oldPw||!newPw){ toast('Enter your current and new password',true); return; }
+  const res=await cloudChangeMyPw(oldPw,newPw);
+  if(adminToast(res)){ S.adminPass=newPw; document.getElementById('myOldPw').value=''; document.getElementById('myNewPw').value=''; toast('Your password was updated ✓'); }
 }
 
 // ════════════════════════════════════════
@@ -2057,6 +2769,276 @@ async function removeException(id) {
   toast('Exception removed');
 }
 
+// ════════════════════════════════════════
+// WEEK-OVER-WEEK (admin)
+// ════════════════════════════════════════
+function wowDeltaHtml(val, dir, unit){
+  if (val==null) return '<span style="color:var(--text3)">—</span>';
+  const same=val===0, good = dir==='low' ? val<0 : val>0;
+  const col=same?'var(--text3)':good?'var(--green)':'var(--red)';
+  const arrow=same?'→':val>0?'▲':'▼';
+  return `<span style="color:${col};font-weight:700">${arrow} ${Math.abs(val)}${unit}</span>`;
+}
+function wowWeeksTable(wp, wq){
+  const map={};
+  wp.forEach(w=>{ const m=map[w.week]=map[w.week]||{label:w.label}; m.aht=w.aht; m.art=w.art; m.csat=w.csat; });
+  wq.forEach(w=>{ const m=map[w.week]=map[w.week]||{label:w.label}; m.qa=w.qa; });
+  return Object.keys(map).sort().map(k=>{ const w=map[k]; return `<tr>
+    <td style="color:var(--text)">${w.label}</td>
+    <td>${w.aht!=null?w.aht+' min':'—'}</td>
+    <td>${w.art!=null?w.art+'s':'—'}</td>
+    <td>${w.csat!=null?w.csat+'%':'—'}</td>
+    <td>${w.qa!=null?w.qa+'%':'—'}</td>
+  </tr>`; }).join('');
+}
+function renderWow(){
+  const el=document.getElementById('wowContent'); if(!el) return;
+  const from=(document.getElementById('wowFrom')||{}).value||'';
+  const to=(document.getElementById('wowTo')||{}).value||'';
+  const qf=((document.getElementById('wowSearch')||{}).value||'').toLowerCase();
+  let agents=getTabAgents('wow');
+  if(qf) agents=agents.filter(a=>a.toLowerCase().includes(qf));
+  if(!agents.length){ el.innerHTML=emptyHtml('No data','Sync your sheets first'); return; }
+  const aset=new Set(agents);
+  let perfRows=[]; agents.forEach(a=>{ perfRows=perfRows.concat(getAgentPerfRows(a,from,to)); });
+  const qRows=S.qRows.filter(r=>{ if(!aset.has(r['Agent Name'])) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
+  let wp=weeklyPerf(perfRows), wq=weeklyQA(qRows);
+  if(wp.length>12) wp=wp.slice(-12);
+  if(wq.length>12) wq=wq.slice(-12);
+  if(!wp.length && !wq.length){ el.innerHTML=emptyHtml('No data','No performance or quality data in this range'); return; }
+
+  const last=arr=>arr.length?arr[arr.length-1]:null;
+  const lp=last(wp), lq=last(wq);
+  const kpi=(lbl,valTxt,deltaHtml)=>`<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val">${valTxt}</div><div class="m-sub">${deltaHtml} vs prev wk</div></div>`;
+  el.innerHTML=`
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${agents.length} agent(s) · ${Math.max(wp.length,wq.length)} weeks · lower AHT/ART better, higher CSAT/QA better</div>
+    <div class="metrics-grid">
+      ${kpi('AHT · latest wk', lp?lp.aht+' min':'—', wowDeltaHtml(wowDelta(wp,'aht'),'low',' min'))}
+      ${kpi('ART · latest wk', lp?lp.art+'s':'—', wowDeltaHtml(wowDelta(wp,'art'),'low','s'))}
+      ${kpi('CSAT · latest wk', lp?lp.csat+'%':'—', wowDeltaHtml(wowDelta(wp,'csat'),'high','%'))}
+      ${kpi('QA · latest wk', lq?lq.qa+'%':'—', wowDeltaHtml(wowDelta(wq,'qa'),'high','%'))}
+    </div>
+    <div class="charts-grid">
+      ${chartCard('AHT by Week (min)','wowAht')}
+      ${chartCard('ART by Week (s)','wowArt')}
+      ${chartCard('CSAT by Week (%)','wowCsat')}
+      ${chartCard('QA Score by Week (%)','wowQa')}
+    </div>
+    <div class="card"><div class="card-hd"><span class="card-title">Weekly Detail</span><span class="badge bp">${Math.max(wp.length,wq.length)} weeks</span></div>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Week of</th><th>AHT</th><th>ART</th><th>CSAT</th><th>QA</th></tr></thead>
+    <tbody>${wowWeeksTable(wp,wq)||`<tr><td colspan="5" style="color:var(--text3);padding:18px;text-align:center">No weekly data</td></tr>`}</tbody></table></div></div>`;
+
+  const line=(id,series,key,color,pct)=>mkChart(id,{ type:'line',
+    data:{ labels:series.map(w=>w.label), datasets:[{ data:series.map(w=>w[key]), borderColor:color, backgroundColor:hexA(color,.15), fill:true, tension:0, pointRadius:3, pointBackgroundColor:color }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis(pct?{min:0,max:100,ticks:{callback:v=>v+'%'}}:{min:0}) } } });
+  line('wowAht',wp,'aht','#3b7ef8',false);
+  line('wowArt',wp,'art','#06b6d4',false);
+  line('wowCsat',wp,'csat','#22c55e',true);
+  line('wowQa',wq,'qa','#f59e0b',true);
+}
+
+// ════════════════════════════════════════
+// ROOT CAUSE (CSAT / repeat-rate drivers from raw support-desk data)
+// ════════════════════════════════════════
+const RC = { sort:'total', dir:-1 };
+function rcVal(r,k){ return String(r[k]==null?'':r[k]).trim(); }
+function rcRating(r){ const m=rcVal(r,'csat_score').match(/-?\d+(\.\d+)?/); if(!m) return null; const n=Math.round(parseFloat(m[0])); return (n>=1&&n<=5)?n:null; }
+function rcBucket(n){ if(n==null) return null; if(n>=4) return 'CSAT'; if(n===3) return 'Neutral'; return 'DSAT'; } // 4-5 CSAT · 3 Neutral · 1-2 DSAT
+function rcTruthy(v){ const s=String(v==null?'':v).trim().toLowerCase(); return /^(1|1\.0|true|yes|y|t|repeat|repeated|r)$/.test(s); }
+// A conversation is a repeat if any explicit repeat signal is set (formats vary across exports).
+function rcIsRepeat(r){ if(rcTruthy(r.repeat_flag)||rcTruthy(r.is_repeated)) return true; const c=parseFloat(r.prev_same_concern_count); return !isNaN(c)&&c>0; }
+function rcDate(r){ return r.chat_closed_at||r.bot_session_start||r.first_response_at||r.agent_assigned_at||''; }
+function rcSort(k){ if(RC.sort===k) RC.dir*=-1; else { RC.sort=k; RC.dir=-1; } renderRootCause(); }
+function attrEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Rows matching the active Root Cause filters (shared by the tab view and the drill-down modal).
+function rcFilteredRows(){
+  const g=id=>(document.getElementById(id)||{}).value||'';
+  const from=g('rcFrom'), to=g('rcTo'), statusF=g('rcStatus'), typeF=g('rcType'), domF=g('rcDomain'), qf=g('rcSearch').toLowerCase();
+  return S.rRows.filter(r=>{
+    if(qf && !rcVal(r,'agent_name').toLowerCase().includes(qf)) return false;
+    if(statusF && rcVal(r,'ticket_status')!==statusF) return false;
+    if(typeF && rcVal(r,'conversation_type')!==typeF) return false;
+    if(domF && rcVal(r,'domain')!==domF) return false;
+    if(from||to){ const d=parseDate(rcDate(r)); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; }
+    return true;
+  });
+}
+// Drill into one label: list the underlying conversations in a modal (respects active filters).
+function rcDrill(label){
+  const dim=(document.getElementById('rcDim')||{}).value||'assigned_label';
+  const all=rcFilteredRows();
+  const rows=all.filter(r=>(rcVal(r,dim)||'(blank)')===label);
+  if(!rows.length){ toast('No conversations for this label'); return; }
+  let csat=0,dsat=0,neu=0,rated=0,repeat=0,agSum=0,agN=0,btSum=0,btN=0;
+  rows.forEach(r=>{ const b=rcBucket(rcRating(r)); if(b){rated++; if(b==='CSAT')csat++; else if(b==='DSAT')dsat++; else neu++;} if(rcIsRepeat(r)) repeat++;
+    const at=parseFloat(r.agent_handle_time_min); if(!isNaN(at)&&at>0){agSum+=at;agN++;} const bt=parseFloat(r.bot_handle_time_min); if(!isNaN(bt)&&bt>0){btSum+=bt;btN++;} });
+  const pc=(x,d)=>d?Math.round(x/d*100):0;
+  const chip=(lbl,val,cls)=>`<span class="badge ${cls||'bp'}" style="margin:0 6px 6px 0;display:inline-block">${lbl}: ${val}</span>`;
+  const sorted=[...rows].sort((a,b)=>(rcRating(a)??9)-(rcRating(b)??9)); // DSAT first
+  const cap=300, shown=sorted.slice(0,cap);
+  const cls=n=>n==null?'':n>=4?'cg':n===3?'ca':'cr';
+  const trs=shown.map(r=>{ const n=rcRating(r); const d=parseDate(rcDate(r));
+    return `<tr>
+      <td style="font-size:11px;white-space:nowrap">${d?d.toLocaleDateString('en-GB'):'—'}</td>
+      <td style="font-size:11px;font-family:monospace">${rcVal(r,'telda_user_id')||'—'}</td>
+      <td>${rcVal(r,'agent_name')||'—'}</td>
+      <td style="font-size:11px">${rcVal(r,'conversation_type')||'—'}</td>
+      <td style="font-size:11px">${rcVal(r,'domain')||'—'}</td>
+      <td class="${cls(n)}" style="text-align:center">${n!=null?n+'★':'—'}</td>
+      <td style="font-size:11px">${rcVal(r,'ticket_status')||'—'}</td>
+      <td style="text-align:center">${rcIsRepeat(r)?'<span class="cr">✓</span>':'—'}</td>
+      <td style="font-size:11.5px;color:var(--text2);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${attrEsc(rcVal(r,'csat_comment'))}">${rcVal(r,'csat_comment')||'—'}</td>
+    </tr>`; }).join('');
+  const body=`
+    <div class="modal-sub" style="margin-bottom:12px">
+      ${chip('Conversations',rows.length,'bb')}
+      ${chip('% of view',(all.length?Math.round(rows.length/all.length*100):0)+'%','bp')}
+      ${chip('CSAT',pc(csat,rated)+'%','bg')}
+      ${chip('DSAT',pc(dsat,rated)+'%','br')}
+      ${chip('Repeat',pc(repeat,rows.length)+'%','ba')}
+      ${chip('Agent AHT',agN?(agSum/agN).toFixed(1)+' min':'—')}
+      ${chip('Bot AHT',btN?(btSum/btN).toFixed(1)+' min':'—')}
+    </div>
+    <div class="tbl-wrap" style="border:1px solid var(--border);border-radius:var(--r2);max-height:60vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Date</th><th>User ID</th><th>Agent</th><th>Type</th><th>Domain</th><th>CSAT</th><th>Status</th><th>Repeat</th><th>Comment</th></tr></thead>
+      <tbody>${trs}</tbody></table>
+    </div>
+    ${rows.length>cap?`<div style="font-size:11px;color:var(--text3);margin-top:8px">Showing ${cap} of ${rows.length} — narrow the filters to see the rest.</div>`:''}`;
+  openModal(`${dim}: ${attrEsc(label)}`, body);
+}
+function renderRootCause(){
+  const el=document.getElementById('rootcauseContent'); if(!el) return;
+  if(!S.rRows.length){ el.innerHTML=emptyHtml('No raw data','Add a Raw Data sheet in Setup → Raw Data Sheet, then Sync'); return; }
+  const g=id=>(document.getElementById(id)||{}).value||'';
+  const from=g('rcFrom'), to=g('rcTo'), dim=g('rcDim')||'assigned_label', statusF=g('rcStatus'), typeF=g('rcType'), domF=g('rcDomain'), qf=g('rcSearch').toLowerCase();
+
+  // Populate the status dropdown once from distinct ticket_status values.
+  const statusSel=document.getElementById('rcStatus');
+  if(statusSel && statusSel.options.length<=1){
+    const sts=[...new Set(S.rRows.map(r=>rcVal(r,'ticket_status')).filter(Boolean))].sort();
+    statusSel.innerHTML='<option value="">All statuses</option>'+sts.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('');
+    statusSel.value=statusF;
+  }
+  // Populate the agent/bot dropdown once from distinct conversation_type values.
+  const typeSel=document.getElementById('rcType');
+  if(typeSel && typeSel.options.length<=1){
+    const tys=[...new Set(S.rRows.map(r=>rcVal(r,'conversation_type')).filter(Boolean))].sort();
+    typeSel.innerHTML='<option value="">Agent &amp; Bot</option>'+tys.map(t=>`<option value="${t.replace(/"/g,'&quot;')}">${t}</option>`).join('');
+    typeSel.value=typeF;
+  }
+  // Populate the domain dropdown once from distinct domain values.
+  const domSel=document.getElementById('rcDomain');
+  if(domSel && domSel.options.length<=1){
+    const doms=[...new Set(S.rRows.map(r=>rcVal(r,'domain')).filter(Boolean))].sort();
+    domSel.innerHTML='<option value="">All domains</option>'+doms.map(d=>`<option value="${d.replace(/"/g,'&quot;')}">${d}</option>`).join('');
+    domSel.value=domF;
+  }
+
+  let rows=rcFilteredRows();
+  if(!rows.length){ el.innerHTML=emptyHtml('No rows','No raw data for these filters'); return; }
+
+  const total=rows.length;
+  let csat=0,neu=0,dsat=0,rated=0,repeat=0, agSum=0,agN=0, btSum=0,btN=0;
+  rows.forEach(r=>{
+    const b=rcBucket(rcRating(r)); if(b){ rated++; if(b==='CSAT')csat++; else if(b==='Neutral')neu++; else dsat++; }
+    if(rcIsRepeat(r)) repeat++;
+    const at=parseFloat(r.agent_handle_time_min); if(!isNaN(at)&&at>0){ agSum+=at; agN++; }
+    const bt=parseFloat(r.bot_handle_time_min);   if(!isNaN(bt)&&bt>0){ btSum+=bt; btN++; }
+  });
+  const pct=(x,d)=>d?Math.round(x/d*100):0;
+  const csatPct=pct(csat,rated), dsatPct=pct(dsat,rated), neuPct=pct(neu,rated), repeatPct=pct(repeat,total);
+  const agentAHT=agN?agSum/agN:null, botAHT=btN?btSum/btN:null;
+  // Distinct users behind the repeats (and how heavily they repeat on average)
+  const repeatUsers=new Set(rows.filter(rcIsRepeat).map(r=>rcVal(r,'telda_user_id')).filter(Boolean));
+  const repUserN=repeatUsers.size, repPerUser=repUserN?(repeat/repUserN).toFixed(1):'0';
+
+  // Status breakdown
+  const statusC={}; rows.forEach(r=>{ const s=rcVal(r,'ticket_status')||'—'; statusC[s]=(statusC[s]||0)+1; });
+  const statusKeys=Object.keys(statusC).sort((a,b)=>statusC[b]-statusC[a]);
+
+  // Pivot by chosen dimension — counts, %, CSAT/DSAT %, and agent/bot avg handle time per label
+  const piv={}; rows.forEach(r=>{
+    const k=rcVal(r,dim)||'(blank)';
+    const p=piv[k]=piv[k]||{label:k,total:0,csat:0,dsat:0,neu:0,rated:0,repeat:0,agSum:0,agN:0,btSum:0,btN:0,users:new Set()};
+    p.total++;
+    const uid=rcVal(r,'telda_user_id'); if(uid) p.users.add(uid);
+    const b=rcBucket(rcRating(r)); if(b){ p.rated++; if(b==='CSAT')p.csat++; else if(b==='DSAT')p.dsat++; else p.neu++; }
+    if(rcIsRepeat(r)) p.repeat++;
+    const at=parseFloat(r.agent_handle_time_min); if(!isNaN(at)&&at>0){ p.agSum+=at; p.agN++; }
+    const bt=parseFloat(r.bot_handle_time_min);   if(!isNaN(bt)&&bt>0){ p.btSum+=bt; p.btN++; }
+  });
+  Object.values(piv).forEach(p=>{
+    p.pct      = total?+(p.total/total*100).toFixed(1):0;
+    p.csatPct  = p.rated?Math.round(p.csat/p.rated*100):0;
+    p.dsatPct  = p.rated?Math.round(p.dsat/p.rated*100):0;
+    p.agentAHT = p.agN?+(p.agSum/p.agN).toFixed(1):null;
+    p.botAHT   = p.btN?+(p.btSum/p.btN).toFixed(1):null;
+  });
+  let pivArr=Object.values(piv).sort((a,b)=>(((a[RC.sort]??-1)-(b[RC.sort]??-1))*RC.dir) || b.total-a.total);
+
+  // Reasons (top csat_comment) split by sentiment
+  const commentsBy=fn=>{ const c={}; rows.forEach(r=>{ if(!fn(r)) return; const t=rcVal(r,'csat_comment'); if(!t) return; c[t]=(c[t]||0)+1; }); return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,8); };
+  const csatReasons=commentsBy(r=>rcBucket(rcRating(r))==='CSAT');
+  const dsatReasons=commentsBy(r=>rcBucket(rcRating(r))==='DSAT');
+
+  _csvCache.rootcause={ headers:[dim,'Count','% of total','CSAT','CSAT %','DSAT','DSAT %','Neutral','Repeat','Agent AHT (min)','Bot AHT (min)','Distinct Users'], rows:pivArr.map(p=>[p.label,p.total,p.pct,p.csat,p.csatPct,p.dsat,p.dsatPct,p.neu,p.repeat,p.agentAHT??'',p.botAHT??'',p.users.size]) };
+
+  const th=(k,label)=>`<th style="cursor:pointer;user-select:none" onclick="rcSort('${k}')">${label}${RC.sort===k?(RC.dir<0?' ▼':' ▲'):''}</th>`;
+  const reasonsList=arr=>arr.length?arr.map(([t,c])=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12.5px"><span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.replace(/"/g,'&quot;')}">${t}</span><span style="color:var(--text);font-weight:700">${c}</span></div>`).join(''):'<span style="color:var(--text3);font-size:12px">No comments</span>';
+
+  el.innerHTML=`
+    <div class="metrics-grid">
+      <div class="metric"><div class="m-lbl">Conversations</div><div class="m-val cb">${total.toLocaleString()}</div><div class="m-sub">${rated} with CSAT</div></div>
+      <div class="metric"><div class="m-lbl">CSAT</div><div class="m-val ${csatPct>=80?'cg':csatPct>=60?'ca':'cr'}">${csatPct}%</div><div class="m-sub">4–5★ of rated</div></div>
+      <div class="metric"><div class="m-lbl">DSAT</div><div class="m-val cr">${dsatPct}%</div><div class="m-sub">1–2★ of rated</div></div>
+      <div class="metric"><div class="m-lbl">Neutral</div><div class="m-val ca">${neuPct}%</div><div class="m-sub">3★ of rated</div></div>
+      <div class="metric"><div class="m-lbl">Repeat Rate</div><div class="m-val ${repeatPct>=20?'cr':repeatPct>=10?'ca':'cg'}">${repeatPct}%</div><div class="m-sub">${repeat} repeat-flagged</div></div>
+      <div class="metric"><div class="m-lbl">Repeated Users</div><div class="m-val cb">${repUserN.toLocaleString()}</div><div class="m-sub">avg ${repPerUser} repeats/user · pick “By User” to list</div></div>
+      <div class="metric"><div class="m-lbl">Agent AHT</div><div class="m-val">${agentAHT!=null?agentAHT.toFixed(1)+' min':'—'}</div><div class="m-sub">agent-handled tickets</div></div>
+      <div class="metric"><div class="m-lbl">Bot AHT</div><div class="m-val">${botAHT!=null?botAHT.toFixed(1)+' min':'—'}</div><div class="m-sub">bot-handled tickets</div></div>
+    </div>
+    <div class="charts-grid">
+      ${chartCard('CSAT Outcome Split','rcCsatChart')}
+      ${chartCard('Ticket Status','rcStatusChart')}
+      ${chartCard('Top DSAT Drivers ('+dim+')','rcDsatChart')}
+      ${chartCard('Top Repeat Drivers ('+dim+')','rcRepeatChart')}
+    </div>
+    <div class="charts-grid">
+      <div class="card"><div class="card-hd"><span class="card-title">😊 Top CSAT Reasons</span><span class="badge bg">4–5★</span></div><div class="card-bd">${reasonsList(csatReasons)}</div></div>
+      <div class="card"><div class="card-hd"><span class="card-title">😞 Top DSAT / Repeat Reasons</span><span class="badge br">1–2★</span></div><div class="card-bd">${reasonsList(dsatReasons)}</div></div>
+    </div>
+    <div class="card"><div class="card-hd"><span class="card-title">Pivot — ${dim}</span><div style="display:flex;gap:8px;align-items:center"><span style="font-size:11px;color:var(--text3)">click a row to see its conversations</span><span class="badge bp">${pivArr.length} labels</span>${csvBtn('rootcause')}</div></div>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${th('label',dim)}${th('total','Count')}${th('pct','%')}${th('csat','CSAT')}${th('csatPct','CSAT %')}${th('dsat','DSAT')}${th('dsatPct','DSAT %')}${th('repeat','Repeat')}${th('agentAHT','Agent AHT')}${th('botAHT','Bot AHT')}</tr></thead>
+    <tbody>${pivArr.slice(0,100).map(p=>`<tr style="cursor:pointer" data-rc-label="${attrEsc(p.label)}" onclick="rcDrill(this.dataset.rcLabel)">
+      <td style="color:var(--text)">${p.label}</td>
+      <td><strong>${p.total}</strong></td>
+      <td>${p.pct}%</td>
+      <td class="cg">${p.csat}</td>
+      <td class="cg">${p.csatPct}%</td>
+      <td class="cr">${p.dsat}</td>
+      <td class="cr">${p.dsatPct}%</td>
+      <td>${p.repeat?`<span class="cr">${p.repeat}</span>`:'—'}</td>
+      <td>${p.agentAHT!=null?p.agentAHT+' min':'—'}</td>
+      <td>${p.botAHT!=null?p.botAHT+' min':'—'}</td>
+    </tr>`).join('')}</tbody></table></div></div>`;
+
+  mkChart('rcCsatChart',{ type:'doughnut',
+    data:{ labels:['CSAT (4–5★)','Neutral (3★)','DSAT (1–2★)'], datasets:[{ data:[csat,neu,dsat], backgroundColor:[hexA('#22c55e',.8),hexA('#f59e0b',.8),hexA('#ef4444',.8)], borderColor:cssVar('--bg2','#fff'), borderWidth:2 }] },
+    options:{ cutout:'62%', plugins:{legend:{position:'bottom'}} } });
+  mkChart('rcStatusChart',{ type:'doughnut',
+    data:{ labels:statusKeys, datasets:[{ data:statusKeys.map(s=>statusC[s]), backgroundColor:chartColors(statusKeys.length,.8), borderColor:cssVar('--bg2','#fff'), borderWidth:2 }] },
+    options:{ cutout:'58%', plugins:{legend:{position:'bottom'}} } });
+  const topBy=(key)=>[...pivArr].filter(p=>p[key]>0).sort((a,b)=>b[key]-a[key]).slice(0,8);
+  const tDsat=topBy('dsat'), tRep=topBy('repeat');
+  const barDrill=labels=>(e,els)=>{ if(els&&els.length) rcDrill(labels[els[0].index]); };
+  mkChart('rcDsatChart',{ type:'bar',
+    data:{ labels:tDsat.map(p=>p.label), datasets:[{ data:tDsat.map(p=>p.dsat), backgroundColor:hexA('#ef4444',.75), borderRadius:5 }] },
+    options:{ indexAxis:'y', onClick:barDrill(tDsat.map(p=>p.label)), plugins:{legend:{display:false}}, scales:{ x:gridAxis({min:0}), y:gridAxis() } } });
+  mkChart('rcRepeatChart',{ type:'bar',
+    data:{ labels:tRep.map(p=>p.label), datasets:[{ data:tRep.map(p=>p.repeat), backgroundColor:hexA('#f59e0b',.75), borderRadius:5 }] },
+    options:{ indexAxis:'y', onClick:barDrill(tRep.map(p=>p.label)), plugins:{legend:{display:false}}, scales:{ x:gridAxis({min:0}), y:gridAxis() } } });
+}
+
 function renderExcList() {
   const el = document.getElementById('excList'); if (!el) return;
   if (!S.exceptions.length) { el.innerHTML=`<div style="color:var(--text3);font-size:13px;padding:12px 0">No exceptions added yet.</div>`; return; }
@@ -2076,6 +3058,10 @@ function renderExcList() {
 // ════════════════════════════════════════
 // AGENT DASHBOARD
 // ════════════════════════════════════════
+// Agent QA table sort state (default: Score high→low)
+const AGQ = { col:'score', dir:-1 };
+function agqSort(col){ if(AGQ.col===col) AGQ.dir*=-1; else { AGQ.col=col; AGQ.dir=-1; } renderAgent(); }
+
 function renderAgent() {
   const name = S.agentName;
   const from = (document.getElementById('agentFrom')||{}).value||'';
@@ -2146,23 +3132,32 @@ function renderAgent() {
     </div>`;
   }
 
-  // Recent QA tickets
+  // Recent QA tickets — sortable by Date or Score (default Score high→low)
   let qaHtml='';
   if (q&&q.rows.length) {
-    const recent=[...q.rows].sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp'])).slice(0,10);
+    const acc = AGQ.col==='score' ? (r=>{const s=getScore(r); return s==null?-1:s;}) : (r=>new Date(r['Timestamp']).getTime()||0);
+    const recent=[...q.rows].sort((a,b)=>(acc(a)-acc(b))*AGQ.dir).slice(0,50);
+    const th=(col,label)=>`<th style="cursor:pointer;user-select:none" onclick="agqSort('${col}')">${label}${AGQ.col===col?(AGQ.dir<0?' ▼':' ▲'):''}</th>`;
+    const disputeUrl=(S.cfgTargets.disputeFormUrl||'').trim();
+    const recByTicketA={}; S.disputed.records.forEach(rec=>{ if(rec.ticket) recByTicketA[rec.ticket.toLowerCase()]=rec; });
     qaHtml=`<div class="card">
-      <div class="card-hd"><span class="card-title">Recent QA Reviews</span><span class="badge bp">${q.total} total · avg ${qs}%</span></div>
+      <div class="card-hd"><span class="card-title">QA Reviews</span><span class="badge bp">${q.total} total · avg ${qs}% · sorted by ${AGQ.col} ${AGQ.dir<0?'↓':'↑'}</span></div>
       <div class="tbl-wrap card-bd-0"><table class="tbl">
-        <thead><tr><th>Date</th><th>Score</th><th>Ticket</th><th>Comment</th></tr></thead>
+        <thead><tr>${th('date','Date')}${th('score','Score')}<th>Ticket</th><th>Comment</th><th>Dispute</th></tr></thead>
         <tbody>${recent.map(r=>{
           const s=getScore(r); const cls=scoreCls(s);
           const ts=r['Timestamp']?new Date(r['Timestamp']).toLocaleDateString('en-GB'):'—';
           const lnk=r['Tickets Link']||'';
+          const disputed=isDisputed(r);
+          const dispute = disputed
+            ? `<span class="badge ba" title="${(recByTicketA[lnk.trim().toLowerCase()]?.reason||'Dispute submitted').replace(/"/g,'&quot;')}">⚖ Disputed</span>`
+            : (disputeUrl && s!==null && s<100 ? `<a class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" target="_blank" href="${disputeLink(r,s)}">Dispute</a>` : '<span style="color:var(--text3)">—</span>');
           return `<tr>
             <td style="font-size:11px">${ts}</td>
             <td>${s!==null?`<span class="sc-badge ${cls}">${s.toFixed(1)}%</span>`:'—'}</td>
             <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>`:'—'}</td>
             <td style="font-size:11.5px;color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Comment']||'—'}</td>
+            <td style="white-space:nowrap">${dispute}</td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>
@@ -2170,6 +3165,19 @@ function renderAgent() {
   }
 
   // ── Personal charts: QA trend + time split ──
+  // ── Week-over-Week (this agent) ──
+  let agWp=weeklyPerf(getAgentPerfRows(name,from,to)); if(agWp.length>12) agWp=agWp.slice(-12);
+  const agQrows=S.qRows.filter(r=>{ if(r['Agent Name']!==name) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
+  let agWq=weeklyQA(agQrows); if(agWq.length>12) agWq=agWq.slice(-12);
+  const haveWow = agWp.length>1 || agWq.length>1;
+  const wowHtml = haveWow ? `<div style="font-size:11px;color:var(--text3);margin:6px 2px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Week-over-Week</div>
+    <div class="charts-grid">
+      ${chartCard('AHT by Week (min)','agWowAht')}
+      ${chartCard('ART by Week (s)','agWowArt')}
+      ${chartCard('CSAT by Week (%)','agWowCsat')}
+      ${chartCard('QA by Week (%)','agWowQa')}
+    </div>` : '';
+
   let chartsHtml='';
   const haveTrend = q && q.rows.length>1;
   const haveSplit = p && !prodHidden() && (p.totProductive+p.totNonProductive)>0;
@@ -2214,8 +3222,20 @@ function renderAgent() {
     </div>
 
     ${chartsHtml}
+    ${wowHtml}
     ${prodHtml}
     ${qaHtml}`;
+
+  // ── Render Week-over-Week charts ──
+  if (haveWow) {
+    const aline=(id,series,key,color,pct)=>mkChart(id,{ type:'line',
+      data:{ labels:series.map(w=>w.label), datasets:[{ data:series.map(w=>w[key]), borderColor:color, backgroundColor:hexA(color,.15), fill:true, tension:0, pointRadius:3, pointBackgroundColor:color }] },
+      options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis(pct?{min:0,max:100,ticks:{callback:v=>v+'%'}}:{min:0}) } } });
+    aline('agWowAht',agWp,'aht','#3b7ef8',false);
+    aline('agWowArt',agWp,'art','#06b6d4',false);
+    aline('agWowCsat',agWp,'csat','#22c55e',true);
+    aline('agWowQa',agWq,'qa','#f59e0b',true);
+  }
 
   // ── Render personal charts ──
   if (haveTrend) {
@@ -2231,7 +3251,7 @@ function renderAgent() {
     mkChart('agSplit', {
       type:'doughnut',
       data:{ labels:['Productive','Non-Productive'], datasets:[{ data:[+(p.totProductive/3600).toFixed(1),+(p.totNonProductive/3600).toFixed(1)],
-        backgroundColor:[hexA('#22c55e',.85),hexA('#ef4444',.85)], borderColor:'#121226', borderWidth:2 }] },
+        backgroundColor:[hexA('#22c55e',.85),hexA('#ef4444',.85)], borderColor:cssVar('--bg2','#121226'), borderWidth:2 }] },
       options:{ cutout:'62%', plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>c.label+': '+c.parsed+'h'}}} }
     });
   }
@@ -2353,6 +3373,85 @@ function emptyHtml(h,p) {
   return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/></svg><h3>${h}</h3><p>${p}</p></div>`;
 }
 
+// ════════════════════════════════════════
+// SCHEDULE & ADHERENCE
+// ════════════════════════════════════════
+function parseClockMin(s){
+  if(!s) return null; s=String(s).trim();
+  if(/\d{4}-\d{2}-\d{2}|[/]/.test(s) && !/^\d{1,2}:\d{2}\s*$/.test(s)){ const d=new Date(s); if(!isNaN(d)) return d.getHours()*60+d.getMinutes(); }
+  let m=s.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if(m){ let h=+m[1], mn=+m[2]; if(m[3]){ h=h%12; if(/pm/i.test(m[3])) h+=12; } return h*60+mn; }
+  m=s.match(/(\d{1,2})\s*(am|pm)/i);
+  if(m){ let h=+m[1]%12; if(/pm/i.test(m[2])) h+=12; return h*60; }
+  return null;
+}
+function fmtMin(min){ if(min==null) return '—'; const h=Math.floor(min/60), mm=min%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+function dtMin(dtStr){ const d=new Date(dtStr); return isNaN(d)?null:d.getHours()*60+d.getMinutes(); }
+
+function renderSchedule(){
+  const el=document.getElementById('scheduleContent'); if(!el) return;
+  if(!S.sRows.length){ el.innerHTML=emptyHtml('No schedule data','Add a Schedule sheet in Setup Wizard, then Sync'); return; }
+  const from=(document.getElementById('schedFrom')||{}).value||'';
+  const to=(document.getElementById('schedTo')||{}).value||'';
+  const q=((document.getElementById('schedSearch')||{}).value||'').toLowerCase();
+  const grace=5;
+  const loggedOnly=!!(document.getElementById('schedLoggedIn')||{}).checked;
+  const todayStr=new Date().toISOString().slice(0,10);
+  let data=S.sRows.filter(r=>{
+    if(q && !r.agent_name.toLowerCase().includes(q)) return false;
+    if(from && r.date<from) return false;
+    if(to && r.date>to) return false;
+    if(!to && r.date>todayStr) return false; // hide not-yet-worked future shifts unless an explicit "to" is set
+    return true;
+  }).map(r=>{
+    const ar=S.aRows.find(a=>a.agent_name===r.agent_name && (String(a.activity_date).slice(0,10)===r.date || normDateStr(a.activity_date)===r.date));
+    const schedStart=parseClockMin(r.shift_start), schedEnd=parseClockMin(r.shift_end);
+    const actStart=ar?dtMin(ar.first_start):null, actEnd=ar?dtMin(ar.last_start):null;
+    const late=(schedStart!=null&&actStart!=null)?actStart-schedStart:null;
+    const early=(schedEnd!=null&&actEnd!=null)?schedEnd-actEnd:null;
+    let status;
+    if(r.off) status=r.shift_label||'Off';          // WO / AL / SL … ⇒ scheduled time off, show the reason
+    else if(r.date>todayStr) status='Upcoming';     // shift hasn't happened yet ⇒ not Absent
+    else if(!ar) status='Absent';
+    else if(late!=null&&late>grace) status='Late';
+    else if(early!=null&&early>grace) status='Left Early';
+    else status='On-time';
+    return {r,ar,schedStart,schedEnd,actStart,actEnd,late,early,status,off:!!r.off};
+  });
+  if(loggedOnly) data=data.filter(d=>d.ar); // show only agents who actually logged in
+  const counts={'On-time':0,'Late':0,'Left Early':0,'Absent':0,'Upcoming':0,'Off':0};
+  data.forEach(d=>{ if(d.off) counts['Off']++; else if(counts[d.status]!=null) counts[d.status]++; });
+  const rated=counts['On-time']+counts['Late']+counts['Left Early']+counts['Absent']; // elapsed working shifts only
+  const total=data.length, onTimePct=rated?Math.round(counts['On-time']/rated*100):0;
+  data=applySort(data,'sched',{ agent:x=>x.r.agent_name, date:x=>x.r.date, shift:x=>x.schedStart==null?1e9:x.schedStart, late:x=>x.late==null?-1e9:x.late, early:x=>x.early==null?-1e9:x.early, status:x=>x.status });
+  const badge=s=> s==='On-time'?'<span class="badge bg">On-time</span>':s==='Late'?'<span class="badge ba">Late</span>':s==='Left Early'?'<span class="badge ba">Left Early</span>':s==='Upcoming'?'<span class="badge bb">Upcoming</span>':s==='Absent'?'<span class="badge br">Absent</span>':'<span class="badge bp">'+s+'</span>';
+  const rows=data.map(d=>`<tr>
+    <td style="color:var(--text)">${d.r.agent_name}</td>
+    <td style="font-size:11px">${d.r.date}</td>
+    <td>${d.off?`<span style="color:var(--text3)">${d.r.shift_label||'Off'}</span>`:(d.r.shift_label?d.r.shift_label+' · ':'')+fmtMin(d.schedStart)+'–'+fmtMin(d.schedEnd)}</td>
+    <td>${d.ar?fmtMin(d.actStart)+'–'+fmtMin(d.actEnd):'<span style="color:var(--text3)">—</span>'}</td>
+    <td class="${d.late!=null&&d.late>grace?'cr':'cg'}">${d.late!=null?(d.late>0?'+'+d.late:d.late)+'m':'—'}</td>
+    <td class="${d.early!=null&&d.early>grace?'cr':'cg'}">${d.early!=null?(d.early>0?'+'+d.early:d.early)+'m':'—'}</td>
+    <td>${badge(d.status)}</td>
+  </tr>`).join('');
+  _csvCache.schedule={headers:['Agent','Date','Scheduled','Actual','Late (min)','Early Leave (min)','Status'],
+    rows:data.map(d=>[d.r.agent_name,d.r.date,d.off?(d.r.shift_label||'Off'):(d.r.shift_label?d.r.shift_label+' ':'')+fmtMin(d.schedStart)+'-'+fmtMin(d.schedEnd),d.ar?fmtMin(d.actStart)+'-'+fmtMin(d.actEnd):'',d.late==null?'':d.late,d.early==null?'':d.early,d.status])};
+  el.innerHTML=`
+    <div class="metrics-grid">
+      <div class="metric"><div class="m-lbl">Shifts</div><div class="m-val cp">${total}</div><div class="m-sub">in range</div></div>
+      <div class="metric"><div class="m-lbl">On-time Rate</div><div class="m-val ${onTimePct>=90?'cg':onTimePct>=75?'ca':'cr'}">${onTimePct}%</div><div class="m-sub">within ${grace}m grace</div></div>
+      <div class="metric"><div class="m-lbl">Late</div><div class="m-val ca">${counts['Late']}</div><div class="m-sub">late starts</div></div>
+      <div class="metric"><div class="m-lbl">Absent</div><div class="m-val cr">${counts['Absent']}</div><div class="m-sub">no login</div></div>
+      <div class="metric"><div class="m-lbl">Off / Leave</div><div class="m-val cp">${counts['Off']}</div><div class="m-sub">WO · AL · SL …</div></div>
+    </div>
+    <div class="charts-grid">${chartCard('Adherence Breakdown','schedChart')}</div>
+    <div class="card"><div class="card-hd"><span class="card-title">Schedule vs Actual</span><div style="display:flex;gap:8px;align-items:center"><span class="badge bp">${total} shifts</span>${csvBtn('schedule')}</div></div>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${sortableTh('sched','agent','Agent')}${sortableTh('sched','date','Date')}${sortableTh('sched','shift','Scheduled')}<th>Actual</th>${sortableTh('sched','late','Late')}${sortableTh('sched','early','Early Leave')}${sortableTh('sched','status','Status')}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  mkChart('schedChart',{type:'doughnut',
+    data:{labels:['On-time','Late','Left Early','Absent'],datasets:[{data:[counts['On-time'],counts['Late'],counts['Left Early'],counts['Absent']],backgroundColor:[hexA('#22c55e',.8),hexA('#f59e0b',.8),hexA('#f97316',.8),hexA('#ef4444',.8)],borderColor:cssVar('--bg2','#121226'),borderWidth:2}]},
+    options:{cutout:'62%',plugins:{legend:{position:'bottom'}}}});
+}
+
 function toast(msg, isErr=false) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -2360,6 +3459,28 @@ function toast(msg, isErr=false) {
   clearTimeout(toast._t);
   toast._t = setTimeout(()=>el.style.display='none', 2800);
 }
+
+// ── Generic pop-up modal (reuses the .modal-overlay/.modal styles) ──
+function openModal(title, bodyHtml){
+  let ov = document.getElementById('appModal');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'appModal'; ov.className = 'modal-overlay';
+    ov.addEventListener('click', e=>{ if(e.target===ov) closeModal(); });
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+  }
+  ov.innerHTML = `<div class="modal" style="width:920px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px">
+      <h2 style="margin:0">${title}</h2>
+      <button class="btn btn-sm" onclick="closeModal()">✕ Close</button>
+    </div>
+    ${bodyHtml}
+  </div>`;
+  ov.classList.add('show');
+}
+function closeModal(){ const ov=document.getElementById('appModal'); if(ov) ov.classList.remove('show'); }
+
 
 // ════════════════════════════════════════
 // CHARTS — shared Chart.js infrastructure
@@ -2375,23 +3496,47 @@ function hexA(hex, a){
   const n=parseInt(hex.slice(1),16);
   return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
 }
+// Read a CSS custom property off :root (so charts follow the active light/dark theme)
+function cssVar(name, fallback){ try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback || ''; } catch(e){ return fallback||''; } }
 function setupChartDefaults(){
   if (!window.Chart) return;
-  Chart.defaults.color = '#8080a0';
+  Chart.defaults.color = cssVar('--text2','#8080a0');
   Chart.defaults.font.family = "'DM Sans',sans-serif";
   Chart.defaults.font.size = 11;
-  Chart.defaults.borderColor = 'rgba(255,255,255,.06)';
+  Chart.defaults.borderColor = cssVar('--border','rgba(255,255,255,.06)');
   Chart.defaults.maintainAspectRatio = false;
-  Chart.defaults.plugins.legend.labels.color = '#8080a0';
+  Chart.defaults.plugins.legend.labels.color = cssVar('--text2','#8080a0');
   Chart.defaults.plugins.legend.labels.boxWidth = 12;
   Chart.defaults.plugins.legend.labels.padding = 12;
-  Chart.defaults.plugins.tooltip.backgroundColor = '#121226';
-  Chart.defaults.plugins.tooltip.borderColor = 'rgba(255,255,255,.12)';
+  Chart.defaults.plugins.tooltip.backgroundColor = cssVar('--bg3','#121226');
+  Chart.defaults.plugins.tooltip.borderColor = cssVar('--border-s','rgba(255,255,255,.12)');
   Chart.defaults.plugins.tooltip.borderWidth = 1;
-  Chart.defaults.plugins.tooltip.titleColor = '#eeeef8';
-  Chart.defaults.plugins.tooltip.bodyColor = '#c8c8e0';
+  Chart.defaults.plugins.tooltip.titleColor = cssVar('--text','#eeeef8');
+  Chart.defaults.plugins.tooltip.bodyColor = cssVar('--text2','#c8c8e0');
   Chart.defaults.plugins.tooltip.padding = 10;
 }
+// ── Light / dark theme ──
+function applyTheme(mode){
+  const dark = mode==='dark';
+  if (dark) document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme'); // light is the :root default
+  lsSetRaw('t_theme', dark?'dark':'light');
+  ['themeToggle','themeToggleAg'].forEach(id=>{ const b=document.getElementById(id); if(b) b.textContent = dark?'☀️':'🌙'; });
+  if (window.Chart) setupChartDefaults();
+}
+function toggleTheme(){
+  applyTheme(document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark');
+  rerenderActive(); // redraw so chart colors follow the new theme
+}
+function rerenderActive(){
+  try {
+    if (S.mode==='agent') { renderAgent(); return; }
+    const act=document.querySelector('#adminScreen .tab.active'); if(!act) return;
+    const id=act.id.replace('at-','');
+    ({overview:renderOverview,quality:renderQuality,productivity:renderProductivity,performance:renderPerformance,schedule:renderSchedule,wow:renderWow}[id]||function(){})();
+  } catch(e){ console.warn('theme rerender', e); }
+}
+
 // Create (or recreate) a chart by canvas id, auto-destroying any prior instance
 function mkChart(id, config){
   const el = document.getElementById(id);
@@ -2399,7 +3544,7 @@ function mkChart(id, config){
   if (S.charts[id]) { try{S.charts[id].destroy();}catch(e){} delete S.charts[id]; }
   try { S.charts[id] = new Chart(el.getContext('2d'), config); } catch(e){ console.warn('chart error', id, e); }
 }
-const gridAxis = (extra={}) => ({ grid:{color:'rgba(255,255,255,.05)'}, ticks:Object.assign({color:'#8080a0'}, extra.ticks||{}), ...extra });
+const gridAxis = (extra={}) => ({ grid:{color:cssVar('--border','rgba(255,255,255,.05)')}, ticks:Object.assign({color:cssVar('--text2','#8080a0')}, extra.ticks||{}), ...extra });
 // Reusable card+canvas wrapper for a chart
 function chartCard(title, canvasId, badge){
   return `<div class="card"><div class="card-hd"><span class="card-title">${title}</span>${badge?`<span class="badge bp">${badge}</span>`:''}</div>
@@ -2414,8 +3559,9 @@ const SORT = {
   perf: { col:'agent', dir:1 },
   qual: { col:'date',  dir:-1 },  // newest first
   aux:  { col:'agent', dir:1 },
+  sched:{ col:'date',  dir:-1 },
 };
-const _sortRender = { prod:()=>renderProductivity(), perf:()=>renderPerformance(), qual:()=>renderQuality(), aux:()=>renderProductivity() };
+const _sortRender = { prod:()=>renderProductivity(), perf:()=>renderPerformance(), qual:()=>renderQuality(), aux:()=>renderProductivity(), sched:()=>renderSchedule() };
 function setSort(section, key){
   const s = SORT[section];
   if (s.col === key) s.dir *= -1; else { s.col = key; s.dir = (section==='qual'&&key==='date')?-1:1; }
@@ -2540,6 +3686,7 @@ function startAutoSync(){
 // ════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
   loadLocal();
+  applyTheme(lsGetRaw('t_theme') || 'light');  // light is the default; honor saved choice
   setupChartDefaults();
   const ed = document.getElementById('excDate'); if (ed) ed.value = new Date().toISOString().split('T')[0];
   // Inject date-range presets into the admin filter bars
