@@ -1136,6 +1136,13 @@ function showScreen(id) {
 // before any name-based matching runs. Keyless rows are left untouched (they can't be reconciled).
 // ════════════════════════════════════════
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+function normName(s){
+  return String(s||'').toLowerCase().trim().replace(/\s+/g,' ')
+    .replace(/\bmohammed?d?\b/g,'mohamed').replace(/\bmohammad\b/g,'mohamed')
+    .replace(/\bmuhamm?[ae]d\b/g,'mohamed').replace(/\bmohd\b/g,'mohamed')
+    .replace(/\bali[ay]?\b/g,'ali').replace(/\babdall?ah\b/g,'abdallah')
+    .replace(/\bel([- ])/g,'al$1').replace(/\bel$/g,'al');
+}
 function resolveIdentities(sets){
   const norm=v=>String(v==null?'':v).trim(), lc=v=>norm(v).toLowerCase();
   const idReverse={}; Object.keys(S.agentIds||{}).forEach(n=>{ const id=String(S.agentIds[n]||'').toUpperCase(); if(id) idReverse[id]=n; });
@@ -1167,7 +1174,7 @@ function resolveIdentities(sets){
       const ekey=(email&&EMAIL_RE.test(email))?'e:'+email:'', ikey=id?'i:'+id:'';
       if(!ekey&&!ikey&&!name) return;
       if(ekey&&ikey) union(ekey,ikey);                 // a row carrying both keys bridges the two
-      const anchor=ekey||ikey||('n:'+lc(name));         // keyless rows anchor on their own name only
+      const anchor=ekey||ikey||('n:'+normName(name));         // keyless rows anchor on their own name only
       obs.push({ekey,ikey,name,anchor,src});
     });
   }
@@ -1202,6 +1209,7 @@ function resolveIdentities(sets){
     let root=null;
     if(ekey&&parent[ekey]!=null) root=find(ekey);
     else if(ikey&&parent[ikey]!=null) root=find(ikey);
+    if(!root && name && parent['n:'+normName(name)]!=null) root=find('n:'+normName(name));
     return (root!=null && canonByRoot[root]) ? canonByRoot[root] : name;
   }
   clusters.sort((a,b)=> (b.multi?1:0)-(a.multi?1:0) || (a.canonical||'').localeCompare(b.canonical||''));
