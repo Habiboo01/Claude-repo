@@ -2146,8 +2146,7 @@ function renderOverview() {
   // Unified scope accessors used throughout the overview.
   const QA = a => hasRange ? calcQualityRange(a,from,to) : calcQuality(a,mk);
   const PR = a => hasRange ? calcProdRange(a,from,to)    : calcProd(a,mk);
-  const useRawPerf = S.rRows.length > 0;
-  const PF = a => useRawPerf ? aggPerfFromRaw(a,pFrom,pTo) : aggPerf(getAgentPerfRows(a,pFrom,pTo));
+  const PF = a => aggPerf(getAgentPerfRows(a,pFrom,pTo));
   const inScope = ts => { if(!hasRange) return inMonth(ts,mk); const d=parseDate(ts); if(!d) return false; if(from&&d<parseDateLocal(from))return false; if(to&&d>parseDateLocal(to))return false; return true; };
   const scopeLabel = hasRange
     ? `${from?(parseDateLocal(from)||new Date(from)).toLocaleDateString('en-GB'):'…'} – ${to?(parseDateLocal(to)||new Date(to)).toLocaleDateString('en-GB'):'…'}`
@@ -2621,8 +2620,7 @@ function drillAgentAux(name, from, to) {
 // PERFORMANCE TABLE
 // ════════════════════════════════════════
 function renderPerformance() {
-  const useRaw = S.rRows.length > 0;
-  if (!useRaw && !S.pRows.length) { document.getElementById('performanceContent').innerHTML=emptyHtml('No performance data','Sync to load'); return; }
+  if (!S.pRows.length) { document.getElementById('performanceContent').innerHTML=emptyHtml('No performance data','Sync to load'); return; }
   const from = (document.getElementById('perfFrom')||{}).value||'';
   const to   = (document.getElementById('perfTo')||{}).value||'';
   const qf   = ((document.getElementById('perfSearch')||{}).value||'').toLowerCase();
@@ -2630,7 +2628,7 @@ function renderPerformance() {
   if (qf) agents = agents.filter(a=>a.toLowerCase().includes(qf));
   const T = S.cfgTargets;
 
-  let data = agents.map(a=>({ a, perf: useRaw ? aggPerfFromRaw(a,from,to) : aggPerf(getAgentPerfRows(a,from,to)) })).filter(x=>x.perf);
+  let data = agents.map(a=>({ a, perf: aggPerf(getAgentPerfRows(a,from,to)) })).filter(x=>x.perf);
   if (!data.length) { document.getElementById('performanceContent').innerHTML=emptyHtml('No performance data','No data for this period'); return; }
   data = applySort(data, 'perf', {
     agent:x=>x.a, conversations:x=>+x.perf.total_conversations, tickets:x=>+x.perf.total_tickets,
@@ -2658,7 +2656,7 @@ function renderPerformance() {
 
   // ── Chart datasets ──
   const pd = data; const pLabels=pd.map(x=>x.a);
-  const srcBadge=`<span class="badge ${useRaw?'bp':'bg'}" style="font-size:10px">${useRaw?'raw data':'perf sheet'}</span>`;
+  const srcBadge=`<span class="badge bg" style="font-size:10px">perf sheet</span>`;
 
   document.getElementById('performanceContent').innerHTML=`
     <div class="charts-grid">
@@ -2918,7 +2916,7 @@ function renderWow(){
   if(qf) agents=agents.filter(a=>a.toLowerCase().includes(qf));
   if(!agents.length){ el.innerHTML=emptyHtml('No data','Sync your sheets first'); return; }
   const aset=new Set(agents);
-  const useRawWow = S.rRows.length > 0;
+  const useRawWow = false;
   let wp;
   if(useRawWow){
     const filteredRaw=S.rRows.filter(r=>aset.has(rcVal(r,'agent_name')));
@@ -2937,7 +2935,7 @@ function renderWow(){
   const lp=last(wp), lq=last(wq);
   const kpi=(lbl,valTxt,deltaHtml)=>`<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val">${valTxt}</div><div class="m-sub">${deltaHtml} vs prev wk</div></div>`;
   el.innerHTML=`
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${agents.length} agent(s) · ${Math.max(wp.length,wq.length)} weeks · lower AHT/FRT better, higher CSAT/QA better${useRawWow?' · perf from raw data':''}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${agents.length} agent(s) · ${Math.max(wp.length,wq.length)} weeks · lower AHT/FRT better, higher CSAT/QA better${useRawWow?' · perf from perf sheet':''}</div>
     <div class="metrics-grid">
       ${kpi('AHT · latest wk', lp&&lp.aht!=null?lp.aht+' min':'—', wowDeltaHtml(wowDelta(wp,'aht'),'low',' min'))}
       ${kpi('FRT · latest wk', lp&&lp.art!=null?lp.art+'s':'—', wowDeltaHtml(wowDelta(wp,'art'),'low','s'))}
@@ -3294,9 +3292,7 @@ function renderAgent() {
 
   // ── Personal charts: QA trend + time split ──
   // ── Week-over-Week (this agent) ──
-  let agWp = S.rRows.length > 0
-    ? weeklyPerfFromRaw(S.rRows.filter(r=>rcVal(r,'agent_name')===name), from, to)
-    : weeklyPerf(getAgentPerfRows(name,from,to));
+  let agWp = weeklyPerf(getAgentPerfRows(name,from,to));
   if(agWp.length>12) agWp=agWp.slice(-12);
   const agQrows=S.qRows.filter(r=>{ if(r['Agent Name']!==name) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<parseDateLocal(from)) return false; if(to&&d>parseDateLocal(to)) return false; return true; });
   let agWq=weeklyQA(agQrows); if(agWq.length>12) agWq=agWq.slice(-12);
