@@ -399,7 +399,7 @@ select.inp{cursor:pointer}
 
     <!-- PERFORMANCE -->
     <section class="tab" id="at-performance">
-      <div class="ph"><div><h1>Performance Metrics</h1><p>AHT · ART · CSAT · Resolution Rate</p></div></div>
+      <div class="ph"><div><h1>Performance Metrics</h1><p>AHT · FRT · CSAT · Resolution Rate</p></div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Filter</span>
         <input type="date" class="inp inp-sm" id="perfFrom" onchange="renderPerformance()" style="width:130px"/>
@@ -425,7 +425,7 @@ select.inp{cursor:pointer}
 
     <!-- WEEK OVER WEEK -->
     <section class="tab" id="at-wow">
-      <div class="ph"><div><h1>Week-over-Week</h1><p>AHT · ART · CSAT · QA trended by week</p></div></div>
+      <div class="ph"><div><h1>Week-over-Week</h1><p>AHT · FRT · CSAT · QA trended by week</p></div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Filter</span>
         <input type="date" class="inp inp-sm" id="wowFrom" onchange="renderWow()" style="width:130px"/>
@@ -444,7 +444,7 @@ select.inp{cursor:pointer}
         <input type="date" class="inp inp-sm" id="rcFrom" onchange="renderRootCause()" style="width:130px"/>
         <span style="color:var(--text3);font-size:12px">→</span>
         <input type="date" class="inp inp-sm" id="rcTo" onchange="renderRootCause()" style="width:130px"/>
-        <select class="inp inp-sm" id="rcDim" onchange="renderRootCause()" style="width:auto"><option value="assigned_label">By Label</option><option value="main_category">By Main Category</option><option value="sub_category_1">By Sub-category</option><option value="assigned_group">By Group</option><option value="telda_user_id">By User</option></select>
+        <select class="inp inp-sm" id="rcDim" onchange="renderRootCause()" style="width:auto"><option value="assigned_label">By Label</option><option value="main_category">By Main Category</option><option value="sub_category_1">By Sub-category</option><option value="assigned_group">By Group</option><option value="telda_user_id">By User</option><option value="agent_name">By Agent</option></select>
         <select class="inp inp-sm" id="rcStatus" onchange="renderRootCause()" style="width:auto"><option value="">All statuses</option></select>
         <select class="inp inp-sm" id="rcType" onchange="renderRootCause()" style="width:auto"><option value="">Agent &amp; Bot</option></select>
         <select class="inp inp-sm" id="rcDomain" onchange="renderRootCause()" style="width:auto"><option value="">All domains</option></select>
@@ -542,10 +542,10 @@ select.inp{cursor:pointer}
       <div class="card">
         <div class="card-hd"><span class="card-title">Performance Targets</span></div>
         <div class="card-bd">
-          <div class="alert alert-i">ℹ Cells on the Performance tab and Overview turn green when they meet/beat target, red when they miss. AHT &amp; ART are "lower is better"; CSAT &amp; Resolution are "higher is better".</div>
+          <div class="alert alert-i">ℹ Cells on the Performance tab and Overview turn green when they meet/beat target, red when they miss. AHT &amp; FRT are "lower is better"; CSAT &amp; Resolution are "higher is better".</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px">
             <div><div class="cfg-lbl">AHT Target (min, ≤)</div><input type="number" class="inp" id="cfgAhtTarget" step="0.1" min="0"/></div>
-            <div><div class="cfg-lbl">ART Target (sec, ≤)</div><input type="number" class="inp" id="cfgArtTarget" step="1" min="0"/></div>
+            <div><div class="cfg-lbl">FRT Target (sec, ≤)</div><input type="number" class="inp" id="cfgArtTarget" step="1" min="0"/></div>
             <div><div class="cfg-lbl">CSAT Target (%, ≥)</div><input type="number" class="inp" id="cfgCsatTarget" step="1" min="0" max="100"/></div>
             <div><div class="cfg-lbl">Resolution Target (%, ≥)</div><input type="number" class="inp" id="cfgResolutionTarget" step="1" min="0" max="100"/></div>
           </div>
@@ -1894,14 +1894,65 @@ function aggPerf(rows) {
 // legacy compat
 function getPerfRow(name) { const r=getAgentPerfRows(name,'',''); return r.length?aggPerf(r):null; }
 
+function aggPerfFromRaw(agentName, from, to) {
+  let rows = S.rRows.filter(r => rcVal(r,'agent_name') === agentName);
+  if (from || to) rows = rows.filter(r => {
+    const d = parseDate(rcDate(r)); if (!d) return true;
+    if (from && d < new Date(from)) return false;
+    if (to   && d > new Date(to))   return false;
+    return true;
+  });
+  if (!rows.length) return null;
+  const ahtVals = rows.map(r=>parseFloat(r.agent_handle_time_min)).filter(v=>!isNaN(v)&&v>0);
+  const avg_aht_min = ahtVals.length?(ahtVals.reduce((a,b)=>a+b,0)/ahtVals.length).toFixed(1):'0';
+  const frtVals = rows.map(r=>parseFloat(r.first_response_time||r.avg_art_sec||'')).filter(v=>!isNaN(v)&&v>0);
+  const avg_art_sec = frtVals.length?(frtVals.reduce((a,b)=>a+b,0)/frtVals.length).toFixed(0):'0';
+  const rated = rows.filter(r=>rcRating(r)!==null);
+  const pos   = rated.filter(r=>rcBucket(rcRating(r))==='CSAT');
+  const neg   = rated.filter(r=>rcBucket(rcRating(r))==='DSAT');
+  const csat_pct = rated.length?(pos.length/rated.length*100).toFixed(1):'0';
+  const resolved = rows.filter(r=>/^resolv/i.test(String(r.ticket_status||'')));
+  return {
+    total_conversations: rows.length,
+    total_tickets:       rows.length,
+    resolved_tickets:    resolved.length,
+    avg_aht_min, avg_art_sec, csat_pct,
+    csat_rated_count:    rated.length,
+    csat_positive_count: pos.length,
+    dsat_count:          neg.length,
+    resolution_rate_pct: rows.length?(resolved.length/rows.length*100).toFixed(1):'0',
+    rows,
+  };
+}
+
 // ── Week-over-Week helpers ──
 // Sunday (week start) as yyyy-mm-dd, timezone-safe. Weeks run Sunday→Saturday.
 function weekStart(v){ const d=parseDate(v); if(!d||isNaN(d)) return ''; const u=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); u.setUTCDate(u.getUTCDate()-u.getUTCDay()); return u.toISOString().slice(0,10); }
 function weekLabel(monStr){ const d=parseDate(monStr); return d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):monStr; }
-// Performance rows → per-week AHT/ART/CSAT (reuse aggPerf for the bucket math).
+// Performance rows → per-week AHT/FRT/CSAT (reuse aggPerf for the bucket math).
 function weeklyPerf(rows){
   const byW={}; (rows||[]).forEach(r=>{ const w=weekStart(r.work_date); if(!w) return; (byW[w]=byW[w]||[]).push(r); });
   return Object.keys(byW).sort().map(w=>{ const a=aggPerf(byW[w]); return { week:w, label:weekLabel(w), aht:+a.avg_aht_min, art:+a.avg_art_sec, csat:+a.csat_pct, n:byW[w].length }; });
+}
+// Raw data rows → per-week AHT/FRT/CSAT derived from S.rRows.
+function weeklyPerfFromRaw(rRows, from, to){
+  let rows = rRows;
+  if (from || to) rows = rows.filter(r=>{ const d=parseDate(rcDate(r)); if(!d) return true; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
+  const byW={}; rows.forEach(r=>{ const w=weekStart(rcDate(r)); if(!w) return; (byW[w]=byW[w]||[]).push(r); });
+  return Object.keys(byW).sort().map(w=>{
+    const wr=byW[w];
+    const ahtVals=wr.map(r=>parseFloat(r.agent_handle_time_min)).filter(v=>!isNaN(v)&&v>0);
+    const frtVals=wr.map(r=>parseFloat(r.first_response_time||r.avg_art_sec||'')).filter(v=>!isNaN(v)&&v>0);
+    const rated=wr.filter(r=>rcRating(r)!==null);
+    const pos=rated.filter(r=>rcBucket(rcRating(r))==='CSAT');
+    return {
+      week:w, label:weekLabel(w),
+      aht: ahtVals.length?+(ahtVals.reduce((a,b)=>a+b,0)/ahtVals.length).toFixed(1):null,
+      art: frtVals.length?+(frtVals.reduce((a,b)=>a+b,0)/frtVals.length).toFixed(0):null,
+      csat: rated.length?+(pos.length/rated.length*100).toFixed(1):null,
+      n: wr.length
+    };
+  });
 }
 // Quality rows → per-week average QA score.
 function weeklyQA(rows){
@@ -1919,6 +1970,7 @@ function allAgents() {
     ...S.qRows.map(r=>r['Agent Name']),
     ...S.pRows.map(r=>r['agent_name']),
     ...S.tRows.map(r=>r.agent_name),
+    ...S.rRows.map(r=>rcVal(r,'agent_name')),
   ].filter(Boolean))].sort();
 }
 
@@ -2065,7 +2117,8 @@ function renderOverview() {
   // Unified scope accessors used throughout the overview.
   const QA = a => hasRange ? calcQualityRange(a,from,to) : calcQuality(a,mk);
   const PR = a => hasRange ? calcProdRange(a,from,to)    : calcProd(a,mk);
-  const PF = a => aggPerf(getAgentPerfRows(a,pFrom,pTo));
+  const useRawPerf = S.rRows.length > 0;
+  const PF = a => useRawPerf ? aggPerfFromRaw(a,pFrom,pTo) : aggPerf(getAgentPerfRows(a,pFrom,pTo));
   const inScope = ts => { if(!hasRange) return inMonth(ts,mk); const d=parseDate(ts); if(!d) return false; if(from&&d<new Date(from))return false; if(to&&d>new Date(to))return false; return true; };
   const scopeLabel = hasRange
     ? `${from?new Date(from).toLocaleDateString('en-GB'):'…'} – ${to?new Date(to).toLocaleDateString('en-GB'):'…'}`
@@ -2121,7 +2174,7 @@ function renderOverview() {
       <td>${q?q.total:'—'}</td>
       <td>${s!==null?`<span class="sc-badge ${scoreCls(s)}">${s}%</span>`:'—'}</td>
       <td class="${perf?targetClass(perf.avg_aht_min,T.ahtTargetMin,'low'):''}">${perf?perf.avg_aht_min+' min':'—'}</td>
-      <td class="${perf?targetClass(perf.avg_art_sec,T.artTargetSec,'low'):''}">${perf?perf.avg_art_sec+'s':'—'}</td>
+      <td class="${perf?targetClass(perf.avg_art_sec,T.artTargetSec,'low'):''}">${perf?perf.avg_art_sec+'s FRT':'—'}</td>
       <td class="${perf?targetClass(perf.csat_pct,T.csatTargetPct,'high'):''}">${perf?perf.csat_pct+'%':'—'}</td>
       ${hp?'':`<td>${p?`<span style="color:${p.pct>=100?'var(--green)':'var(--amber)'}">${p.pct}%</span>`:'—'}</td>
       <td>${diffLabel}</td>`}
@@ -2131,7 +2184,7 @@ function renderOverview() {
   // ── Chart datasets (per agent) ──
   const cData = agents.map(a => {
     const q=QA(a), p=PR(a), perf=PF(a);
-    return { a, qa:q?q.avg:null, prod:p?p.pct:null, csat:perf?parseFloat(perf.csat_pct):null, aht:perf?parseFloat(perf.avg_aht_min):null, art:perf?parseFloat(perf.avg_art_sec):null };
+    return { a, qa:q?q.avg:null, prod:p?p.pct:null, csat:perf?parseFloat(perf.csat_pct):null, aht:perf?parseFloat(perf.avg_aht_min):null, frt:perf?parseFloat(perf.avg_art_sec):null };
   });
   const passCount = allScores.filter(s=>s>=90).length;
   const nearCount = allScores.filter(s=>s>=80&&s<90).length;
@@ -2140,7 +2193,7 @@ function renderOverview() {
   // ── Top / bottom performer cards ──
   const _by=(arr,key,dir)=>[...arr].sort((x,y)=>(y[key]-x[key])*dir).slice(0,3);
   const withQA=cData.filter(d=>d.qa!=null), withProd=cData.filter(d=>d.prod!=null);
-  const withAHT=cData.filter(d=>d.aht!=null), withART=cData.filter(d=>d.art!=null), withCSAT=cData.filter(d=>d.csat!=null);
+  const withAHT=cData.filter(d=>d.aht!=null), withART=cData.filter(d=>d.frt!=null), withCSAT=cData.filter(d=>d.csat!=null);
   const perfCard=(title,items,key,unit,color)=>`<div class="card" style="margin:0"><div class="card-hd"><span class="card-title">${title}</span></div><div class="card-bd" style="padding:10px 16px">${items.length?items.map(d=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--text2)">${d.a}</span><span style="color:${color};font-weight:700">${d[key]}${unit}</span></div>`).join(''):'<span style="color:var(--text3);font-size:12px">No data</span>'}</div></div>`;
   const perfCards=`<div class="charts-grid" style="margin-bottom:16px">
     ${perfCard('🏆 Top QA', _by(withQA,'qa',1),'qa','%','var(--green)')}
@@ -2150,7 +2203,7 @@ function renderOverview() {
   </div>
   <div class="charts-grid" style="margin-bottom:16px">
     ${perfCard('⚠ Highest AHT', _by(withAHT,'aht',1),'aht',' min','var(--red)')}
-    ${perfCard('⚠ Highest ART', _by(withART,'art',1),'art','s','var(--red)')}
+    ${perfCard('⚠ Highest FRT', _by(withART,'frt',1),'frt','s','var(--red)')}
     ${perfCard('⚠ Lowest CSAT', _by(withCSAT,'csat',-1),'csat','%','var(--red)')}
   </div>`;
 
@@ -2174,7 +2227,7 @@ function renderOverview() {
     <div class="card">
       <div class="card-hd"><span class="card-title">Agent Summary</span><span class="badge bp">${agents.length} agents · ${scopeLabel}</span></div>
       <div class="tbl-wrap card-bd-0">
-        <table class="tbl"><thead><tr><th>Agent</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>ART</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
+        <table class="tbl"><thead><tr><th>Agent</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>FRT</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
         <tbody>${rows}</tbody></table>
       </div>
     </div>`;
@@ -2539,7 +2592,8 @@ function drillAgentAux(name, from, to) {
 // PERFORMANCE TABLE
 // ════════════════════════════════════════
 function renderPerformance() {
-  if (!S.pRows.length) { document.getElementById('performanceContent').innerHTML=emptyHtml('No performance data','Sync to load'); return; }
+  const useRaw = S.rRows.length > 0;
+  if (!useRaw && !S.pRows.length) { document.getElementById('performanceContent').innerHTML=emptyHtml('No performance data','Sync to load'); return; }
   const from = (document.getElementById('perfFrom')||{}).value||'';
   const to   = (document.getElementById('perfTo')||{}).value||'';
   const qf   = ((document.getElementById('perfSearch')||{}).value||'').toLowerCase();
@@ -2547,7 +2601,7 @@ function renderPerformance() {
   if (qf) agents = agents.filter(a=>a.toLowerCase().includes(qf));
   const T = S.cfgTargets;
 
-  let data = agents.map(a=>({ a, perf:aggPerf(getAgentPerfRows(a,from,to)) })).filter(x=>x.perf);
+  let data = agents.map(a=>({ a, perf: useRaw ? aggPerfFromRaw(a,from,to) : aggPerf(getAgentPerfRows(a,from,to)) })).filter(x=>x.perf);
   if (!data.length) { document.getElementById('performanceContent').innerHTML=emptyHtml('No performance data','No data for this period'); return; }
   data = applySort(data, 'perf', {
     agent:x=>x.a, conversations:x=>+x.perf.total_conversations, tickets:x=>+x.perf.total_tickets,
@@ -2569,22 +2623,23 @@ function renderPerformance() {
     </tr>`).join('');
 
   _csvCache.performance = {
-    headers:['Agent','Conversations','Tickets','Resolved','AHT (min)','ART (sec)','CSAT %','Resolution %','Satisfied','DSAT'],
+    headers:['Agent','Conversations','Tickets','Resolved','AHT (min)','FRT (sec)','CSAT %','Resolution %','Satisfied','DSAT'],
     rows: data.map(({a,perf})=>[a,perf.total_conversations,perf.total_tickets,perf.resolved_tickets,perf.avg_aht_min,perf.avg_art_sec,perf.csat_pct,perf.resolution_rate_pct,perf.csat_positive_count,perf.dsat_count]),
   };
 
   // ── Chart datasets ──
   const pd = data; const pLabels=pd.map(x=>x.a);
+  const srcBadge=`<span class="badge ${useRaw?'bp':'bg'}" style="font-size:10px">${useRaw?'raw data':'perf sheet'}</span>`;
 
   document.getElementById('performanceContent').innerHTML=`
     <div class="charts-grid">
-      ${chartCard('AHT vs ART by Agent','perfAhtChart','AHT min · ART sec')}
+      ${chartCard('AHT vs FRT by Agent','perfAhtChart','AHT min · FRT sec')}
       ${chartCard('CSAT vs Resolution Rate','perfCsatChart','%')}
       ${chartCard('Satisfied vs Dissatisfied','perfSatChart')}
     </div>
-    <div class="card"><div class="card-hd"><span class="card-title">Performance Metrics</span><div style="display:flex;gap:8px;align-items:center"><span class="badge bb">vs targets · ${from&&to?from+' → '+to:'All dates'}</span>${csvBtn('performance')}</div></div>
+    <div class="card"><div class="card-hd"><span class="card-title">Performance Metrics</span><div style="display:flex;gap:8px;align-items:center">${srcBadge}<span class="badge bb">vs targets · ${from&&to?from+' → '+to:'All dates'}</span>${csvBtn('performance')}</div></div>
     <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>
-      ${sortableTh('perf','agent','Agent')}${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','ART')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}
+      ${sortableTh('perf','agent','Agent')}${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','FRT')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}
     </tr></thead><tbody>${rows}</tbody></table></div></div>`;
   saveFilters();
 
@@ -2592,11 +2647,11 @@ function renderPerformance() {
     type:'bar',
     data:{ labels:pLabels, datasets:[
       { label:'AHT (min)', data:pd.map(x=>+x.perf.avg_aht_min), backgroundColor:hexA('#7c5af0',.8), borderRadius:4, yAxisID:'y' },
-      { label:'ART (sec)', data:pd.map(x=>+x.perf.avg_art_sec), backgroundColor:hexA('#3b7ef8',.8), borderRadius:4, yAxisID:'y1' },
+      { label:'FRT (sec)', data:pd.map(x=>+x.perf.avg_art_sec), backgroundColor:hexA('#3b7ef8',.8), borderRadius:4, yAxisID:'y1' },
     ] },
     options:{ scales:{ x:gridAxis(),
       y:gridAxis({position:'left',min:0,title:{display:true,text:'AHT min',color:'#8080a0'}}),
-      y1:gridAxis({position:'right',min:0,grid:{drawOnChartArea:false},title:{display:true,text:'ART sec',color:'#8080a0'}}) } }
+      y1:gridAxis({position:'right',min:0,grid:{drawOnChartArea:false},title:{display:true,text:'FRT sec',color:'#8080a0'}}) } }
   });
   mkChart('perfCsatChart', {
     type:'bar',
@@ -2800,9 +2855,17 @@ function renderWow(){
   if(qf) agents=agents.filter(a=>a.toLowerCase().includes(qf));
   if(!agents.length){ el.innerHTML=emptyHtml('No data','Sync your sheets first'); return; }
   const aset=new Set(agents);
-  let perfRows=[]; agents.forEach(a=>{ perfRows=perfRows.concat(getAgentPerfRows(a,from,to)); });
+  const useRawWow = S.rRows.length > 0;
+  let wp;
+  if(useRawWow){
+    const filteredRaw=S.rRows.filter(r=>aset.has(rcVal(r,'agent_name')));
+    wp=weeklyPerfFromRaw(filteredRaw,from,to);
+  } else {
+    let perfRows=[]; agents.forEach(a=>{ perfRows=perfRows.concat(getAgentPerfRows(a,from,to)); });
+    wp=weeklyPerf(perfRows);
+  }
   const qRows=S.qRows.filter(r=>{ if(!aset.has(r['Agent Name'])) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
-  let wp=weeklyPerf(perfRows), wq=weeklyQA(qRows);
+  let wq=weeklyQA(qRows);
   if(wp.length>12) wp=wp.slice(-12);
   if(wq.length>12) wq=wq.slice(-12);
   if(!wp.length && !wq.length){ el.innerHTML=emptyHtml('No data','No performance or quality data in this range'); return; }
@@ -2811,21 +2874,21 @@ function renderWow(){
   const lp=last(wp), lq=last(wq);
   const kpi=(lbl,valTxt,deltaHtml)=>`<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val">${valTxt}</div><div class="m-sub">${deltaHtml} vs prev wk</div></div>`;
   el.innerHTML=`
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${agents.length} agent(s) · ${Math.max(wp.length,wq.length)} weeks · lower AHT/ART better, higher CSAT/QA better</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${agents.length} agent(s) · ${Math.max(wp.length,wq.length)} weeks · lower AHT/FRT better, higher CSAT/QA better${useRawWow?' · perf from raw data':''}</div>
     <div class="metrics-grid">
-      ${kpi('AHT · latest wk', lp?lp.aht+' min':'—', wowDeltaHtml(wowDelta(wp,'aht'),'low',' min'))}
-      ${kpi('ART · latest wk', lp?lp.art+'s':'—', wowDeltaHtml(wowDelta(wp,'art'),'low','s'))}
-      ${kpi('CSAT · latest wk', lp?lp.csat+'%':'—', wowDeltaHtml(wowDelta(wp,'csat'),'high','%'))}
+      ${kpi('AHT · latest wk', lp&&lp.aht!=null?lp.aht+' min':'—', wowDeltaHtml(wowDelta(wp,'aht'),'low',' min'))}
+      ${kpi('FRT · latest wk', lp&&lp.art!=null?lp.art+'s':'—', wowDeltaHtml(wowDelta(wp,'art'),'low','s'))}
+      ${kpi('CSAT · latest wk', lp&&lp.csat!=null?lp.csat+'%':'—', wowDeltaHtml(wowDelta(wp,'csat'),'high','%'))}
       ${kpi('QA · latest wk', lq?lq.qa+'%':'—', wowDeltaHtml(wowDelta(wq,'qa'),'high','%'))}
     </div>
     <div class="charts-grid">
       ${chartCard('AHT by Week (min)','wowAht')}
-      ${chartCard('ART by Week (s)','wowArt')}
+      ${chartCard('FRT by Week (s)','wowArt')}
       ${chartCard('CSAT by Week (%)','wowCsat')}
       ${chartCard('QA Score by Week (%)','wowQa')}
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Weekly Detail</span><span class="badge bp">${Math.max(wp.length,wq.length)} weeks</span></div>
-    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Week of</th><th>AHT</th><th>ART</th><th>CSAT</th><th>QA</th></tr></thead>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Week of</th><th>AHT</th><th>FRT</th><th>CSAT</th><th>QA</th></tr></thead>
     <tbody>${wowWeeksTable(wp,wq)||`<tr><td colspan="5" style="color:var(--text3);padding:18px;text-align:center">No weekly data</td></tr>`}</tbody></table></div></div>`;
 
   const line=(id,series,key,color,pct)=>mkChart(id,{ type:'line',
@@ -3166,14 +3229,17 @@ function renderAgent() {
 
   // ── Personal charts: QA trend + time split ──
   // ── Week-over-Week (this agent) ──
-  let agWp=weeklyPerf(getAgentPerfRows(name,from,to)); if(agWp.length>12) agWp=agWp.slice(-12);
+  let agWp = S.rRows.length > 0
+    ? weeklyPerfFromRaw(S.rRows.filter(r=>rcVal(r,'agent_name')===name), from, to)
+    : weeklyPerf(getAgentPerfRows(name,from,to));
+  if(agWp.length>12) agWp=agWp.slice(-12);
   const agQrows=S.qRows.filter(r=>{ if(r['Agent Name']!==name) return false; if(!from&&!to) return true; const d=parseDate(r['Timestamp']); if(!d) return false; if(from&&d<new Date(from)) return false; if(to&&d>new Date(to)) return false; return true; });
   let agWq=weeklyQA(agQrows); if(agWq.length>12) agWq=agWq.slice(-12);
   const haveWow = agWp.length>1 || agWq.length>1;
   const wowHtml = haveWow ? `<div style="font-size:11px;color:var(--text3);margin:6px 2px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Week-over-Week</div>
     <div class="charts-grid">
       ${chartCard('AHT by Week (min)','agWowAht')}
-      ${chartCard('ART by Week (s)','agWowArt')}
+      ${chartCard('FRT by Week (s)','agWowArt')}
       ${chartCard('CSAT by Week (%)','agWowCsat')}
       ${chartCard('QA by Week (%)','agWowQa')}
     </div>` : '';
@@ -3209,7 +3275,7 @@ function renderAgent() {
         {l:'Total Tickets',   v:perf?perf.total_tickets:'—',           s:'tickets',             c:''},
         {l:'Resolved',        v:perf?perf.resolved_tickets:'—',        s:'resolved tickets',    c:'cg'},
         {l:'AHT',             v:perf?perf.avg_aht_min+' min':'—',      s:'avg handle time',     c:''},
-        {l:'ART',             v:artSec,                                 s:'avg reply time',      c:'cp'},
+        {l:'FRT',             v:artSec,                                 s:'first reply time',    c:'cp'},
         {l:'CSAT',            v:perf?perf.csat_pct+'%':'—',            s:'satisfaction rate',   c:perf&&parseFloat(perf.csat_pct)>=80?'cg':perf&&parseFloat(perf.csat_pct)>=60?'ca':'cr'},
         {l:'Resolution Rate', v:perf?perf.resolution_rate_pct+'%':'—', s:'cases resolved',      c:''},
         {l:'CSAT Surveys',    v:perf?perf.csat_rated_count:'—',        s:'received',            c:''},
