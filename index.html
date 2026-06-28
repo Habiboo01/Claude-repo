@@ -1906,7 +1906,7 @@ function aggPerfFromRaw(agentName, from, to) {
   if (!rows.length) return null;
   const ahtVals = rows.map(r=>parseFloat(r.agent_handle_time_min)).filter(v=>!isNaN(v)&&v>0);
   const avg_aht_min = ahtVals.length?(ahtVals.reduce((a,b)=>a+b,0)/ahtVals.length).toFixed(1):'0';
-  const frtVals = rows.map(r=>parseFloat(r.first_response_time||r.avg_art_sec||'')).filter(v=>!isNaN(v)&&v>0);
+  const frtVals = rows.map(r=>parseFloat(r.first_response_time_sec||r.first_response_time||r.avg_art_sec||'')).filter(v=>!isNaN(v)&&v>0);
   const avg_art_sec = frtVals.length?(frtVals.reduce((a,b)=>a+b,0)/frtVals.length).toFixed(0):'0';
   const rated = rows.filter(r=>rcRating(r)!==null);
   const pos   = rated.filter(r=>rcBucket(rcRating(r))==='CSAT');
@@ -1943,7 +1943,7 @@ function weeklyPerfFromRaw(rRows, from, to){
   return Object.keys(byW).sort().map(w=>{
     const wr=byW[w];
     const ahtVals=wr.map(r=>parseFloat(r.agent_handle_time_min)).filter(v=>!isNaN(v)&&v>0);
-    const frtVals=wr.map(r=>parseFloat(r.first_response_time||r.avg_art_sec||'')).filter(v=>!isNaN(v)&&v>0);
+    const frtVals=wr.map(r=>parseFloat(r.first_response_time_sec||r.first_response_time||r.avg_art_sec||'')).filter(v=>!isNaN(v)&&v>0);
     const rated=wr.filter(r=>rcRating(r)!==null);
     const pos=rated.filter(r=>rcBucket(rcRating(r))==='CSAT');
     return {
