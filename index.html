@@ -2311,6 +2311,14 @@ function renderOverview() {
   const failCount = allScores.filter(s=>s<80).length;
   const lbData=cData.map(d=>({...d,composite:+(((d.qa||0)*0.4+(d.csat||0)*0.4+(d.prod||0)*0.2)).toFixed(1)})).filter(d=>d.qa!=null||d.csat!=null).sort((a,b)=>b.composite-a.composite);
 
+  const _ahtVals=cData.map(d=>d.aht).filter(v=>v!=null);
+  const avgAHT=_ahtVals.length?(_ahtVals.reduce((a,b)=>a+b,0)/_ahtVals.length).toFixed(1):null;
+  const _artVals=cData.map(d=>d.frt).filter(v=>v!=null);
+  const avgART=_artVals.length?Math.round(_artVals.reduce((a,b)=>a+b,0)/_artVals.length):null;
+  const _csatVals=cData.map(d=>d.csat).filter(v=>v!=null);
+  const avgCSAT=_csatVals.length?(_csatVals.reduce((a,b)=>a+b,0)/_csatVals.length).toFixed(1):null;
+  const totChats=S.rRows.filter(r=>inScope(r.agent_assigned_at||rcDate(r))).length;
+
   // ── Top / bottom performer cards ──
   const _by=(arr,key,dir)=>[...arr].sort((x,y)=>(y[key]-x[key])*dir).slice(0,3);
   const withQA=cData.filter(d=>d.qa!=null), withProd=cData.filter(d=>d.prod!=null);
@@ -2365,6 +2373,10 @@ function renderOverview() {
       <div class="metric"><div class="m-lbl">Pass Rate</div><div class="m-val ${pass>=90?'cg':pass>=80?'ca':'cr'}">${pass!==null?pass+'%':'—'}</div><div class="m-sub">≥ 90% threshold</div></div>
       <div class="metric"><div class="m-lbl">Disputed</div><div class="m-val ${totDisputed?'ca':'cg'}">${totDisputed}</div><div class="m-sub">QA tickets disputed</div></div>
       ${hp?'':`<div class="metric"><div class="m-lbl">Total Missing</div><div class="m-val cr">${totMissing}m</div><div class="m-sub">across all agents</div></div>`}
+      <div class="metric"><div class="m-lbl">Total Chats</div><div class="m-val cb">${totChats.toLocaleString()}</div><div class="m-sub">raw inflows</div></div>
+      <div class="metric"><div class="m-lbl">Avg AHT</div><div class="m-val ${avgAHT!=null?targetClass(avgAHT,T.ahtTargetMin,'low')||'cp':''}"><span style="font-size:${avgAHT!=null?'28':'22'}px">${avgAHT!=null?avgAHT+' min':'—'}</span></div><div class="m-sub">target ≤ ${T.ahtTargetMin} min</div></div>
+      <div class="metric"><div class="m-lbl">Avg ART</div><div class="m-val ${avgART!=null?targetClass(avgART,T.artTargetSec,'low')||'cp':''}"><span style="font-size:${avgART!=null?'28':'22'}px">${avgART!=null?avgART+'s':'—'}</span></div><div class="m-sub">target ≤ ${T.artTargetSec}s</div></div>
+      <div class="metric"><div class="m-lbl">Avg CSAT</div><div class="m-val ${avgCSAT!=null?targetClass(avgCSAT,T.csatTargetPct,'high')||'cp':''}"><span style="font-size:${avgCSAT!=null?'28':'22'}px">${avgCSAT!=null?avgCSAT+'%':'—'}</span></div><div class="m-sub">target ≥ ${T.csatTargetPct}%</div></div>
     </div>
     ${perfCards}
     ${lbHtml}
@@ -2373,6 +2385,10 @@ function renderOverview() {
       ${chartCard('QA Outcome Split','ovDistChart')}
       ${hp?'':chartCard('Productivity Achievement %','ovProdChart')}
       ${chartCard('CSAT by Agent','ovCsatChart')}
+    </div>
+    <div class="charts-grid" style="margin-top:16px">
+      ${chartCard('Avg AHT by Agent (min)','ovAhtChart')}
+      ${chartCard('Avg ART by Agent (sec)','ovArtChart')}
     </div>
     ${disputedCard}
     <div class="card">
@@ -2410,6 +2426,22 @@ function renderOverview() {
     data:{ labels, datasets:[{ label:'CSAT %', data:cData.map(d=>d.csat),
       backgroundColor:chartColors(labels.length,.75), borderRadius:5, borderWidth:0 }] },
     options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis({min:0,max:100,ticks:{callback:v=>v+'%'}}) } }
+  });
+  mkChart('ovAhtChart', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'AHT (min)', data:cData.map(d=>d.aht),
+      backgroundColor:cData.map(d=>d.aht==null?cssVar('--nullbar','#3e3e60'):d.aht<=T.ahtTargetMin?hexA('#22c55e',.75):hexA('#ef4444',.75)),
+      borderRadius:5, borderWidth:0 }] },
+    options:{ plugins:{legend:{display:false},annotation:{annotations:[{type:'line',yMin:T.ahtTargetMin,yMax:T.ahtTargetMin,borderColor:'rgba(245,158,11,.6)',borderWidth:1,borderDash:[4,3]}]}},
+      scales:{ x:gridAxis(), y:gridAxis({min:0,ticks:{callback:v=>v+' min'}}) } }
+  });
+  mkChart('ovArtChart', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'ART (sec)', data:cData.map(d=>d.frt),
+      backgroundColor:cData.map(d=>d.frt==null?cssVar('--nullbar','#3e3e60'):d.frt<=T.artTargetSec?hexA('#22c55e',.75):hexA('#ef4444',.75)),
+      borderRadius:5, borderWidth:0 }] },
+    options:{ plugins:{legend:{display:false},annotation:{annotations:[{type:'line',yMin:T.artTargetSec,yMax:T.artTargetSec,borderColor:'rgba(245,158,11,.6)',borderWidth:1,borderDash:[4,3]}]}},
+      scales:{ x:gridAxis(), y:gridAxis({min:0,ticks:{callback:v=>v+'s'}}) } }
   });
 }
 
