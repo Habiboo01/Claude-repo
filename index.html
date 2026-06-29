@@ -3852,6 +3852,41 @@ function renderRootCause(){
   mkChart('rcDowChart',{ type:'bar',
     data:{ labels:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], datasets:[{ data:_dowC, backgroundColor:hexA('#3b7ef8',.75), borderRadius:4 }] },
     options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis({min:0}) } } });
+
+  const _rcRRIdx = buildRRIndex();
+  const _rcRRWin = parseInt(ls.get('rr_window')||'7')||7;
+  const _rcAgents = [...new Set(rows.map(r=>rcVal(r,'agent_name')).filter(Boolean))].sort();
+  if (_rcAgents.length) {
+    const _rcRRData = _rcAgents.map(a=>{
+      const rr = calcRepeatRate(a, from, to, _rcRRIdx, _rcRRWin);
+      return { a, rr };
+    }).filter(x=>x.rr).sort((a,b)=>b.rr.rate-a.rr.rate);
+    if (_rcRRData.length) {
+      const _rcRREl = document.createElement('div');
+      _rcRREl.className = 'card';
+      _rcRREl.style.marginTop = '16px';
+      _rcRREl.innerHTML = `
+        <div class="card-hd">
+          <span class="card-title">🔁 Repeat Rate by Agent</span>
+          <span style="font-size:11px;color:var(--text3)">${_rcRRWin}-day window · telda_user_id · resolved chats only</span>
+        </div>
+        <div class="tbl-wrap card-bd-0">
+          <table class="tbl"><thead><tr><th>Agent</th><th>Resolved</th><th>Repeats</th><th>Repeat Rate</th><th>Rate bar</th></tr></thead>
+          <tbody>${_rcRRData.map(({a,rr})=>`<tr>
+            <td style="color:var(--text);font-weight:600">${a}<br><span style="font-size:11px;color:var(--text3)">${S.teams[a]||''}</span></td>
+            <td>${rr.total}</td>
+            <td class="${rr.repeats?'cr':''}">${rr.repeats}</td>
+            <td><span class="sc-badge ${rrClass(rr.rate)==='cg'?'sc-pass':rrClass(rr.rate)==='ca'?'sc-warn':'sc-fail'}">${rr.rate}%</span></td>
+            <td style="min-width:120px">
+              <div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden">
+                <div style="height:100%;width:${Math.min(100,rr.rate)}%;background:${rr.rate<=10?'var(--green)':rr.rate<=25?'var(--amber)':'var(--red)'};border-radius:4px"></div>
+              </div>
+            </td>
+          </tr>`).join('')}</tbody>
+        </table></div>`;
+      el.appendChild(_rcRREl);
+    }
+  }
 }
 
 function renderExcList() {
