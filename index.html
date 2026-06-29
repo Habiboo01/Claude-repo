@@ -459,6 +459,8 @@ select.inp{cursor:pointer}
         </select>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Prod hrs/day</span>
         <input type="number" class="inp inp-sm" id="fcastProdHrs" value="7.8" min="1" max="12" step="0.5" onchange="renderForecasting()" style="width:70px"/>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Concurrency</span>
+        <input type="number" class="inp inp-sm" id="fcastConcurrency" value="3" min="1" max="10" step="1" title="Chats per agent at once" onchange="renderForecasting()" style="width:60px"/>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Headcount</span>
         <input type="number" class="inp inp-sm" id="fcastHeadcount" placeholder="Total agents" min="1" step="1" onchange="renderForecasting()" style="width:100px"/>
         <input type="number" class="inp inp-sm" id="fcastShifts" value="3" min="1" max="8" step="1" placeholder="# shifts" onchange="renderForecasting()" style="width:80px" title="Number of shifts per day"/>
@@ -3321,7 +3323,7 @@ function renderForecasting(){
 
   const ahtVals=rows.map(r=>parseFloat(r.agent_handle_time_min)).filter(v=>!isNaN(v)&&v>0);
   const avgAhtMin=ahtVals.length?ahtVals.reduce((a,b)=>a+b,0)/ahtVals.length:0;
-  const fcStaff=fcVol.map(v=>v!=null&&avgAhtMin>0?Math.ceil(v*avgAhtMin/60/prodHrs):null);
+  const fcStaff=fcVol.map(v=>v!=null&&avgAhtMin>0?Math.ceil(v*avgAhtMin/60/prodHrs/concurrency):null);
 
   const csatByDate={};
   rows.forEach(r=>{
@@ -3353,6 +3355,7 @@ function renderForecasting(){
   const peakIdx=fcVol.indexOf(Math.max(...validVol));
   const peakDay=peakIdx>=0?fcLabels[peakIdx]:null;
 
+  const concurrency=Math.max(1,parseInt((document.getElementById('fcastConcurrency')||{}).value||'3')||1);
   const totalHeadcount=parseInt((document.getElementById('fcastHeadcount')||{}).value||'0')||0;
   const numShifts=parseInt((document.getElementById('fcastShifts')||{}).value||'3');
   const shiftStartHr=parseInt((document.getElementById('fcastShiftStart')||{}).value||'6');
@@ -3374,7 +3377,7 @@ function renderForecasting(){
     return true;
   });
   const hrProfile=hourlyVolumeProfile(dowFilteredRows);
-  const hrStaff=hrProfile.map(v=>avgAhtMin>0?Math.ceil(v*avgAhtMin/60):0);
+  const hrStaff=hrProfile.map(v=>avgAhtMin>0?Math.ceil(v*avgAhtMin/60/concurrency):0);
   const peakHr=hrProfile.indexOf(Math.max(...hrProfile));
   const peakHrLabel=peakHr>=0?`${String(peakHr).padStart(2,'0')}:00–${String(peakHr+1).padStart(2,'0')}:00`:'—';
   const hrLabels=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
@@ -3391,7 +3394,7 @@ function renderForecasting(){
   const shiftPlanHtml=totalHeadcount>0?`
     <div class="card" style="margin-top:12px">
       <div class="card-hd"><span class="card-title">Shift Planning</span>
-        <span class="badge ${totalRec<=dailyAvail?'bg':'br'}">${totalRec} needed · ${dailyAvail} avail/day (${totalHeadcount} × 5/7)</span>
+        <span class="badge ${totalRec<=dailyAvail?'bg':'br'}">${totalRec} needed · ${dailyAvail} avail/day (${totalHeadcount} × 5/7) · ${concurrency}x concurrency</span>
       </div>
       <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Shift</th><th>Hours</th><th>Avg Conv/hr</th><th>Peak Agents Needed</th><th>Recommended</th><th>Coverage</th></tr></thead><tbody>
         ${shiftDemand.map((sh,i)=>{
