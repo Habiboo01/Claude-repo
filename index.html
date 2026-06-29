@@ -890,6 +890,12 @@ const QS = {
   page: 1, pageSize: 15, search: '', coachedFilter: 'all', dupFilter: false,
 };
 function qualThreshold(){ const el=document.getElementById('qualThreshold'); return el ? (parseFloat(el.value)||90) : 90; }
+function isNewAgent(name){
+  const dates=[...S.qRows.filter(r=>r['Agent Name']===name).map(r=>parseDate(r['Timestamp'])),
+               ...S.pRows.filter(r=>r.agent_name===name).map(r=>parseDate(r.work_date))].filter(Boolean);
+  if(!dates.length) return false;
+  return (Date.now()-Math.min(...dates.map(d=>d.getTime())))/(864e5)<=30;
+}
 function ticketKey(r){ return (r['Tickets Link']||'')+'|'+(r['Agent Name']||'')+'|'+(r['Timestamp']||''); }
 // Build the dispute Google Form link, appending agent/ticket/score as query params for prefill.
 function disputeLink(r, s){
@@ -2233,6 +2239,7 @@ function renderOverview() {
   const passCount = allScores.filter(s=>s>=90).length;
   const nearCount = allScores.filter(s=>s>=80&&s<90).length;
   const failCount = allScores.filter(s=>s<80).length;
+  const lbData=cData.map(d=>({...d,composite:+(((d.qa||0)*0.4+(d.csat||0)*0.4+(d.prod||0)*0.2)).toFixed(1)})).filter(d=>d.qa!=null||d.csat!=null).sort((a,b)=>b.composite-a.composite);
 
   // ── Top / bottom performer cards ──
   const _by=(arr,key,dir)=>[...arr].sort((x,y)=>(y[key]-x[key])*dir).slice(0,3);
@@ -2268,6 +2275,18 @@ function renderOverview() {
         </div>
       </div>
     </div>` : '';
+  const lbHtml=lbData.length?`<div class="card" style="margin-bottom:16px">
+    <div class="card-hd"><span class="card-title">🏆 Leaderboard</span><span style="font-size:11px;color:var(--text3)">QA 40% · CSAT 40% · Productivity 20%</span></div>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>#</th><th>Agent</th><th>Composite</th><th>QA</th><th>CSAT</th>${hp?'':'<th>Productivity</th>'}</tr></thead>
+    <tbody>${lbData.map((d,i)=>`<tr style="${i===0?'background:rgba(245,158,11,.07)':i===1?'background:rgba(156,163,175,.05)':i===2?'background:rgba(180,83,9,.05)':''}">
+      <td style="font-weight:700;color:${i===0?'var(--amber)':i===1?'#9ca3af':i===2?'#b45309':'var(--text3)'}">${i+1}</td>
+      <td style="color:var(--text);font-weight:${i<3?700:400}">${d.a}${isNewAgent(d.a)?'<span class="badge" style="margin-left:5px;font-size:10px;background:rgba(59,126,248,.2);color:var(--blue)">New</span>':''}</td>
+      <td style="font-family:var(--fd);font-weight:700;color:${i===0?'var(--amber)':'var(--accent)'}">${d.composite}</td>
+      <td>${d.qa!=null?d.qa+'%':'—'}</td>
+      <td>${d.csat!=null?d.csat+'%':'—'}</td>
+      ${hp?'':`<td>${d.prod!=null?d.prod+'%':'—'}</td>`}
+    </tr>`).join('')}
+    </tbody></table></div></div>`:'';
   document.getElementById('overviewContent').innerHTML=_healthHtml+`
     <div class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cp">${agents.length}</div><div class="m-sub">in system</div></div>
@@ -2278,6 +2297,7 @@ function renderOverview() {
       ${hp?'':`<div class="metric"><div class="m-lbl">Total Missing</div><div class="m-val cr">${totMissing}m</div><div class="m-sub">across all agents</div></div>`}
     </div>
     ${perfCards}
+    ${lbHtml}
     <div class="charts-grid">
       ${chartCard('Avg QA Score by Agent','ovQaChart')}
       ${chartCard('QA Outcome Split','ovDistChart')}
@@ -2377,6 +2397,10 @@ function renderQuality() {
   const passC=scores.filter(s=>s>=thresh).length;
   const warnC=scores.filter(s=>s>=near&&s<thresh).length;
   const failC=scores.filter(s=>s<near).length;
+  const attrC={};
+  rows.forEach(r=>qaFailedAttrs(r).forEach(a=>{ attrC[a]=(attrC[a]||0)+1; }));
+  const attrKeys=Object.keys(attrC).sort((a,b)=>attrC[b]-attrC[a]).slice(0,10);
+  const attrVals=attrKeys.map(k=>attrC[k]);
 
   // ── Duplicate ticket detection ──
   const _lnkCounts={};
@@ -2471,6 +2495,7 @@ function renderQuality() {
       ${chartCard('Avg Score by Agent','qaAgentChart')}
       ${chartCard('Outcome Breakdown','qaDistChart')}
       ${chartCard('Avg Score Over Time','qaTrendChart')}
+      ${attrKeys.length?chartCard('Most Failed Attributes','qaAttrChart'):''}
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Ticket-Level QA Reviews</span><div style="display:flex;gap:8px;align-items:center"><span class="badge bp">${total} records</span>${csvBtn('quality')}</div></div>
     <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${sortableTh('qual','date','Date')}${sortableTh('qual','agent','Agent')}${sortableTh('qual','score','Score')}<th>Failed Attributes</th><th>Ticket</th><th>Comment</th><th>Coaching</th></tr></thead><tbody>${trs||`<tr><td colspan="7" style="color:var(--text3);padding:20px;text-align:center">No tickets match your filters</td></tr>`}</tbody></table></div>${pag}</div>`;
@@ -2494,6 +2519,11 @@ function renderQuality() {
     data:{ labels:tLabels.map(k=>new Date(k).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})), datasets:[{ label:'Avg %', data:tAvgs,
       borderColor:'#7c5af0', backgroundColor:hexA('#7c5af0',.15), fill:true, tension:.3, pointRadius:3, pointBackgroundColor:'#7c5af0' }] },
     options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis({min:0,max:100,ticks:{callback:v=>v+'%'}}) } }
+  });
+  if(attrKeys.length) mkChart('qaAttrChart',{
+    type:'bar',
+    data:{ labels:attrKeys, datasets:[{ label:'Failures', data:attrVals, backgroundColor:hexA('#ef4444',.75), borderRadius:5 }] },
+    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:gridAxis({min:0}), y:gridAxis() } }
   });
 }
 
@@ -2679,15 +2709,24 @@ function renderPerformance() {
     resolved:x=>+x.perf.resolved_tickets, aht:x=>+x.perf.avg_aht_min, art:x=>+x.perf.avg_art_sec,
     csat:x=>+x.perf.csat_pct, resolution:x=>+x.perf.resolution_rate_pct, satisfied:x=>+x.perf.csat_positive_count, dsat:x=>+x.perf.dsat_count,
   });
+  const _fMn=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;
+  const _fSd=(arr,m)=>arr.length?Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/arr.length):0;
+  const _ahtV=data.map(x=>+x.perf.avg_aht_min).filter(v=>v>0);
+  const _frtV=data.map(x=>+x.perf.avg_art_sec).filter(v=>v>0);
+  const _csV=data.map(x=>+x.perf.csat_pct).filter(v=>v>=0);
+  const _ahtM=_fMn(_ahtV),_ahtS=_fSd(_ahtV,_ahtM);
+  const _frtM=_fMn(_frtV),_frtS=_fSd(_frtV,_frtM);
+  const _csM=_fMn(_csV),_csS=_fSd(_csV,_csM);
+  const _an=(v,m,s,hi)=>s>0&&Math.abs(v-m)>s?(hi?(v>m?'background:rgba(239,68,68,.12)':'background:rgba(34,197,94,.12)'):(v<m?'background:rgba(239,68,68,.12)':'background:rgba(34,197,94,.12)')):'';
 
   const rows = data.map(({a,perf}) => `<tr>
-      <td style="color:var(--text)">${a}</td>
+      <td style="color:var(--text)">${a}${isNewAgent(a)?'<span class="badge" style="margin-left:5px;font-size:10px;background:rgba(59,126,248,.2);color:var(--blue)">New</span>':''}</td>
       <td>${perf.total_conversations}</td>
       <td>${perf.total_tickets}</td>
       <td>${perf.resolved_tickets}</td>
-      <td class="${targetClass(perf.avg_aht_min,T.ahtTargetMin,'low')}">${perf.avg_aht_min} min</td>
-      <td class="${targetClass(perf.avg_art_sec,T.artTargetSec,'low')}">${perf.avg_art_sec}s</td>
-      <td class="${targetClass(perf.csat_pct,T.csatTargetPct,'high')}">${perf.csat_pct}%</td>
+      <td class="${targetClass(perf.avg_aht_min,T.ahtTargetMin,'low')}" style="${_an(+perf.avg_aht_min,_ahtM,_ahtS,false)}">${perf.avg_aht_min} min</td>
+      <td class="${targetClass(perf.avg_art_sec,T.artTargetSec,'low')}" style="${_an(+perf.avg_art_sec,_frtM,_frtS,false)}">${perf.avg_art_sec}s</td>
+      <td class="${targetClass(perf.csat_pct,T.csatTargetPct,'high')}" style="${_an(+perf.csat_pct,_csM,_csS,true)}">${perf.csat_pct}%</td>
       <td class="${targetClass(perf.resolution_rate_pct,T.resolutionTargetPct,'high')}">${perf.resolution_rate_pct}%</td>
       <td class="cg">${perf.csat_positive_count}</td>
       <td class="cr">${perf.dsat_count}</td>
@@ -3018,6 +3057,35 @@ function rcIsRepeat(r){ if(rcTruthy(r.repeat_flag)||rcTruthy(r.is_repeated)) ret
 function rcDate(r){ return r.chat_closed_at||r.bot_session_start||r.first_response_at||r.agent_assigned_at||''; }
 function rcSort(k){ if(RC.sort===k) RC.dir*=-1; else { RC.sort=k; RC.dir=-1; } renderRootCause(); }
 function attrEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function rcDsatDrill(label){
+  const dim=(document.getElementById('rcDim')||{}).value||'assigned_label';
+  const all=rcFilteredRows();
+  const rows=all.filter(r=>(rcVal(r,dim)||'(blank)')===label&&rcBucket(rcRating(r))==='DSAT');
+  if(!rows.length){ toast('No DSAT tickets for this label'); return; }
+  const chip=(lbl,val,cls)=>`<span class="badge ${cls||'bp'}" style="margin:0 6px 6px 0;display:inline-block">${lbl}: ${val}</span>`;
+  const sorted=[...rows].sort((a,b)=>(parseDate(rcDate(b))||0)-(parseDate(rcDate(a))||0));
+  const trs=sorted.slice(0,200).map(r=>{ const d=parseDate(rcDate(r));
+    return `<tr>
+      <td style="font-size:11px;white-space:nowrap">${d?d.toLocaleDateString('en-GB'):'—'}</td>
+      <td style="font-size:11px;font-family:monospace">${rcVal(r,'telda_user_id')||'—'}</td>
+      <td>${rcVal(r,'agent_name')||'—'}</td>
+      <td style="font-size:11px">${rcVal(r,'domain')||'—'}</td>
+      <td class="cr" style="text-align:center">${rcRating(r)!=null?rcRating(r)+'★':'—'}</td>
+      <td style="font-size:11px">${rcVal(r,'ticket_status')||'—'}</td>
+      <td style="font-size:11.5px;color:var(--text2);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${attrEsc(rcVal(r,'csat_comment'))}">${rcVal(r,'csat_comment')||'—'}</td>
+    </tr>`; }).join('');
+  const body=`
+    <div class="modal-sub" style="margin-bottom:12px">
+      ${chip('DSAT tickets',rows.length,'br')}
+      ${chip('of total',all.length?(Math.round(rows.length/all.length*100)+'%'):'—','ba')}
+    </div>
+    <div class="tbl-wrap" style="border:1px solid var(--border);border-radius:var(--r2);max-height:60vh;overflow:auto">
+      <table class="tbl"><thead><tr><th>Date</th><th>User ID</th><th>Agent</th><th>Domain</th><th>Rating</th><th>Status</th><th>Comment</th></tr></thead>
+      <tbody>${trs}</tbody></table>
+    </div>
+    ${rows.length>200?'<div style="font-size:11px;color:var(--text3);margin-top:8px">Showing 200 of '+rows.length+' — narrow the filters to see the rest.</div>':''}`;
+  openModal(`DSAT — ${dim}: ${attrEsc(label)}`, body);
+}
 // Rows matching the active Root Cause filters (shared by the tab view and the drill-down modal).
 function rcFilteredRows(){
   const g=id=>(document.getElementById(id)||{}).value||'';
@@ -3172,6 +3240,10 @@ function renderRootCause(){
       ${chartCard('Top Repeat Drivers ('+dim+')','rcRepeatChart')}
     </div>
     <div class="charts-grid">
+      ${chartCard('Conversations by Hour of Day','rcHourChart')}
+      ${chartCard('Conversations by Day of Week','rcDowChart')}
+    </div>
+    <div class="charts-grid">
       <div class="card"><div class="card-hd"><span class="card-title">😊 Top CSAT Reasons</span><span class="badge bg">4–5★</span></div><div class="card-bd">${reasonsList(csatReasons)}</div></div>
       <div class="card"><div class="card-hd"><span class="card-title">😞 Top DSAT / Repeat Reasons</span><span class="badge br">1–2★</span></div><div class="card-bd">${reasonsList(dsatReasons)}</div></div>
     </div>
@@ -3183,7 +3255,7 @@ function renderRootCause(){
       <td>${p.pct}%</td>
       <td class="cg">${p.csat}</td>
       <td class="cg">${p.csatPct}%</td>
-      <td class="cr">${p.dsat}</td>
+      <td class="cr" style="cursor:pointer" onclick="event.stopPropagation();rcDsatDrill('${attrEsc(p.label)}')" title="Click to view DSAT tickets">${p.dsat?`<span style="text-decoration:underline dotted">${p.dsat}</span>`:'0'}</td>
       <td class="cr">${p.dsatPct}%</td>
       <td>${p.repeat?`<span class="cr">${p.repeat}</span>`:'—'}</td>
       <td>${p.agentAHT!=null?p.agentAHT+' min':'—'}</td>
@@ -3205,6 +3277,21 @@ function renderRootCause(){
   mkChart('rcRepeatChart',{ type:'bar',
     data:{ labels:tRep.map(p=>p.label), datasets:[{ data:tRep.map(p=>p.repeat), backgroundColor:hexA('#f59e0b',.75), borderRadius:5 }] },
     options:{ indexAxis:'y', onClick:barDrill(tRep.map(p=>p.label)), plugins:{legend:{display:false}}, scales:{ x:gridAxis({min:0}), y:gridAxis() } } });
+  const _hrC=new Array(24).fill(0);
+  const _dowC=new Array(7).fill(0);
+  rows.forEach(r=>{
+    const ts=rcVal(r,'chat_closed_at')||rcVal(r,'agent_assigned_at'); if(!ts) return;
+    const d=new Date(ts); if(isNaN(d.getTime())) return;
+    _hrC[d.getHours()]++;
+    _dowC[d.getDay()]++;
+  });
+  const _hrMax=Math.max(..._hrC,1);
+  mkChart('rcHourChart',{ type:'bar',
+    data:{ labels:Array.from({length:24},(_,i)=>(i<10?'0':'')+i+':00'), datasets:[{ data:_hrC, backgroundColor:_hrC.map(v=>hexA('#7c5af0',.5+v/_hrMax*.5)), borderRadius:4 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis({min:0,title:{display:true,text:'Conversations',color:'#8080a0'}}) } } });
+  mkChart('rcDowChart',{ type:'bar',
+    data:{ labels:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], datasets:[{ data:_dowC, backgroundColor:hexA('#3b7ef8',.75), borderRadius:4 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ x:gridAxis(), y:gridAxis({min:0}) } } });
 }
 
 function renderExcList() {
@@ -3358,6 +3445,20 @@ function renderAgent() {
       ${haveSplit?chartCard('Your Time Breakdown','agSplit'):''}
     </div>`;
   }
+  let goalHtml='';
+  {
+    const T2=S.cfgTargets;
+    if(perf&&(T2.ahtTargetMin||T2.artTargetSec||T2.csatTargetPct)){
+      const _gBar=(label,val,target,unit,hi)=>{
+        if(!target||val==null) return '';
+        const v=parseFloat(val),t=parseFloat(target);
+        const pct=hi?Math.min(100,Math.round(v/t*100)):Math.min(100,t>0?Math.round((2*t-Math.max(v,0))/t*100):0);
+        const col=pct>=100?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
+        return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text2)">${label}</span><span style="font-weight:700;color:${col}">${v}${unit} <span style="font-weight:400;color:var(--text3)">/ target ${t}${unit}</span></span></div><div style="height:6px;background:var(--bg3);border-radius:3px"><div style="width:${Math.max(0,pct)}%;height:100%;background:${col};border-radius:3px;transition:width .4s"></div></div></div>`;
+      };
+      goalHtml=`<div class="card" style="margin-bottom:12px"><div class="card-hd"><span class="card-title">Goal Progress</span></div><div class="card-bd">${_gBar('AHT',perf.avg_aht_min,T2.ahtTargetMin,' min',false)}${_gBar('FRT',perf.avg_art_sec,T2.artTargetSec,'s',false)}${_gBar('CSAT',perf.csat_pct,T2.csatTargetPct,'%',true)}</div></div>`;
+    }
+  }
 
   document.getElementById('agentContent').innerHTML=`
     <div class="agent-hero">
@@ -3392,6 +3493,7 @@ function renderAgent() {
       ].map(m=>`<div class="metric"><div class="m-lbl">${m.l}</div><div class="m-val ${m.c}">${m.v}</div><div class="m-sub">${m.s}</div></div>`).join('')}
     </div>
 
+    ${goalHtml}
     ${chartsHtml}
     ${wowHtml}
     ${prodHtml}
@@ -3640,6 +3742,16 @@ function openModal(title, bodyHtml){
     ov.addEventListener('click', e=>{ if(e.target===ov) closeModal(); });
     document.body.appendChild(ov);
     document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+    document.addEventListener('keydown', e=>{
+      if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+      if(e.ctrlKey||e.metaKey||e.altKey) return;
+      if(S.mode==='admin'){
+        const tabMap={'1':'overview','2':'quality','3':'productivity','4':'performance','5':'rootcause','6':'wow'};
+        if(tabMap[e.key]){ const nav=document.querySelector(`[onclick*="'${tabMap[e.key]}'"]`); aTab(tabMap[e.key],nav); e.preventDefault(); }
+        if(e.key==='s'||e.key==='S'){ syncAll(); e.preventDefault(); }
+        if(e.key==='t'||e.key==='T'){ toggleTheme(); e.preventDefault(); }
+      }
+    });
   }
   ov.innerHTML = `<div class="modal" style="width:920px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px">
