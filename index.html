@@ -2321,17 +2321,26 @@ function renderOverview() {
   const passCount = allScores.filter(s=>s>=90).length;
   const nearCount = allScores.filter(s=>s>=80&&s<90).length;
   const failCount = allScores.filter(s=>s<80).length;
-  const _lbW=ls.get('lb_weights')||{qa:40,csat:40,prod:20};
-  const _lbWqa=Math.max(0,+(_lbW.qa)||0), _lbWcsat=Math.max(0,+(_lbW.csat)||0), _lbWprod=Math.max(0,+(_lbW.prod)||0);
-  const _lbWtot=_lbWqa+_lbWcsat+_lbWprod||100;
-  const lbData=cData.map(d=>({...d,composite:+(((d.qa||0)*_lbWqa/100+(d.csat||0)*_lbWcsat/100+(d.prod||0)*_lbWprod/100)*100/_lbWtot).toFixed(1)})).filter(d=>d.qa!=null||d.csat!=null).sort((a,b)=>b.composite-a.composite);
+  const _lbW=ls.get('lb_weights')||{qa:25,csat:25,aht:25,art:25};
+  const _lbWqa=Math.max(0,+(_lbW.qa)||0);
+  const _lbWcsat=Math.max(0,+(_lbW.csat)||0);
+  const _lbWaht=Math.max(0,+(_lbW.aht)||0);
+  const _lbWart=Math.max(0,+(_lbW.art)||0);
+  const _lbWtot=_lbWqa+_lbWcsat+_lbWaht+_lbWart||100;
+  const _ahtScore=v=>(v!=null&&T.ahtTargetMin>0)?Math.min(100,+(T.ahtTargetMin/v*100).toFixed(1)):null;
+  const _artScore=v=>(v!=null&&T.artTargetSec>0)?Math.min(100,+(T.artTargetSec/v*100).toFixed(1)):null;
+  const lbData=cData.map(d=>{
+    const ahtS=_ahtScore(d.aht), artS=_artScore(d.frt);
+    const composite=+(((d.qa||0)*_lbWqa+(d.csat||0)*_lbWcsat+(ahtS||0)*_lbWaht+(artS||0)*_lbWart)/_lbWtot).toFixed(1);
+    return {...d,ahtScore:ahtS,artScore:artS,composite};
+  }).filter(d=>d.qa!=null||d.csat!=null||d.ahtScore!=null||d.artScore!=null).sort((a,b)=>b.composite-a.composite);
   const _lbTeam=ls.get('lb_team')||false;
   const _teamNames=[...new Set(Object.values(S.teams).filter(Boolean))].sort();
   const lbTeamData=_teamNames.map(t=>{
     const members=lbData.filter(d=>S.teams[d.a]===t);
     if(!members.length) return null;
-    const avg=k=>{ const v=members.map(d=>d[k]).filter(x=>x!=null); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):null; };
-    return {team:t,count:members.length,composite:+avg('composite'),qa:avg('qa'),csat:avg('csat'),prod:avg('prod')};
+    const avg=k=>{ const v=members.map(d=>d[k]).filter(x=>x!=null); return v.length?(+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)):null; };
+    return {team:t,count:members.length,composite:avg('composite'),qa:avg('qa'),csat:avg('csat'),ahtScore:avg('ahtScore'),artScore:avg('artScore'),aht:avg('aht'),frt:avg('frt')};
   }).filter(Boolean).sort((a,b)=>b.composite-a.composite);
 
   const _ahtVals=cData.map(d=>d.aht).filter(v=>v!=null);
@@ -2376,46 +2385,59 @@ function renderOverview() {
         </div>
       </div>
     </div>` : '';
-  const _lbWarnHtml=(_lbWtot!==100)?`<span style="color:var(--amber);font-size:11px;margin-left:6px">weights sum to ${_lbWtot}% — normalised</span>`:'';
+  const _lbWarnHtml=(_lbWtot!==100)?`<span style="color:var(--amber);font-size:11px;margin-left:4px">sum ${_lbWtot}% — normalised</span>`:'';
   const _lbRowStyle=i=>i===0?'background:rgba(245,158,11,.07)':i===1?'background:rgba(156,163,175,.05)':i===2?'background:rgba(180,83,9,.05)':'';
   const _lbRankColor=i=>i===0?'var(--amber)':i===1?'#9ca3af':i===2?'#b45309':'var(--text3)';
+  const _scoreBadge=(v,dir)=>{
+    if(v==null) return '—';
+    const cls=dir==='high'?(v>=90?'sc-pass':v>=80?'sc-warn':'sc-fail'):(v>=90?'sc-pass':v>=70?'sc-warn':'sc-fail');
+    return `<span class="sc-badge ${cls}">${v}%</span>`;
+  };
   const _agentRows=lbData.map((d,i)=>`<tr style="${_lbRowStyle(i)}">
     <td style="font-weight:700;color:${_lbRankColor(i)}">${i+1}</td>
     <td style="color:var(--text);font-weight:${i<3?700:400}">${d.a}${isNewAgent(d.a)?'<span class="badge" style="margin-left:5px;font-size:10px;background:rgba(59,126,248,.2);color:var(--blue)">New</span>':''}<br><span style="font-size:11px;color:var(--text3)">${S.teams[d.a]||''}</span></td>
     <td style="font-family:var(--fd);font-weight:700;color:${i===0?'var(--amber)':'var(--accent)'}">${d.composite}</td>
-    <td>${d.qa!=null?d.qa+'%':'—'}</td>
-    <td>${d.csat!=null?d.csat+'%':'—'}</td>
-    ${hp?'':`<td>${d.prod!=null?d.prod+'%':'—'}</td>`}
+    <td>${d.qa!=null?`<span class="sc-badge ${scoreCls(d.qa)}">${d.qa}%</span>`:'—'}</td>
+    <td>${_scoreBadge(d.csat,'high')}</td>
+    <td>${d.ahtScore!=null?`<span class="sc-badge ${d.ahtScore>=90?'sc-pass':d.ahtScore>=70?'sc-warn':'sc-fail'}">${d.ahtScore}% <span style="font-size:10px;opacity:.7">(${d.aht} min)</span></span>`:'—'}</td>
+    <td>${d.artScore!=null?`<span class="sc-badge ${d.artScore>=90?'sc-pass':d.artScore>=70?'sc-warn':'sc-fail'}">${d.artScore}% <span style="font-size:10px;opacity:.7">(${d.frt}s)</span></span>`:'—'}</td>
   </tr>`).join('');
   const _teamRows=lbTeamData.map((d,i)=>`<tr style="${_lbRowStyle(i)}">
     <td style="font-weight:700;color:${_lbRankColor(i)}">${i+1}</td>
     <td style="color:var(--text);font-weight:${i<3?700:400}">${d.team}<br><span style="font-size:11px;color:var(--text3)">${d.count} agent${d.count>1?'s':''}</span></td>
     <td style="font-family:var(--fd);font-weight:700;color:${i===0?'var(--amber)':'var(--accent)'}">${d.composite!=null?d.composite:'—'}</td>
-    <td>${d.qa!=null?d.qa+'%':'—'}</td>
-    <td>${d.csat!=null?d.csat+'%':'—'}</td>
-    ${hp?'':`<td>${d.prod!=null?d.prod+'%':'—'}</td>`}
+    <td>${d.qa!=null?`<span class="sc-badge ${scoreCls(d.qa)}">${d.qa}%</span>`:'—'}</td>
+    <td>${d.csat!=null?`<span class="sc-badge ${d.csat>=90?'sc-pass':d.csat>=80?'sc-warn':'sc-fail'}">${d.csat}%</span>`:'—'}</td>
+    <td>${d.ahtScore!=null?`<span class="sc-badge ${d.ahtScore>=90?'sc-pass':d.ahtScore>=70?'sc-warn':'sc-fail'}">${d.ahtScore}% <span style="font-size:10px;opacity:.7">(${d.aht} min)</span></span>`:'—'}</td>
+    <td>${d.artScore!=null?`<span class="sc-badge ${d.artScore>=90?'sc-pass':d.artScore>=70?'sc-warn':'sc-fail'}">${d.artScore}% <span style="font-size:10px;opacity:.7">(${d.frt}s)</span></span>`:'—'}</td>
   </tr>`).join('');
   const lbHtml=(lbData.length||lbTeamData.length)?`<div class="card" style="margin-bottom:16px">
-    <div class="card-hd" style="flex-wrap:wrap;gap:8px">
-      <span class="card-title">🏆 Leaderboard</span>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span style="font-size:11px;color:var(--text3)">QA</span>
-        <input type="number" class="inp inp-sm" id="lbWqa" value="${_lbWqa}" min="0" max="100" style="width:52px" title="QA weight %">
-        <span style="font-size:11px;color:var(--text3)">% · CSAT</span>
-        <input type="number" class="inp inp-sm" id="lbWcsat" value="${_lbWcsat}" min="0" max="100" style="width:52px" title="CSAT weight %">
-        <span style="font-size:11px;color:var(--text3)">% · Prod</span>
-        <input type="number" class="inp inp-sm" id="lbWprod" value="${_lbWprod}" min="0" max="100" style="width:52px" title="Productivity weight %">
+    <div class="card-hd" style="flex-wrap:wrap;gap:8px;align-items:flex-start">
+      <div>
+        <span class="card-title">🏆 Leaderboard</span>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Composite = (Quality × w) + (CSAT × w) + (AHT score × w) + (ART score × w)</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:1px">AHT &amp; ART scored as: min(100, target ÷ actual × 100) — lower value = higher score</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto">
+        <span style="font-size:11px;color:var(--text3)">Quality</span>
+        <input type="number" class="inp inp-sm" id="lbWqa" value="${_lbWqa}" min="0" max="100" style="width:48px" title="Quality weight">
+        <span style="font-size:11px;color:var(--text3)">% CSAT</span>
+        <input type="number" class="inp inp-sm" id="lbWcsat" value="${_lbWcsat}" min="0" max="100" style="width:48px" title="CSAT weight">
+        <span style="font-size:11px;color:var(--text3)">% AHT</span>
+        <input type="number" class="inp inp-sm" id="lbWaht" value="${_lbWaht}" min="0" max="100" style="width:48px" title="AHT weight">
+        <span style="font-size:11px;color:var(--text3)">% ART</span>
+        <input type="number" class="inp inp-sm" id="lbWart" value="${_lbWart}" min="0" max="100" style="width:48px" title="ART weight">
         <span style="font-size:11px;color:var(--text3)">%</span>
         <button class="btn btn-sm btn-accent" onclick="saveLbWeights()">Apply</button>
         ${_lbWarnHtml}
-        <span style="width:1px;height:16px;background:var(--border);display:inline-block;margin:0 4px"></span>
+        <span style="width:1px;height:16px;background:var(--border);display:inline-block;margin:0 2px"></span>
         <button class="btn btn-sm ${_lbTeam?'':'btn-accent'}" onclick="setLbTeam(false)">Agents</button>
         <button class="btn btn-sm ${_lbTeam?'btn-accent':''}" onclick="setLbTeam(true)">Teams</button>
       </div>
     </div>
     <div class="tbl-wrap card-bd-0">
-      <table class="tbl"><thead><tr><th>#</th><th>${_lbTeam?'Team':'Agent'}</th><th>Composite</th><th>QA</th><th>CSAT</th>${hp?'':'<th>Productivity</th>'}</tr></thead>
-      <tbody>${_lbTeam?(_teamRows||`<tr><td colspan="6" style="color:var(--text3);padding:20px;text-align:center">No team assignments — assign agents to teams in Setup → Teams</td></tr>`):_agentRows}</tbody>
+      <table class="tbl"><thead><tr><th>#</th><th>${_lbTeam?'Team':'Agent'}</th><th>Composite</th><th>Quality</th><th>CSAT</th><th>AHT Score</th><th>ART Score</th></tr></thead>
+      <tbody>${_lbTeam?(_teamRows||`<tr><td colspan="7" style="color:var(--text3);padding:20px;text-align:center">No team assignments — assign agents to teams in Setup → Teams</td></tr>`):_agentRows}</tbody>
       </table>
     </div>
   </div>`:'';
@@ -4060,8 +4082,9 @@ function applyOvViewPrefs() {
 function saveLbWeights() {
   const qa=Math.max(0,parseInt((document.getElementById('lbWqa')||{}).value)||0);
   const csat=Math.max(0,parseInt((document.getElementById('lbWcsat')||{}).value)||0);
-  const prod=Math.max(0,parseInt((document.getElementById('lbWprod')||{}).value)||0);
-  ls.set('lb_weights',{qa,csat,prod});
+  const aht=Math.max(0,parseInt((document.getElementById('lbWaht')||{}).value)||0);
+  const art=Math.max(0,parseInt((document.getElementById('lbWart')||{}).value)||0);
+  ls.set('lb_weights',{qa,csat,aht,art});
   renderOverview();
 }
 function setLbTeam(v) { ls.set('lb_team',v); renderOverview(); }
