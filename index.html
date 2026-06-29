@@ -463,7 +463,9 @@ select.inp{cursor:pointer}
         <input type="number" class="inp inp-sm" id="fcastConcurrency" value="3" min="1" max="10" step="1" title="Chats per agent at once" onchange="renderForecasting()" style="width:60px"/>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Headcount</span>
         <input type="number" class="inp inp-sm" id="fcastHeadcount" placeholder="Total agents" min="1" step="1" onchange="renderForecasting()" style="width:100px"/>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Shifts</span>
         <input type="number" class="inp inp-sm" id="fcastShifts" value="3" min="1" max="8" step="1" placeholder="# shifts" onchange="renderForecasting()" style="width:80px" title="Number of shifts per day"/>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:4px;white-space:nowrap">Start hr</span>
         <input type="number" class="inp inp-sm" id="fcastShiftStart" value="6" min="0" max="23" step="1" title="First shift start hour (24h)" onchange="renderForecasting()" style="width:70px" placeholder="Start hr"/>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Hourly view</span>
         <select class="inp inp-sm" id="fcastDowFilter" onchange="renderForecasting()" style="width:130px">
