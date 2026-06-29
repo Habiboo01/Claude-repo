@@ -461,11 +461,7 @@ select.inp{cursor:pointer}
         <input type="number" class="inp inp-sm" id="fcastProdHrs" value="7.8" min="1" max="12" step="0.5" onchange="renderForecasting()" style="width:70px"/>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Headcount</span>
         <input type="number" class="inp inp-sm" id="fcastHeadcount" placeholder="Total agents" min="1" step="1" onchange="renderForecasting()" style="width:100px"/>
-        <select class="inp inp-sm" id="fcastShifts" onchange="renderForecasting()" style="width:110px">
-          <option value="2">2 Shifts</option>
-          <option value="3" selected>3 Shifts</option>
-          <option value="4">4 Shifts</option>
-        </select>
+        <input type="number" class="inp inp-sm" id="fcastShifts" value="3" min="1" max="8" step="1" placeholder="# shifts" onchange="renderForecasting()" style="width:80px" title="Number of shifts per day"/>
         <input type="number" class="inp inp-sm" id="fcastShiftStart" value="6" min="0" max="23" step="1" title="First shift start hour (24h)" onchange="renderForecasting()" style="width:70px" placeholder="Start hr"/>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Hourly view</span>
         <select class="inp inp-sm" id="fcastDowFilter" onchange="renderForecasting()" style="width:130px">
