@@ -1911,19 +1911,25 @@ function getAgentPerfRows(name, fromDate, toDate) {
 function aggPerf(rows) {
   if (!rows.length) return null;
   const sum = (k) => rows.reduce((s,r)=>s+(parseFloat(r[k])||0),0);
-  const avg = (k) => rows.length ? sum(k)/rows.length : 0;
-  const n = rows.length;
+  const totalConv   = sum('total_conversations');
+  const totTickets  = sum('total_tickets');
+  const totResolved = sum('resolved_tickets');
+  const totRated    = sum('csat_rated_count');
+  const totPositive = sum('csat_positive_count');
+  const wAvg = (k) => totalConv > 0
+    ? rows.reduce((s,r)=>s+(parseFloat(r[k])||0)*(parseFloat(r['total_conversations'])||0),0)/totalConv
+    : 0;
   return {
-    total_conversations: sum('total_conversations'),
-    total_tickets:       sum('total_tickets'),
-    resolved_tickets:    sum('resolved_tickets'),
-    avg_aht_min:         (avg('avg_aht_min')).toFixed(1),
-    avg_art_sec:         (avg('avg_art_sec')).toFixed(0),
-    csat_pct:            (avg('csat_pct')).toFixed(1),
-    csat_rated_count:    sum('csat_rated_count'),
-    csat_positive_count: sum('csat_positive_count'),
+    total_conversations: totalConv,
+    total_tickets:       totTickets,
+    resolved_tickets:    totResolved,
+    avg_aht_min:         wAvg('avg_aht_min').toFixed(1),
+    avg_art_sec:         wAvg('avg_art_sec').toFixed(0),
+    csat_pct:            (totRated>0 ? totPositive/totRated*100 : 0).toFixed(1),
+    csat_rated_count:    totRated,
+    csat_positive_count: totPositive,
     dsat_count:          sum('dsat_count'),
-    resolution_rate_pct: (avg('resolution_rate_pct')).toFixed(1),
+    resolution_rate_pct: (totTickets>0 ? totResolved/totTickets*100 : 0).toFixed(1),
     rows: rows,
   };
 }
