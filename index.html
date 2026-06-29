@@ -365,6 +365,7 @@ select.inp{cursor:pointer}
           <option value="coached">Coached</option>
           <option value="pass">Passing</option>
         </select>
+        <button id="qualDupBtn" class="btn btn-sm" onclick="QS.dupFilter=!QS.dupFilter;QS.page=1;renderQuality()" title="Show only tickets evaluated more than once">🔁 Duplicates</button>
         <input type="text" class="inp inp-sm" id="qualSearch" placeholder="Search agent / ticket…" style="width:180px;margin-left:auto" oninput="QS.search=this.value;QS.page=1;renderQuality()"/>
         <span id="qualPresets" style="display:inline-flex;gap:4px;flex-basis:100%"></span>
       </div>
@@ -886,7 +887,7 @@ function lsSetRaw(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
 // Quality tab UI state (coaching, search, pagination) — coached marks persist in localStorage
 const QS = {
   coached: new Set((()=>{ try { return JSON.parse(lsGetRaw('coachedTickets')||'[]'); } catch(e){ return []; } })()),
-  page: 1, pageSize: 15, search: '', coachedFilter: 'all',
+  page: 1, pageSize: 15, search: '', coachedFilter: 'all', dupFilter: false,
 };
 function qualThreshold(){ const el=document.getElementById('qualThreshold'); return el ? (parseFloat(el.value)||90) : 90; }
 function ticketKey(r){ return (r['Tickets Link']||'')+'|'+(r['Agent Name']||'')+'|'+(r['Timestamp']||''); }
@@ -2157,6 +2158,21 @@ function renderOverview() {
   const agents = _sel.length ? _allAgents.filter(a=>_sel.includes(a)) : _allAgents;
   if (!agents.length) { document.getElementById('overviewContent').innerHTML=emptyHtml('No data','Sync your sheets first'); return; }
   document.getElementById('overviewMeta').textContent = `${agents.length} agents · ${scopeLabel}`;
+
+  // ── Data Health check ──
+  const _qSet=new Set(S.qRows.map(r=>r['Agent Name']).filter(Boolean));
+  const _pSet=new Set(S.pRows.map(r=>r.agent_name).filter(Boolean));
+  const _tSet=new Set(S.tRows.map(r=>r.agent_name).filter(Boolean));
+  const _rSet=new Set(S.rRows.map(r=>rcVal(r,'agent_name')).filter(Boolean));
+  const _healthIssues=[];
+  _allAgents.forEach(a=>{
+    const missing=[];
+    if(!_qSet.has(a)) missing.push('Quality');
+    if(_pSet.size&&!_pSet.has(a)) missing.push('Performance');
+    if(_tSet.size&&!_tSet.has(a)) missing.push('Timeline');
+    if(_rSet.size&&!_rSet.has(a)) missing.push('Raw data');
+    if(missing.length) _healthIssues.push({a,missing});
+  });
   const hp = prodHidden();
 
   let totTickets=0, allScores=[], totMissing=0;
@@ -2235,7 +2251,24 @@ function renderOverview() {
     ${perfCard('⚠ Lowest CSAT', _by(withCSAT,'csat',-1),'csat','%','var(--red)')}
   </div>`;
 
-  document.getElementById('overviewContent').innerHTML=`
+  const _healthHtml = _healthIssues.length ? `
+    <div class="card" style="border-left:3px solid var(--amber);margin-bottom:16px">
+      <div class="card-hd" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+        <span class="card-title" style="color:var(--amber)">⚠ Data Health — ${_healthIssues.length} agent${_healthIssues.length>1?'s':''} with missing sheet data</span>
+        <span style="font-size:11px;color:var(--text3)">click to expand</span>
+      </div>
+      <div class="card-bd" style="display:none">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px">These agents appear in at least one sheet but are absent from others — their metrics will be incomplete. Check for name mismatches or missing rows in those sheets.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${_healthIssues.map(({a,missing})=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--r2)">
+            <span style="font-size:13px;color:var(--text);flex:1">${a}</span>
+            ${missing.map(m=>`<span class="badge ba" style="font-size:10px">${m}</span>`).join('')}
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>` : '';
+  document.getElementById('overviewContent').innerHTML=_healthHtml+`
     <div class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cp">${agents.length}</div><div class="m-sub">in system</div></div>
       <div class="metric"><div class="m-lbl">Tickets</div><div class="m-val cb">${totTickets.toLocaleString()}</div><div class="m-sub">${scopeLabel}</div></div>
@@ -2345,6 +2378,14 @@ function renderQuality() {
   const warnC=scores.filter(s=>s>=near&&s<thresh).length;
   const failC=scores.filter(s=>s<near).length;
 
+  // ── Duplicate ticket detection ──
+  const _lnkCounts={};
+  rows.forEach(r=>{ const lnk=(r['Tickets Link']||'').trim(); if(lnk) _lnkCounts[lnk]=(_lnkCounts[lnk]||0)+1; });
+  const dupSet=new Set(Object.keys(_lnkCounts).filter(k=>_lnkCounts[k]>1));
+  const dupCount=rows.filter(r=>dupSet.has((r['Tickets Link']||'').trim())).length;
+  const dupBtn=document.getElementById('qualDupBtn');
+  if(dupBtn){ dupBtn.className='btn btn-sm'+(QS.dupFilter?' btn-accent':'')+(dupCount?' '+(QS.dupFilter?'':''):''); dupBtn.textContent=`🔁 Duplicates${dupCount?' ('+dupCount+')':''}`; }
+
   // ── Table rows: apply search + coached filter, then paginate ──
   const q=(QS.search||'').toLowerCase();
   const wdQ=((document.getElementById('qualWD')||{}).value||'').toLowerCase();
@@ -2356,6 +2397,7 @@ function renderQuality() {
     if (QS.coachedFilter==='pass'    && (needs||isCoached))   return false;
     if (q){ const txt=[r['Agent Name'],r['Tickets Link'],r['Comment'],String(s)].join(' ').toLowerCase(); if(!txt.includes(q)) return false; }
     if (wdQ && !String(r['WD']||r['WB Date']||'').toLowerCase().includes(wdQ)) return false;
+    if (QS.dupFilter && !dupSet.has((r['Tickets Link']||'').trim())) return false;
     return true;
   });
   view = applySort(view, 'qual', {
@@ -2391,12 +2433,13 @@ function renderQuality() {
       ? `<span class="badge ba" style="margin-left:6px" title="${(recByTicketQ[(r['Tickets Link']||'').trim().toLowerCase()]?.reason||'Disputed via the agent dispute form').replace(/"/g,'&quot;')}">⚖ Disputed</span>`
       : (disputeUrl && s!==null && s<100 ? `<a class="btn btn-sm" style="margin-left:6px;border-color:var(--blue);color:var(--blue)" target="_blank" href="${disputeLink(r,s)}">Dispute</a>` : '');
     const fa=qaFailedAttrs(r);
-    return `<tr style="${disputed?'background:rgba(245,158,11,.06)':coached?'background:rgba(124,90,240,.05)':''}">
+    const isDup=dupSet.has(lnk);
+    return `<tr style="${disputed?'background:rgba(245,158,11,.06)':isDup?'background:rgba(239,68,68,.05)':coached?'background:rgba(124,90,240,.05)':''}">
       <td style="font-size:11px">${ts}</td>
       <td style="color:var(--text)">${r['Agent Name']||'—'}</td>
       <td>${s!==null?`<span class="sc-badge ${cls}">${s.toFixed(1)}%</span>`:'—'}</td>
       <td style="font-size:11px;max-width:220px">${fa.length?fa.map(a=>`<span class="badge" style="background:rgba(239,68,68,.12);color:var(--red);margin:1px 2px;display:inline-block;white-space:nowrap">${a}</span>`).join(''):'<span style="color:var(--text3)">—</span>'}</td>
-      <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>`:'—'}</td>
+      <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>${isDup?'<span class="badge" style="background:rgba(239,68,68,.15);color:var(--red);margin-left:4px;font-size:10px">dup</span>':''}`:'—'}</td>
       <td style="font-size:11.5px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Comment']||'').replace(/"/g,'&quot;')}">${r['Comment']||'—'}</td>
       <td style="white-space:nowrap">${action}${dispute}</td>
     </tr>`;
@@ -2422,6 +2465,7 @@ function renderQuality() {
       <div class="metric"><div class="m-lbl">Coaching Needed</div><div class="m-val cr">${failing}</div><div class="m-sub">&lt; ${thresh}% threshold</div></div>
       <div class="metric"><div class="m-lbl">Coached</div><div class="m-val cp">${coachedCount}</div><div class="m-sub">marked done</div></div>
       <div class="metric"><div class="m-lbl">Disputed</div><div class="m-val ${disputedCount?'ca':'cg'}">${disputedCount}</div><div class="m-sub">agent disputes</div></div>
+      <div class="metric" style="cursor:pointer" onclick="QS.dupFilter=${dupCount>0&&!QS.dupFilter};QS.page=1;renderQuality()" title="Tickets evaluated more than once"><div class="m-lbl">Duplicate Tickets</div><div class="m-val ${dupCount?'ca':'cg'}">${dupCount}</div><div class="m-sub">evaluated >1 time</div></div>
     </div>
     <div class="charts-grid">
       ${chartCard('Avg Score by Agent','qaAgentChart')}
