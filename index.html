@@ -3312,6 +3312,12 @@ function renderForecasting(){
   const horizonDays=parseInt((document.getElementById('fcastHorizon')||{}).value||'14');
   const prodHrs=parseFloat((document.getElementById('fcastProdHrs')||{}).value||'7.8')||7.8;
 
+  const concurrency=Math.max(1,parseInt((document.getElementById('fcastConcurrency')||{}).value||'3')||1);
+  const totalHeadcount=parseInt((document.getElementById('fcastHeadcount')||{}).value||'0')||0;
+  const numShifts=Math.max(1,parseInt((document.getElementById('fcastShifts')||{}).value||'3')||1);
+  const shiftStartHr=parseInt((document.getElementById('fcastShiftStart')||{}).value||'6')||0;
+  const dailyAvail=totalHeadcount>0?+(totalHeadcount*5/7).toFixed(1):null;
+
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-lookbackWeeks*7); cutoff.setHours(0,0,0,0);
   const rows=S.rRows.filter(r=>{ const d=parseDate(r.agent_assigned_at||rcDate(r)); return d&&d>=cutoff; });
   if(!rows.length){ el.innerHTML=emptyHtml('No data in selected period','Try a longer lookback window'); return; }
@@ -3355,18 +3361,12 @@ function renderForecasting(){
   const peakIdx=fcVol.indexOf(Math.max(...validVol));
   const peakDay=peakIdx>=0?fcLabels[peakIdx]:null;
 
-  const concurrency=Math.max(1,parseInt((document.getElementById('fcastConcurrency')||{}).value||'3')||1);
-  const totalHeadcount=parseInt((document.getElementById('fcastHeadcount')||{}).value||'0')||0;
-  const numShifts=parseInt((document.getElementById('fcastShifts')||{}).value||'3');
-  const shiftStartHr=parseInt((document.getElementById('fcastShiftStart')||{}).value||'6');
   const shiftLen=Math.round(24/numShifts);
   const shifts=Array.from({length:numShifts},(_,i)=>{
     const s=(shiftStartHr+i*shiftLen)%24;
     const e=(shiftStartHr+(i+1)*shiftLen)%24;
     return {start:s, end:e, label:`${String(s).padStart(2,'0')}:00 – ${String(e||24).padStart(2,'0')}:00`};
   });
-  const dailyAvail=totalHeadcount>0?+(totalHeadcount*5/7).toFixed(1):null;
-
   const dowFilterVal=(document.getElementById('fcastDowFilter')||{}).value||'';
   const dowFilteredRows=rows.filter(r=>{
     const d=parseDate(r.agent_assigned_at||''); if(!d) return true;
