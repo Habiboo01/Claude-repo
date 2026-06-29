@@ -2321,7 +2321,18 @@ function renderOverview() {
   const passCount = allScores.filter(s=>s>=90).length;
   const nearCount = allScores.filter(s=>s>=80&&s<90).length;
   const failCount = allScores.filter(s=>s<80).length;
-  const lbData=cData.map(d=>({...d,composite:+(((d.qa||0)*0.4+(d.csat||0)*0.4+(d.prod||0)*0.2)).toFixed(1)})).filter(d=>d.qa!=null||d.csat!=null).sort((a,b)=>b.composite-a.composite);
+  const _lbW=ls.get('lb_weights')||{qa:40,csat:40,prod:20};
+  const _lbWqa=Math.max(0,+(_lbW.qa)||0), _lbWcsat=Math.max(0,+(_lbW.csat)||0), _lbWprod=Math.max(0,+(_lbW.prod)||0);
+  const _lbWtot=_lbWqa+_lbWcsat+_lbWprod||100;
+  const lbData=cData.map(d=>({...d,composite:+(((d.qa||0)*_lbWqa/100+(d.csat||0)*_lbWcsat/100+(d.prod||0)*_lbWprod/100)*100/_lbWtot).toFixed(1)})).filter(d=>d.qa!=null||d.csat!=null).sort((a,b)=>b.composite-a.composite);
+  const _lbTeam=ls.get('lb_team')||false;
+  const _teamNames=[...new Set(Object.values(S.teams).filter(Boolean))].sort();
+  const lbTeamData=_teamNames.map(t=>{
+    const members=lbData.filter(d=>S.teams[d.a]===t);
+    if(!members.length) return null;
+    const avg=k=>{ const v=members.map(d=>d[k]).filter(x=>x!=null); return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):null; };
+    return {team:t,count:members.length,composite:+avg('composite'),qa:avg('qa'),csat:avg('csat'),prod:avg('prod')};
+  }).filter(Boolean).sort((a,b)=>b.composite-a.composite);
 
   const _ahtVals=cData.map(d=>d.aht).filter(v=>v!=null);
   const avgAHT=_ahtVals.length?(_ahtVals.reduce((a,b)=>a+b,0)/_ahtVals.length).toFixed(1):null;
@@ -2365,18 +2376,49 @@ function renderOverview() {
         </div>
       </div>
     </div>` : '';
-  const lbHtml=lbData.length?`<div class="card" style="margin-bottom:16px">
-    <div class="card-hd"><span class="card-title">🏆 Leaderboard</span><span style="font-size:11px;color:var(--text3)">QA 40% · CSAT 40% · Productivity 20%</span></div>
-    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>#</th><th>Agent</th><th>Composite</th><th>QA</th><th>CSAT</th>${hp?'':'<th>Productivity</th>'}</tr></thead>
-    <tbody>${lbData.map((d,i)=>`<tr style="${i===0?'background:rgba(245,158,11,.07)':i===1?'background:rgba(156,163,175,.05)':i===2?'background:rgba(180,83,9,.05)':''}">
-      <td style="font-weight:700;color:${i===0?'var(--amber)':i===1?'#9ca3af':i===2?'#b45309':'var(--text3)'}">${i+1}</td>
-      <td style="color:var(--text);font-weight:${i<3?700:400}">${d.a}${isNewAgent(d.a)?'<span class="badge" style="margin-left:5px;font-size:10px;background:rgba(59,126,248,.2);color:var(--blue)">New</span>':''}</td>
-      <td style="font-family:var(--fd);font-weight:700;color:${i===0?'var(--amber)':'var(--accent)'}">${d.composite}</td>
-      <td>${d.qa!=null?d.qa+'%':'—'}</td>
-      <td>${d.csat!=null?d.csat+'%':'—'}</td>
-      ${hp?'':`<td>${d.prod!=null?d.prod+'%':'—'}</td>`}
-    </tr>`).join('')}
-    </tbody></table></div></div>`:'';
+  const _lbWarnHtml=(_lbWtot!==100)?`<span style="color:var(--amber);font-size:11px;margin-left:6px">weights sum to ${_lbWtot}% — normalised</span>`:'';
+  const _lbRowStyle=i=>i===0?'background:rgba(245,158,11,.07)':i===1?'background:rgba(156,163,175,.05)':i===2?'background:rgba(180,83,9,.05)':'';
+  const _lbRankColor=i=>i===0?'var(--amber)':i===1?'#9ca3af':i===2?'#b45309':'var(--text3)';
+  const _agentRows=lbData.map((d,i)=>`<tr style="${_lbRowStyle(i)}">
+    <td style="font-weight:700;color:${_lbRankColor(i)}">${i+1}</td>
+    <td style="color:var(--text);font-weight:${i<3?700:400}">${d.a}${isNewAgent(d.a)?'<span class="badge" style="margin-left:5px;font-size:10px;background:rgba(59,126,248,.2);color:var(--blue)">New</span>':''}<br><span style="font-size:11px;color:var(--text3)">${S.teams[d.a]||''}</span></td>
+    <td style="font-family:var(--fd);font-weight:700;color:${i===0?'var(--amber)':'var(--accent)'}">${d.composite}</td>
+    <td>${d.qa!=null?d.qa+'%':'—'}</td>
+    <td>${d.csat!=null?d.csat+'%':'—'}</td>
+    ${hp?'':`<td>${d.prod!=null?d.prod+'%':'—'}</td>`}
+  </tr>`).join('');
+  const _teamRows=lbTeamData.map((d,i)=>`<tr style="${_lbRowStyle(i)}">
+    <td style="font-weight:700;color:${_lbRankColor(i)}">${i+1}</td>
+    <td style="color:var(--text);font-weight:${i<3?700:400}">${d.team}<br><span style="font-size:11px;color:var(--text3)">${d.count} agent${d.count>1?'s':''}</span></td>
+    <td style="font-family:var(--fd);font-weight:700;color:${i===0?'var(--amber)':'var(--accent)'}">${d.composite!=null?d.composite:'—'}</td>
+    <td>${d.qa!=null?d.qa+'%':'—'}</td>
+    <td>${d.csat!=null?d.csat+'%':'—'}</td>
+    ${hp?'':`<td>${d.prod!=null?d.prod+'%':'—'}</td>`}
+  </tr>`).join('');
+  const lbHtml=(lbData.length||lbTeamData.length)?`<div class="card" style="margin-bottom:16px">
+    <div class="card-hd" style="flex-wrap:wrap;gap:8px">
+      <span class="card-title">🏆 Leaderboard</span>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3)">QA</span>
+        <input type="number" class="inp inp-sm" id="lbWqa" value="${_lbWqa}" min="0" max="100" style="width:52px" title="QA weight %">
+        <span style="font-size:11px;color:var(--text3)">% · CSAT</span>
+        <input type="number" class="inp inp-sm" id="lbWcsat" value="${_lbWcsat}" min="0" max="100" style="width:52px" title="CSAT weight %">
+        <span style="font-size:11px;color:var(--text3)">% · Prod</span>
+        <input type="number" class="inp inp-sm" id="lbWprod" value="${_lbWprod}" min="0" max="100" style="width:52px" title="Productivity weight %">
+        <span style="font-size:11px;color:var(--text3)">%</span>
+        <button class="btn btn-sm btn-accent" onclick="saveLbWeights()">Apply</button>
+        ${_lbWarnHtml}
+        <span style="width:1px;height:16px;background:var(--border);display:inline-block;margin:0 4px"></span>
+        <button class="btn btn-sm ${_lbTeam?'':'btn-accent'}" onclick="setLbTeam(false)">Agents</button>
+        <button class="btn btn-sm ${_lbTeam?'btn-accent':''}" onclick="setLbTeam(true)">Teams</button>
+      </div>
+    </div>
+    <div class="tbl-wrap card-bd-0">
+      <table class="tbl"><thead><tr><th>#</th><th>${_lbTeam?'Team':'Agent'}</th><th>Composite</th><th>QA</th><th>CSAT</th>${hp?'':'<th>Productivity</th>'}</tr></thead>
+      <tbody>${_lbTeam?(_teamRows||`<tr><td colspan="6" style="color:var(--text3);padding:20px;text-align:center">No team assignments — assign agents to teams in Setup → Teams</td></tr>`):_agentRows}</tbody>
+      </table>
+    </div>
+  </div>`:'';
   document.getElementById('overviewContent').innerHTML=_healthHtml+`
     <div id="ovSec_kpi" class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cp">${agents.length}</div><div class="m-sub">in system</div></div>
@@ -4014,6 +4056,15 @@ function applyOvViewPrefs() {
     if (sec) sec.style.display = prefs[k] ? '' : 'none';
   });
 }
+
+function saveLbWeights() {
+  const qa=Math.max(0,parseInt((document.getElementById('lbWqa')||{}).value)||0);
+  const csat=Math.max(0,parseInt((document.getElementById('lbWcsat')||{}).value)||0);
+  const prod=Math.max(0,parseInt((document.getElementById('lbWprod')||{}).value)||0);
+  ls.set('lb_weights',{qa,csat,prod});
+  renderOverview();
+}
+function setLbTeam(v) { ls.set('lb_team',v); renderOverview(); }
 
 // ── AGENT FILTER HELPERS ──────────────────────────────────
 function toggleAgentFilter() {
