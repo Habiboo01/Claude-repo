@@ -3677,10 +3677,16 @@ function renderSchedule(){
     if(!to && r.date>todayStr) return false; // hide not-yet-worked future shifts unless an explicit "to" is set
     return true;
   }).map(r=>{
-    const ar=S.aRows.find(a=>a.agent_name===r.agent_name && (String(a.activity_date).slice(0,10)===r.date || normDateStr(a.activity_date)===r.date));
+    let ar=S.aRows.find(a=>a.agent_name===r.agent_name && (String(a.activity_date).slice(0,10)===r.date || normDateStr(a.activity_date)===r.date));
     const schedStart=parseClockMin(r.shift_start), schedEnd=parseClockMin(r.shift_end);
+    if(!ar && schedStart!==null && schedStart<60){
+      const _prev=new Date(r.date+'T12:00:00Z'); _prev.setUTCDate(_prev.getUTCDate()-1);
+      const _prevStr=_prev.toISOString().slice(0,10);
+      ar=S.aRows.find(a=>a.agent_name===r.agent_name && (String(a.activity_date).slice(0,10)===_prevStr || normDateStr(a.activity_date)===_prevStr));
+    }
     const actStart=ar?dtMin(ar.first_start):null, actEnd=ar?dtMin(ar.last_start):null;
-    const late=(schedStart!=null&&actStart!=null)?actStart-schedStart:null;
+    const adjStart=(schedStart!==null&&schedStart<60&&actStart!==null&&actStart>22*60)?actStart-1440:actStart;
+    const late=(schedStart!=null&&adjStart!=null)?adjStart-schedStart:null;
     const early=(schedEnd!=null&&actEnd!=null)?schedEnd-actEnd:null;
     let status;
     if(r.off) status=r.shift_label||'Off';          // WO / AL / SL … ⇒ scheduled time off, show the reason
