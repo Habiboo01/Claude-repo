@@ -403,7 +403,7 @@ select.inp{cursor:pointer}
 
     <!-- PERFORMANCE -->
     <section class="tab" id="at-performance">
-      <div class="ph"><div><h1>Performance Metrics</h1><p>AHT · FRT · CSAT · Resolution Rate</p></div></div>
+      <div class="ph"><div><h1>Performance Metrics</h1><p>AHT · ART · CSAT · Resolution Rate</p></div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Filter</span>
         <input type="date" class="inp inp-sm" id="perfFrom" onchange="renderPerformance()" style="width:130px"/>
@@ -430,7 +430,7 @@ select.inp{cursor:pointer}
 
     <!-- WEEK OVER WEEK -->
     <section class="tab" id="at-wow">
-      <div class="ph"><div><h1>Week-over-Week</h1><p>AHT · FRT · CSAT · QA trended by week</p></div></div>
+      <div class="ph"><div><h1>Week-over-Week</h1><p>AHT · ART · CSAT · QA trended by week</p></div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Filter</span>
         <input type="date" class="inp inp-sm" id="wowFrom" onchange="renderWow()" style="width:130px"/>
@@ -610,10 +610,10 @@ select.inp{cursor:pointer}
       <div class="card">
         <div class="card-hd"><span class="card-title">Performance Targets</span></div>
         <div class="card-bd">
-          <div class="alert alert-i">ℹ Cells on the Performance tab and Overview turn green when they meet/beat target, red when they miss. AHT &amp; FRT are "lower is better"; CSAT &amp; Resolution are "higher is better".</div>
+          <div class="alert alert-i">ℹ Cells on the Performance tab and Overview turn green when they meet/beat target, red when they miss. AHT &amp; ART are "lower is better"; CSAT &amp; Resolution are "higher is better".</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px">
             <div><div class="cfg-lbl">AHT Target (min, ≤)</div><input type="number" class="inp" id="cfgAhtTarget" step="0.1" min="0"/></div>
-            <div><div class="cfg-lbl">FRT Target (sec, ≤)</div><input type="number" class="inp" id="cfgArtTarget" step="1" min="0"/></div>
+            <div><div class="cfg-lbl">ART Target (sec, ≤)</div><input type="number" class="inp" id="cfgArtTarget" step="1" min="0"/></div>
             <div><div class="cfg-lbl">CSAT Target (%, ≥)</div><input type="number" class="inp" id="cfgCsatTarget" step="1" min="0" max="100"/></div>
             <div><div class="cfg-lbl">Resolution Target (%, ≥)</div><input type="number" class="inp" id="cfgResolutionTarget" step="1" min="0" max="100"/></div>
           </div>
@@ -2031,12 +2031,12 @@ function aggPerfFromRaw(agentName, from, to) {
 // Sunday (week start) as yyyy-mm-dd, timezone-safe. Weeks run Sunday→Saturday.
 function weekStart(v){ const d=parseDate(v); if(!d||isNaN(d)) return ''; const u=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); u.setUTCDate(u.getUTCDate()-u.getUTCDay()); return u.toISOString().slice(0,10); }
 function weekLabel(monStr){ const d=parseDate(monStr); return d?d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):monStr; }
-// Performance rows → per-week AHT/FRT/CSAT (reuse aggPerf for the bucket math).
+// Performance rows → per-week AHT/ART/CSAT (reuse aggPerf for the bucket math).
 function weeklyPerf(rows){
   const byW={}; (rows||[]).forEach(r=>{ const w=weekStart(r.work_date); if(!w) return; (byW[w]=byW[w]||[]).push(r); });
   return Object.keys(byW).sort().map(w=>{ const a=aggPerf(byW[w]); return { week:w, label:weekLabel(w), aht:+a.avg_aht_min, art:+a.avg_art_sec, csat:+a.csat_pct, n:byW[w].length }; });
 }
-// Raw data rows → per-week AHT/FRT/CSAT derived from S.rRows.
+// Raw data rows → per-week AHT/ART/CSAT derived from S.rRows.
 function weeklyPerfFromRaw(rRows, from, to){
   let rows = rRows;
   if (from || to) rows = rows.filter(r=>{ const d=parseDate(rcDate(r)); if(!d) return true; if(from&&d<parseDateLocal(from)) return false; if(to&&d>parseDateLocal(to)) return false; return true; });
@@ -2292,7 +2292,7 @@ function renderOverview() {
       <td>${q?q.total:'—'}</td>
       <td>${s!==null?`<span class="sc-badge ${scoreCls(s)}">${s}%</span>`:'—'}</td>
       <td class="${perf?targetClass(perf.avg_aht_min,T.ahtTargetMin,'low'):''}">${perf?perf.avg_aht_min+' min':'—'}</td>
-      <td class="${perf?targetClass(perf.avg_art_sec,T.artTargetSec,'low'):''}">${perf?perf.avg_art_sec+'s FRT':'—'}</td>
+      <td class="${perf?targetClass(perf.avg_art_sec,T.artTargetSec,'low'):''}">${perf?perf.avg_art_sec+'s ART':'—'}</td>
       <td class="${perf?targetClass(perf.csat_pct,T.csatTargetPct,'high'):''}">${perf?perf.csat_pct+'%':'—'}</td>
       ${hp?'':`<td>${p?`<span style="color:${p.pct>=100?'var(--green)':'var(--amber)'}">${p.pct}%</span>`:'—'}</td>
       <td>${diffLabel}</td>`}
@@ -2322,7 +2322,7 @@ function renderOverview() {
   </div>
   <div class="charts-grid" style="margin-bottom:16px">
     ${perfCard('⚠ Highest AHT', _by(withAHT,'aht',1),'aht',' min','var(--red)')}
-    ${perfCard('⚠ Highest FRT', _by(withART,'frt',1),'frt','s','var(--red)')}
+    ${perfCard('⚠ Highest ART', _by(withART,'frt',1),'frt','s','var(--red)')}
     ${perfCard('⚠ Lowest CSAT', _by(withCSAT,'csat',-1),'csat','%','var(--red)')}
   </div>`;
 
@@ -2376,7 +2376,7 @@ function renderOverview() {
     <div class="card">
       <div class="card-hd"><span class="card-title">Agent Summary</span><span class="badge bp">${agents.length} agents · ${scopeLabel}</span></div>
       <div class="tbl-wrap card-bd-0">
-        <table class="tbl"><thead><tr><th>Agent</th><th>Team</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>FRT</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
+        <table class="tbl"><thead><tr><th>Agent</th><th>Team</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>ART</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
         <tbody>${rows}</tbody></table>
       </div>
     </div>`;
@@ -2810,7 +2810,7 @@ function renderPerformance() {
     </tr>`).join('');
 
   _csvCache.performance = {
-    headers:['Agent','Team','Conversations','Tickets','Resolved','AHT (min)','FRT (sec)','CSAT %','Resolution %','Satisfied','DSAT'],
+    headers:['Agent','Team','Conversations','Tickets','Resolved','AHT (min)','ART (sec)','CSAT %','Resolution %','Satisfied','DSAT'],
     rows: data.map(({a,perf})=>[a,S.teams[a]||'',perf.total_conversations,perf.total_tickets,perf.resolved_tickets,perf.avg_aht_min,perf.avg_art_sec,perf.csat_pct,perf.resolution_rate_pct,perf.csat_positive_count,perf.dsat_count]),
   };
 
@@ -2820,13 +2820,13 @@ function renderPerformance() {
 
   document.getElementById('performanceContent').innerHTML=`
     <div class="charts-grid">
-      ${chartCard('AHT vs FRT by Agent','perfAhtChart','AHT min · FRT sec')}
+      ${chartCard('AHT vs ART by Agent','perfAhtChart','AHT min · ART sec')}
       ${chartCard('CSAT vs Resolution Rate','perfCsatChart','%')}
       ${chartCard('Satisfied vs Dissatisfied','perfSatChart')}
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Performance Metrics</span><div style="display:flex;gap:8px;align-items:center">${srcBadge}<span class="badge bb">vs targets · ${from&&to?from+' → '+to:'All dates'}</span>${csvBtn('performance')}</div></div>
     <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>
-      ${sortableTh('perf','agent','Agent')}<th>Team</th>${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','FRT')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}
+      ${sortableTh('perf','agent','Agent')}<th>Team</th>${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','ART')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}
     </tr></thead><tbody>${rows}</tbody></table></div></div>`;
   saveFilters();
 
@@ -2834,11 +2834,11 @@ function renderPerformance() {
     type:'bar',
     data:{ labels:pLabels, datasets:[
       { label:'AHT (min)', data:pd.map(x=>+x.perf.avg_aht_min), backgroundColor:hexA('#7c5af0',.8), borderRadius:4, yAxisID:'y' },
-      { label:'FRT (sec)', data:pd.map(x=>+x.perf.avg_art_sec), backgroundColor:hexA('#3b7ef8',.8), borderRadius:4, yAxisID:'y1' },
+      { label:'ART (sec)', data:pd.map(x=>+x.perf.avg_art_sec), backgroundColor:hexA('#3b7ef8',.8), borderRadius:4, yAxisID:'y1' },
     ] },
     options:{ scales:{ x:gridAxis(),
       y:gridAxis({position:'left',min:0,title:{display:true,text:'AHT min',color:'#8080a0'}}),
-      y1:gridAxis({position:'right',min:0,grid:{drawOnChartArea:false},title:{display:true,text:'FRT sec',color:'#8080a0'}}) } }
+      y1:gridAxis({position:'right',min:0,grid:{drawOnChartArea:false},title:{display:true,text:'ART sec',color:'#8080a0'}}) } }
   });
   mkChart('perfCsatChart', {
     type:'bar',
@@ -3125,21 +3125,21 @@ function renderWow(){
   const lp=last(wp), lq=last(wq);
   const kpi=(lbl,valTxt,deltaHtml)=>`<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val">${valTxt}</div><div class="m-sub">${deltaHtml} vs prev wk</div></div>`;
   el.innerHTML=`
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${agents.length} agent(s) · ${Math.max(wp.length,wq.length)} weeks · lower AHT/FRT better, higher CSAT/QA better${useRawWow?' · perf from perf sheet':''}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">${agents.length} agent(s) · ${Math.max(wp.length,wq.length)} weeks · lower AHT/ART better, higher CSAT/QA better${useRawWow?' · perf from perf sheet':''}</div>
     <div class="metrics-grid">
       ${kpi('AHT · latest wk', lp&&lp.aht!=null?lp.aht+' min':'—', wowDeltaHtml(wowDelta(wp,'aht'),'low',' min'))}
-      ${kpi('FRT · latest wk', lp&&lp.art!=null?lp.art+'s':'—', wowDeltaHtml(wowDelta(wp,'art'),'low','s'))}
+      ${kpi('ART · latest wk', lp&&lp.art!=null?lp.art+'s':'—', wowDeltaHtml(wowDelta(wp,'art'),'low','s'))}
       ${kpi('CSAT · latest wk', lp&&lp.csat!=null?lp.csat+'%':'—', wowDeltaHtml(wowDelta(wp,'csat'),'high','%'))}
       ${kpi('QA · latest wk', lq?lq.qa+'%':'—', wowDeltaHtml(wowDelta(wq,'qa'),'high','%'))}
     </div>
     <div class="charts-grid">
       ${chartCard('AHT by Week (min)','wowAht')}
-      ${chartCard('FRT by Week (s)','wowArt')}
+      ${chartCard('ART by Week (s)','wowArt')}
       ${chartCard('CSAT by Week (%)','wowCsat')}
       ${chartCard('QA Score by Week (%)','wowQa')}
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Weekly Detail</span><span class="badge bp">${Math.max(wp.length,wq.length)} weeks</span></div>
-    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Week of</th><th>AHT</th><th>FRT</th><th>CSAT</th><th>QA</th></tr></thead>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Week of</th><th>AHT</th><th>ART</th><th>CSAT</th><th>QA</th></tr></thead>
     <tbody>${wowWeeksTable(wp,wq)||`<tr><td colspan="5" style="color:var(--text3);padding:18px;text-align:center">No weekly data</td></tr>`}</tbody></table></div></div>`;
 
   const line=(id,series,key,color,pct)=>mkChart(id,{ type:'line',
@@ -3835,7 +3835,7 @@ function renderAgent() {
   const wowHtml = haveWow ? `<div style="font-size:11px;color:var(--text3);margin:6px 2px 8px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Week-over-Week</div>
     <div class="charts-grid">
       ${chartCard('AHT by Week (min)','agWowAht')}
-      ${chartCard('FRT by Week (s)','agWowArt')}
+      ${chartCard('ART by Week (s)','agWowArt')}
       ${chartCard('CSAT by Week (%)','agWowCsat')}
       ${chartCard('QA by Week (%)','agWowQa')}
     </div>` : '';
@@ -3860,7 +3860,7 @@ function renderAgent() {
         const col=pct>=100?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
         return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text2)">${label}</span><span style="font-weight:700;color:${col}">${v}${unit} <span style="font-weight:400;color:var(--text3)">/ target ${t}${unit}</span></span></div><div style="height:6px;background:var(--bg3);border-radius:3px"><div style="width:${Math.max(0,pct)}%;height:100%;background:${col};border-radius:3px;transition:width .4s"></div></div></div>`;
       };
-      goalHtml=`<div class="card" style="margin-bottom:12px"><div class="card-hd"><span class="card-title">Goal Progress</span></div><div class="card-bd">${_gBar('AHT',perf.avg_aht_min,T2.ahtTargetMin,' min',false)}${_gBar('FRT',perf.avg_art_sec,T2.artTargetSec,'s',false)}${_gBar('CSAT',perf.csat_pct,T2.csatTargetPct,'%',true)}</div></div>`;
+      goalHtml=`<div class="card" style="margin-bottom:12px"><div class="card-hd"><span class="card-title">Goal Progress</span></div><div class="card-bd">${_gBar('AHT',perf.avg_aht_min,T2.ahtTargetMin,' min',false)}${_gBar('ART',perf.avg_art_sec,T2.artTargetSec,'s',false)}${_gBar('CSAT',perf.csat_pct,T2.csatTargetPct,'%',true)}</div></div>`;
     }
   }
 
@@ -3885,7 +3885,7 @@ function renderAgent() {
         {l:'Total Tickets',   v:perf?perf.total_tickets:'—',           s:'tickets',             c:''},
         {l:'Resolved',        v:perf?perf.resolved_tickets:'—',        s:'resolved tickets',    c:'cg'},
         {l:'AHT',             v:perf?perf.avg_aht_min+' min':'—',      s:'avg handle time',     c:''},
-        {l:'FRT',             v:artSec,                                 s:'first reply time',    c:'cp'},
+        {l:'ART',             v:artSec,                                 s:'avg response time',    c:'cp'},
         {l:'CSAT',            v:perf?perf.csat_pct+'%':'—',            s:'satisfaction rate',   c:perf&&parseFloat(perf.csat_pct)>=80?'cg':perf&&parseFloat(perf.csat_pct)>=60?'ca':'cr'},
         {l:'Resolution Rate', v:perf?perf.resolution_rate_pct+'%':'—', s:'cases resolved',      c:''},
         {l:'CSAT Surveys',    v:perf?perf.csat_rated_count:'—',        s:'received',            c:''},
