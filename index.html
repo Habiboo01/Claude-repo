@@ -419,6 +419,7 @@ select.inp{cursor:pointer}
           </div>
         </div>
         <input type="text" class="inp inp-sm" id="perfSearch" placeholder="Search agent…" style="width:160px" oninput="renderPerformance()"/>
+        <select class="inp inp-sm" id="perfTeamFilter" onchange="renderPerformance()" style="width:130px"><option value="">All Teams</option></select>
         <span id="perfPresets" style="display:inline-flex;gap:4px;flex-basis:100%"></span>
       </div>
       <div id="performanceContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/></svg><h3>No performance data</h3><p>Sync to load</p></div></div>
@@ -493,6 +494,14 @@ select.inp{cursor:pointer}
             <div></div>
           </div>
           <div id="aliasEditor"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-hd"><span class="card-title">Team Assignment</span><button class="btn btn-accent btn-sm" onclick="saveTeams()">💾 Save Teams</button></div>
+        <div class="card-bd">
+          <div class="alert alert-i">ℹ Assign each agent to a team. Team names appear in the Overview and Performance tabs and can be used to filter by team.</div>
+          <div id="teamsEditor"><div style="color:var(--text3);font-size:13px;padding:12px 0">Sync quality data first to see agents.</div></div>
         </div>
       </div>
     </section>
@@ -855,6 +864,7 @@ const S = {
   agentIds: {}, exceptions: [], gasUrl: null,
   identity: {}, identityClusters: [], // identity overrides (key→canonical name) + detected clusters
   aliases: {}, // name alias map: lowercase original → canonical name
+  teams: {},   // team assignment: agent name → team name
   auxConfig: {},      // { 'Available': 'Available'|'Productive'|'Non-Productive', ... }
   cfgTargets: {...DEFAULT_TARGETS}, // admin-configurable targets
   charts: {},
@@ -972,6 +982,7 @@ function loadLocal() {
   });
   S.cfgTargets = {...DEFAULT_TARGETS, ...(ls.get('t_targets') || {})};
   S.aliases    = ls.get('t_aliases') || {};
+  S.teams      = ls.get('t_teams')   || {};
   // Note: qRows/pRows/aRows/tRows are NOT cached in localStorage — they're large
   // datasets re-fetched fresh from Google Sheets on every sync. Caching them
   // risks exceeding the localStorage quota (5-10MB per site).
@@ -1014,7 +1025,7 @@ async function cloudRead() {
 async function cloudSaveAll() {
   if (!SUPA_ON() || !S.adminPass) return false;
   try {
-    const data = { agentIds:S.agentIds, agentIdentity:S.identity, agentAliases:S.aliases, exceptions:S.exceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
+    const data = { agentIds:S.agentIds, agentIdentity:S.identity, agentAliases:S.aliases, teams:S.teams, exceptions:S.exceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
     const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/rpc/save_config`, 8000, {
       method:'POST', headers: supaHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ pw:S.adminPass, new_data:data })
@@ -1069,6 +1080,7 @@ async function pullGASConfig() {
   if (data.cfgTargets) { S.cfgTargets = {...DEFAULT_TARGETS, ...data.cfgTargets}; ls.set('t_targets', S.cfgTargets); }
   if (data.cfg)        { ls.set('t_cfg', data.cfg); }
   if (data.coached)    { QS.coached = new Set(data.coached); lsSetRaw('coachedTickets', JSON.stringify(data.coached)); }
+  if (data.teams)      { S.teams      = data.teams;      ls.set('t_teams', S.teams); }
 }
 async function pushGASConfig() { return cloudSaveAll(); }
 // Back-compat shim: every per-key write now persists the full blob to Supabase.
@@ -1111,6 +1123,7 @@ async function doLogin() {
     await syncAll(true);
     buildMonthFilters();
     refreshIdsEditor();
+    refreshTeamsEditor();
     refreshExcAgents();
     renderOverview();
     applyProdVisibility();
@@ -1465,6 +1478,7 @@ async function syncAll(silent=false) {
   await pullGASConfig();
   buildMonthFilters();
   refreshIdsEditor();
+  refreshTeamsEditor();
   refreshIdentityEditor();
   refreshAliasesEditor();
   refreshExcAgents();
@@ -1607,9 +1621,11 @@ function importConfig(input) {
       if (data.agentIdentity){ S.identity = data.agentIdentity; ls.set('t_identity', S.identity); }
       if (data.exceptions) { S.exceptions = data.exceptions; ls.set('t_exc', S.exceptions); }
       if (data.gasUrl)     { S.gasUrl = data.gasUrl;         ls.set('t_gas', S.gasUrl); }
+      if (data.teams)      { S.teams = data.teams;           ls.set('t_teams', S.teams); }
       toast('Config imported ✓ — refresh to apply');
       loadWizardState();
       refreshIdsEditor();
+      refreshTeamsEditor();
       refreshExcAgents();
     } catch { toast('Invalid config file', true); }
   };
@@ -2032,7 +2048,7 @@ function aTab(id, el) {
   if (id==='schedule')     renderSchedule();
   if (id==='exceptions')   renderExcList();
   if (id==='config')     { renderConfigCenter(); refreshAdminUsers(); }
-  if (id==='agentids')   { refreshIdsEditor(); refreshIdentityEditor(); refreshAliasesEditor(); }
+  if (id==='agentids')   { refreshIdsEditor(); refreshIdentityEditor(); refreshAliasesEditor(); refreshTeamsEditor(); }
 }
 
 // ════════════════════════════════════════
@@ -2227,6 +2243,7 @@ function renderOverview() {
     const diffLabel=p?(p.diff<0?`<span class="cr">-${Math.abs(p.diff)}m</span>`:`<span class="cg">+${p.diff}m</span>`):'—';
     return `<tr>
       <td><strong style="color:var(--text)">${a}</strong><br><span style="font-size:11px;color:var(--text3)">${state_agentId(a)}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${S.teams[a]||'—'}</td>
       <td>${q?q.total:'—'}</td>
       <td>${s!==null?`<span class="sc-badge ${scoreCls(s)}">${s}%</span>`:'—'}</td>
       <td class="${perf?targetClass(perf.avg_aht_min,T.ahtTargetMin,'low'):''}">${perf?perf.avg_aht_min+' min':'—'}</td>
@@ -2314,7 +2331,7 @@ function renderOverview() {
     <div class="card">
       <div class="card-hd"><span class="card-title">Agent Summary</span><span class="badge bp">${agents.length} agents · ${scopeLabel}</span></div>
       <div class="tbl-wrap card-bd-0">
-        <table class="tbl"><thead><tr><th>Agent</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>FRT</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
+        <table class="tbl"><thead><tr><th>Agent</th><th>Team</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>FRT</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
         <tbody>${rows}</tbody></table>
       </div>
     </div>`;
@@ -2704,8 +2721,16 @@ function renderPerformance() {
   const from = (document.getElementById('perfFrom')||{}).value||'';
   const to   = (document.getElementById('perfTo')||{}).value||'';
   const qf   = ((document.getElementById('perfSearch')||{}).value||'').toLowerCase();
+  const tfEl = document.getElementById('perfTeamFilter');
+  const tf   = (tfEl&&tfEl.value)||'';
+  if (tfEl) {
+    const prev = tfEl.value;
+    const teamNames = [...new Set(Object.values(S.teams).filter(Boolean))].sort();
+    tfEl.innerHTML = `<option value="">All Teams</option>${teamNames.map(t=>`<option value="${t.replace(/"/g,'&quot;')}"${t===prev?' selected':''}>` + t.replace(/</g,'&lt;') + '</option>').join('')}`;
+  }
   let agents = getTabAgents('perf');
   if (qf) agents = agents.filter(a=>a.toLowerCase().includes(qf));
+  if (tf) agents = agents.filter(a=>(S.teams[a]||'')=== tf);
   const T = S.cfgTargets;
 
   let data = agents.map(a=>({ a, perf: aggPerf(getAgentPerfRows(a,from,to)) })).filter(x=>x.perf);
@@ -2727,6 +2752,7 @@ function renderPerformance() {
 
   const rows = data.map(({a,perf}) => `<tr>
       <td style="color:var(--text)">${a}${isNewAgent(a)?'<span class="badge" style="margin-left:5px;font-size:10px;background:rgba(59,126,248,.2);color:var(--blue)">New</span>':''}</td>
+      <td style="font-size:12px;color:var(--text2)">${S.teams[a]||'—'}</td>
       <td>${perf.total_conversations}</td>
       <td>${perf.total_tickets}</td>
       <td>${perf.resolved_tickets}</td>
@@ -2739,8 +2765,8 @@ function renderPerformance() {
     </tr>`).join('');
 
   _csvCache.performance = {
-    headers:['Agent','Conversations','Tickets','Resolved','AHT (min)','FRT (sec)','CSAT %','Resolution %','Satisfied','DSAT'],
-    rows: data.map(({a,perf})=>[a,perf.total_conversations,perf.total_tickets,perf.resolved_tickets,perf.avg_aht_min,perf.avg_art_sec,perf.csat_pct,perf.resolution_rate_pct,perf.csat_positive_count,perf.dsat_count]),
+    headers:['Agent','Team','Conversations','Tickets','Resolved','AHT (min)','FRT (sec)','CSAT %','Resolution %','Satisfied','DSAT'],
+    rows: data.map(({a,perf})=>[a,S.teams[a]||'',perf.total_conversations,perf.total_tickets,perf.resolved_tickets,perf.avg_aht_min,perf.avg_art_sec,perf.csat_pct,perf.resolution_rate_pct,perf.csat_positive_count,perf.dsat_count]),
   };
 
   // ── Chart datasets ──
@@ -2755,7 +2781,7 @@ function renderPerformance() {
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Performance Metrics</span><div style="display:flex;gap:8px;align-items:center">${srcBadge}<span class="badge bb">vs targets · ${from&&to?from+' → '+to:'All dates'}</span>${csvBtn('performance')}</div></div>
     <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>
-      ${sortableTh('perf','agent','Agent')}${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','FRT')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}
+      ${sortableTh('perf','agent','Agent')}<th>Team</th>${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','FRT')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}
     </tr></thead><tbody>${rows}</tbody></table></div></div>`;
   saveFilters();
 
@@ -2815,6 +2841,36 @@ async function saveIds() {
   ls.set('t_ids', S.agentIds);
   await gasWrite('agentIds', S.agentIds);
   toast('Agent IDs saved ✓');
+}
+
+function refreshTeamsEditor() {
+  const agents = allAgents();
+  const el = document.getElementById('teamsEditor');
+  if (!el) return;
+  if (!agents.length) { el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:12px 0">Sync quality data first to see agents.</div>'; return; }
+  const teams = [...new Set(Object.values(S.teams).filter(Boolean))].sort();
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 180px;gap:8px;padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Agent Name</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">Team</div>
+    </div>
+    ${agents.map(a=>`
+    <div style="display:grid;grid-template-columns:1fr 180px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;color:var(--text)">${a}</div>
+      <input class="inp inp-sm" data-agent="${a}" value="${(S.teams[a]||'').replace(/"/g,'&quot;')}" placeholder="e.g. Team A" list="teamNamesList"/>
+    </div>`).join('')}
+    <datalist id="teamNamesList">${teams.map(t=>`<option value="${t.replace(/"/g,'&quot;')}"></option>`).join('')}</datalist>`;
+}
+
+async function saveTeams() {
+  document.querySelectorAll('#teamsEditor input[data-agent]').forEach(inp=>{
+    const name=inp.dataset.agent, team=inp.value.trim();
+    if (team) S.teams[name]=team; else delete S.teams[name];
+  });
+  ls.set('t_teams', S.teams);
+  await gasWrite('teams', S.teams);
+  toast('Teams saved ✓');
+  refreshTeamsEditor();
 }
 
 // Cross-report identity matching editor — lists each auto-detected cluster (shared email/ID +
