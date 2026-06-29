@@ -459,6 +459,19 @@ select.inp{cursor:pointer}
         </select>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Prod hrs/day</span>
         <input type="number" class="inp inp-sm" id="fcastProdHrs" value="7.8" min="1" max="12" step="0.5" onchange="renderForecasting()" style="width:70px"/>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Hourly view</span>
+        <select class="inp inp-sm" id="fcastDowFilter" onchange="renderForecasting()" style="width:130px">
+          <option value="">All Days</option>
+          <option value="wd">Weekdays</option>
+          <option value="we">Weekends</option>
+          <option value="0">Sunday</option>
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+        </select>
       </div>
       <div id="forecastingContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><h3>No forecast yet</h3><p>Sync raw data to generate forecast</p></div></div>
     </section>
@@ -3243,6 +3256,18 @@ function historicalDailyVolume(rows){
   return Object.keys(byDate).sort().map(k=>({date:k,val:byDate[k]}));
 }
 
+function hourlyVolumeProfile(rows){
+  const byHour=new Array(24).fill(0);
+  const days=new Set();
+  rows.forEach(r=>{
+    const d=parseDate(r.agent_assigned_at||''); if(!d) return;
+    byHour[d.getHours()]++;
+    days.add(d.toISOString().slice(0,10));
+  });
+  const nd=days.size||1;
+  return byHour.map(v=>+(v/nd).toFixed(2));
+}
+
 function forecastByDoW(rows, horizonDays){
   const byDate={};
   rows.forEach(r=>{
@@ -3324,6 +3349,22 @@ function renderForecasting(){
   const peakIdx=fcVol.indexOf(Math.max(...validVol));
   const peakDay=peakIdx>=0?fcLabels[peakIdx]:null;
 
+  const dowFilterVal=(document.getElementById('fcastDowFilter')||{}).value||'';
+  const dowFilteredRows=rows.filter(r=>{
+    const d=parseDate(r.agent_assigned_at||''); if(!d) return true;
+    const dow=d.getDay();
+    if(dowFilterVal==='wd') return dow>=1&&dow<=5;
+    if(dowFilterVal==='we') return dow===0||dow===6;
+    if(dowFilterVal!=='') return dow===parseInt(dowFilterVal);
+    return true;
+  });
+  const hrProfile=hourlyVolumeProfile(dowFilteredRows);
+  const hrStaff=hrProfile.map(v=>avgAhtMin>0?Math.ceil(v*avgAhtMin/60):0);
+  const peakHr=hrProfile.indexOf(Math.max(...hrProfile));
+  const peakHrLabel=peakHr>=0?`${String(peakHr).padStart(2,'0')}:00–${String(peakHr+1).padStart(2,'0')}:00`:'—';
+  const hrLabels=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
+  const dowLabel=dowFilterVal===''?'All Days':dowFilterVal==='wd'?'Weekdays':dowFilterVal==='we'?'Weekends':['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][parseInt(dowFilterVal)];
+
   el.innerHTML=`
     <div class="charts-grid" style="margin-bottom:16px">
       ${kpiCard('Avg Daily Inflow',Math.round(avgFcVol),'conversations/day','var(--blue)')}
@@ -3331,10 +3372,24 @@ function renderForecasting(){
       ${kpiCard('Expected CSAT',validCsat.length?avgFcCsat.toFixed(1)+'%':'No ratings','projected','var(--green)')}
       ${kpiCard('Busiest Day Ahead',peakDay?new Date(peakDay+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',month:'short',day:'numeric'}):'—',peakDay?fcVol[peakIdx]+' conv':'','var(--red)')}
     </div>
-    <div class="charts-grid">
+    <div class="charts-grid" style="margin-bottom:16px">
       ${chartCard('Volume Forecast — conversations/day','fcastVolChart')}
       ${chartCard('Staffing Needed — agents/day','fcastStaffChart')}
       ${chartCard('CSAT Forecast — %','fcastCsatChart')}
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hd"><span class="card-title">Hourly Inflow Profile</span><span class="badge bp">${dowLabel} · avg conv/hr</span></div>
+      <div class="card-bd">
+        <div class="charts-grid" style="margin-bottom:16px">
+          ${kpiCard('Peak Hour',peakHrLabel,hrProfile[peakHr]?hrProfile[peakHr].toFixed(1)+' conv avg':'','#818cf8')}
+          ${kpiCard('Peak Concurrent Agents',hrStaff[peakHr]||'—','needed at peak hour','var(--red)')}
+        </div>
+        <div style="position:relative;height:220px"><canvas id="fcastHrVolChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Hourly Staffing Need</span><span class="badge bp">${dowLabel} · agents needed per hour</span></div>
+      <div class="card-bd"><div style="position:relative;height:220px"><canvas id="fcastHrStaffChart"></canvas></div></div>
     </div>`;
 
   const histLabels=histVol.map(x=>x.date);
@@ -3363,6 +3418,26 @@ function renderForecasting(){
       {label:'Forecast CSAT %', data:[...histCsat.map(()=>null),...fcCsat],borderColor:'#a78bfa',borderWidth:2,borderDash:[6,4],pointRadius:3,tension:.3,fill:false},
     ]},
     options:{plugins:{legend:{position:'bottom'}},scales:{x:gridAxis({ticks:{maxTicksLimit:16,maxRotation:45}}),y:gridAxis({min:0,max:100,ticks:{callback:v=>v+'%'}})}}
+  });
+  mkChart('fcastHrVolChart',{
+    type:'bar',
+    data:{labels:hrLabels,datasets:[{
+      label:'Avg conversations',
+      data:hrProfile,
+      backgroundColor:hrProfile.map(v=>v===Math.max(...hrProfile)?hexA('#818cf8',.9):hexA('#7c5af0',.55)),
+      borderRadius:3,borderWidth:0
+    }]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:gridAxis({ticks:{maxRotation:0,font:{size:10}}}),y:gridAxis({min:0,title:{display:true,text:'avg conv/hr',color:'#8080a0',font:{size:10}}})}}
+  });
+  mkChart('fcastHrStaffChart',{
+    type:'bar',
+    data:{labels:hrLabels,datasets:[{
+      label:'Agents needed',
+      data:hrStaff,
+      backgroundColor:hrStaff.map(v=>v===Math.max(...hrStaff)?hexA('#ef4444',.85):v>0?hexA('#f59e0b',.7):hexA('#3e3e60',.3)),
+      borderRadius:3,borderWidth:0
+    }]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:gridAxis({ticks:{maxRotation:0,font:{size:10}}}),y:gridAxis({min:0,ticks:{stepSize:1},title:{display:true,text:'agents',color:'#8080a0',font:{size:10}}})}}
   });
 }
 
