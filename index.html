@@ -2010,6 +2010,39 @@ function aggPerf(rows) {
 // legacy compat
 function getPerfRow(name) { const r=getAgentPerfRows(name,'',''); return r.length?aggPerf(r):null; }
 
+function buildRRIndex() {
+  const idx = {};
+  S.rRows.forEach(r => {
+    const uid = r.telda_user_id; if (!uid) return;
+    const d = parseDate(r.agent_assigned_at || rcDate(r)); if (!d) return;
+    if (!idx[uid]) idx[uid] = [];
+    idx[uid].push(d.getTime());
+  });
+  return idx;
+}
+function calcRepeatRate(agentName, from, to, rrIdx, windowDays) {
+  const wMs = (windowDays || 7) * 86400000;
+  const resolved = S.rRows.filter(r => {
+    if (rcVal(r,'agent_name') !== agentName) return false;
+    if (!/^resolv/i.test(String(r.ticket_status||''))) return false;
+    const d = parseDate(r.agent_assigned_at || rcDate(r)); if (!d) return false;
+    if (from && d < parseDateLocal(from)) return false;
+    if (to   && d > parseDateLocal(to))   return false;
+    return true;
+  });
+  if (!resolved.length) return null;
+  let repeats = 0;
+  resolved.forEach(r => {
+    const uid = r.telda_user_id; if (!uid) return;
+    const d = parseDate(r.agent_assigned_at || rcDate(r)); if (!d) return;
+    const t = d.getTime();
+    const contacts = rrIdx[uid] || [];
+    if (contacts.some(ct => ct > t && ct <= t + wMs)) repeats++;
+  });
+  return { total: resolved.length, repeats, rate: +(repeats / resolved.length * 100).toFixed(1) };
+}
+function rrClass(rate) { return rate <= 10 ? 'cg' : rate <= 25 ? 'ca' : 'cr'; }
+
 function aggPerfFromRaw(agentName, from, to) {
   let rows = S.rRows.filter(r => rcVal(r,'agent_name') === agentName);
   if (from || to) rows = rows.filter(r => {
@@ -2296,8 +2329,11 @@ function renderOverview() {
   </div>`;
 
   const T = S.cfgTargets;
+  const _rrIdx = buildRRIndex();
+  const _rrWin = parseInt(ls.get('rr_window')||'7')||7;
+  const rrOf = a => calcRepeatRate(a, pFrom, pTo, _rrIdx, _rrWin);
   const rows = agents.map(a=>{
-    const q=QA(a), p=PR(a), perf=PF(a);
+    const q=QA(a), p=PR(a), perf=PF(a), rr=rrOf(a);
     const s=q?q.avg:null;
     const diffLabel=p?(p.diff<0?`<span class="cr">-${Math.abs(p.diff)}m</span>`:`<span class="cg">+${p.diff}m</span>`):'—';
     return `<tr>
@@ -2308,15 +2344,15 @@ function renderOverview() {
       <td class="${perf?targetClass(perf.avg_aht_min,T.ahtTargetMin,'low'):''}">${perf?perf.avg_aht_min+' min':'—'}</td>
       <td class="${perf?targetClass(perf.avg_art_sec,T.artTargetSec,'low'):''}">${perf?perf.avg_art_sec+'s ART':'—'}</td>
       <td class="${perf?targetClass(perf.csat_pct,T.csatTargetPct,'high'):''}">${perf?perf.csat_pct+'%':'—'}</td>
+      <td class="${rr?rrClass(rr.rate):''}">${rr?rr.rate+'%<br><span style="font-size:10px;opacity:.7">'+rr.repeats+'/'+rr.total+'</span>':'—'}</td>
       ${hp?'':`<td>${p?`<span style="color:${p.pct>=100?'var(--green)':'var(--amber)'}">${p.pct}%</span>`:'—'}</td>
       <td>${diffLabel}</td>`}
     </tr>`;
   }).join('');
 
-  // ── Chart datasets (per agent) ──
   const cData = agents.map(a => {
-    const q=QA(a), p=PR(a), perf=PF(a);
-    return { a, qa:q?q.avg:null, prod:p?p.pct:null, csat:perf?parseFloat(perf.csat_pct):null, aht:perf?parseFloat(perf.avg_aht_min):null, frt:perf?parseFloat(perf.avg_art_sec):null };
+    const q=QA(a), p=PR(a), perf=PF(a), rr=rrOf(a);
+    return { a, qa:q?q.avg:null, prod:p?p.pct:null, csat:perf?parseFloat(perf.csat_pct):null, aht:perf?parseFloat(perf.avg_aht_min):null, frt:perf?parseFloat(perf.avg_art_sec):null, rr };
   });
   const passCount = allScores.filter(s=>s>=90).length;
   const nearCount = allScores.filter(s=>s>=80&&s<90).length;
@@ -2350,6 +2386,8 @@ function renderOverview() {
   const _csatVals=cData.map(d=>d.csat).filter(v=>v!=null);
   const avgCSAT=_csatVals.length?(_csatVals.reduce((a,b)=>a+b,0)/_csatVals.length).toFixed(1):null;
   const totChats=S.rRows.filter(r=>inScope(r.agent_assigned_at||rcDate(r))).length;
+  const _rrRates=cData.map(d=>d.rr).filter(x=>x!=null);
+  const avgRR=_rrRates.length?(_rrRates.reduce((s,x)=>s+x.rate,0)/_rrRates.length).toFixed(1):null;
 
   // ── Top / bottom performer cards ──
   const _by=(arr,key,dir)=>[...arr].sort((x,y)=>(y[key]-x[key])*dir).slice(0,3);
@@ -2453,6 +2491,7 @@ function renderOverview() {
       <div class="metric"><div class="m-lbl">Avg AHT</div><div class="m-val ${avgAHT!=null?targetClass(avgAHT,T.ahtTargetMin,'low')||'cp':''}"><span style="font-size:${avgAHT!=null?'28':'22'}px">${avgAHT!=null?avgAHT+' min':'—'}</span></div><div class="m-sub">target ≤ ${T.ahtTargetMin} min</div></div>
       <div class="metric"><div class="m-lbl">Avg ART</div><div class="m-val ${avgART!=null?targetClass(avgART,T.artTargetSec,'low')||'cp':''}"><span style="font-size:${avgART!=null?'28':'22'}px">${avgART!=null?avgART+'s':'—'}</span></div><div class="m-sub">target ≤ ${T.artTargetSec}s</div></div>
       <div class="metric"><div class="m-lbl">Avg CSAT</div><div class="m-val ${avgCSAT!=null?targetClass(avgCSAT,T.csatTargetPct,'high')||'cp':''}"><span style="font-size:${avgCSAT!=null?'28':'22'}px">${avgCSAT!=null?avgCSAT+'%':'—'}</span></div><div class="m-sub">target ≥ ${T.csatTargetPct}%</div></div>
+      <div class="metric"><div class="m-lbl">Repeat Rate</div><div class="m-val ${avgRR!=null?rrClass(parseFloat(avgRR)):''}"><span style="font-size:${avgRR!=null?'28':'22'}px">${avgRR!=null?avgRR+'%':'—'}</span></div><div class="m-sub">within ${_rrWin}-day window</div></div>
     </div>
     <div id="ovSec_spotlight">${perfCards}</div>
     <div id="ovSec_lb">${lbHtml}</div>
@@ -2472,7 +2511,7 @@ function renderOverview() {
     <div id="ovSec_table" class="card">
       <div class="card-hd"><span class="card-title">Agent Summary</span><span class="badge bp">${agents.length} agents · ${scopeLabel}</span></div>
       <div class="tbl-wrap card-bd-0">
-        <table class="tbl"><thead><tr><th>Agent</th><th>Team</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>ART</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
+        <table class="tbl"><thead><tr><th>Agent</th><th>Team</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>ART</th><th>CSAT</th><th>Repeat Rate</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
         <tbody>${rows}</tbody></table>
       </div>
     </div>`;
@@ -2891,12 +2930,15 @@ function renderPerformance() {
   if (tf) agents = agents.filter(a=>(S.teams[a]||'')=== tf);
   const T = S.cfgTargets;
 
-  let data = agents.map(a=>({ a, perf: aggPerf(getAgentPerfRows(a,from,to)) })).filter(x=>x.perf);
+  const _pRRIdx = buildRRIndex();
+  const _pRRWin = parseInt(ls.get('rr_window')||'7')||7;
+  let data = agents.map(a=>({ a, perf: aggPerf(getAgentPerfRows(a,from,to)), rr: calcRepeatRate(a,from,to,_pRRIdx,_pRRWin) })).filter(x=>x.perf);
   if (!data.length) { document.getElementById('performanceContent').innerHTML=emptyHtml('No performance data','No data for this period'); return; }
   data = applySort(data, 'perf', {
     agent:x=>x.a, conversations:x=>+x.perf.total_conversations, tickets:x=>+x.perf.total_tickets,
     resolved:x=>+x.perf.resolved_tickets, aht:x=>+x.perf.avg_aht_min, art:x=>+x.perf.avg_art_sec,
     csat:x=>+x.perf.csat_pct, resolution:x=>+x.perf.resolution_rate_pct, satisfied:x=>+x.perf.csat_positive_count, dsat:x=>+x.perf.dsat_count,
+    repeatrate:x=>x.rr?x.rr.rate:0,
   });
   const _fMn=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;
   const _fSd=(arr,m)=>arr.length?Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/arr.length):0;
@@ -2908,7 +2950,7 @@ function renderPerformance() {
   const _csM=_fMn(_csV),_csS=_fSd(_csV,_csM);
   const _an=(v,m,s,hi)=>s>0&&Math.abs(v-m)>s?(hi?(v>m?'background:rgba(239,68,68,.12)':'background:rgba(34,197,94,.12)'):(v<m?'background:rgba(239,68,68,.12)':'background:rgba(34,197,94,.12)')):'';
 
-  const rows = data.map(({a,perf}) => `<tr>
+  const rows = data.map(({a,perf,rr}) => `<tr>
       <td style="color:var(--text)">${a}${isNewAgent(a)?'<span class="badge" style="margin-left:5px;font-size:10px;background:rgba(59,126,248,.2);color:var(--blue)">New</span>':''}</td>
       <td style="font-size:12px;color:var(--text2)">${S.teams[a]||'—'}</td>
       <td>${perf.total_conversations}</td>
@@ -2920,11 +2962,12 @@ function renderPerformance() {
       <td class="${targetClass(perf.resolution_rate_pct,T.resolutionTargetPct,'high')}">${perf.resolution_rate_pct}%</td>
       <td class="cg">${perf.csat_positive_count}</td>
       <td class="cr">${perf.dsat_count}</td>
+      <td class="${rr?rrClass(rr.rate):''}">${rr?rr.rate+'%':S.rRows.length?'0%':'—'}</td>
     </tr>`).join('');
 
   _csvCache.performance = {
-    headers:['Agent','Team','Conversations','Tickets','Resolved','AHT (min)','ART (sec)','CSAT %','Resolution %','Satisfied','DSAT'],
-    rows: data.map(({a,perf})=>[a,S.teams[a]||'',perf.total_conversations,perf.total_tickets,perf.resolved_tickets,perf.avg_aht_min,perf.avg_art_sec,perf.csat_pct,perf.resolution_rate_pct,perf.csat_positive_count,perf.dsat_count]),
+    headers:['Agent','Team','Conversations','Tickets','Resolved','AHT (min)','ART (sec)','CSAT %','Resolution %','Satisfied','DSAT','Repeat Rate %'],
+    rows: data.map(({a,perf,rr})=>[a,S.teams[a]||'',perf.total_conversations,perf.total_tickets,perf.resolved_tickets,perf.avg_aht_min,perf.avg_art_sec,perf.csat_pct,perf.resolution_rate_pct,perf.csat_positive_count,perf.dsat_count,rr?rr.rate:'']),
   };
 
   // ── Chart datasets ──
@@ -2939,7 +2982,7 @@ function renderPerformance() {
     </div>
     <div class="card"><div class="card-hd"><span class="card-title">Performance Metrics</span><div style="display:flex;gap:8px;align-items:center">${srcBadge}<span class="badge bb">vs targets · ${from&&to?from+' → '+to:'All dates'}</span>${csvBtn('performance')}</div></div>
     <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>
-      ${sortableTh('perf','agent','Agent')}<th>Team</th>${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','ART')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}
+      ${sortableTh('perf','agent','Agent')}<th>Team</th>${sortableTh('perf','conversations','Conversations')}${sortableTh('perf','tickets','Tickets')}${sortableTh('perf','resolved','Resolved')}${sortableTh('perf','aht','AHT')}${sortableTh('perf','art','ART')}${sortableTh('perf','csat','CSAT%')}${sortableTh('perf','resolution','Resolution%')}${sortableTh('perf','satisfied','Satisfied')}${sortableTh('perf','dsat','DSAT')}${sortableTh('perf','repeatrate','Repeat Rate')}
     </tr></thead><tbody>${rows}</tbody></table></div></div>`;
   saveFilters();
 
