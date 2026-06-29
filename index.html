@@ -287,6 +287,9 @@ select.inp{cursor:pointer}
     <div class="nav-item" onclick="aTab('wow',this)">
       <svg style="color:#06b6d4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Week-over-Week
     </div>
+    <div class="nav-item" onclick="aTab('forecasting',this)">
+      <svg style="color:#818cf8" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Forecast
+    </div>
     <div class="nav-item" onclick="aTab('rootcause',this)">
       <svg style="color:#14b8a6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Root Cause
     </div>
@@ -436,6 +439,28 @@ select.inp{cursor:pointer}
         <input type="text" class="inp inp-sm" id="wowSearch" placeholder="Search agent…" style="width:160px;margin-left:auto" oninput="renderWow()"/>
       </div>
       <div id="wowContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><h3>No data yet</h3><p>Sync your sheets first</p></div></div>
+    </section>
+
+    <!-- FORECASTING -->
+    <section class="tab" id="at-forecasting">
+      <div class="ph"><div><h1>Forecasting</h1><p>Volume, staffing &amp; CSAT projections from raw data</p></div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">History</span>
+        <select class="inp inp-sm" id="fcastLookback" onchange="renderForecasting()" style="width:130px">
+          <option value="4">Last 4 weeks</option>
+          <option value="8" selected>Last 8 weeks</option>
+          <option value="12">Last 12 weeks</option>
+        </select>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Horizon</span>
+        <select class="inp inp-sm" id="fcastHorizon" onchange="renderForecasting()" style="width:130px">
+          <option value="7">Next 7 days</option>
+          <option value="14" selected>Next 14 days</option>
+          <option value="30">Next 30 days</option>
+        </select>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Prod hrs/day</span>
+        <input type="number" class="inp inp-sm" id="fcastProdHrs" value="7.8" min="1" max="12" step="0.5" onchange="renderForecasting()" style="width:70px"/>
+      </div>
+      <div id="forecastingContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><h3>No forecast yet</h3><p>Sync raw data to generate forecast</p></div></div>
     </section>
 
     <!-- ROOT CAUSE -->
@@ -1488,7 +1513,7 @@ async function syncAll(silent=false) {
     const act=document.querySelector('#adminScreen .tab.active');
     if (act) { const id=act.id.replace('at-','');
       if (id==='quality') renderQuality(); else if (id==='productivity') renderProductivity();
-      else if (id==='performance') renderPerformance(); else if (id==='wow') renderWow(); else if (id==='rootcause') renderRootCause(); else if (id==='schedule') renderSchedule(); }
+      else if (id==='performance') renderPerformance(); else if (id==='wow') renderWow(); else if (id==='forecasting') renderForecasting(); else if (id==='rootcause') renderRootCause(); else if (id==='schedule') renderSchedule(); }
   }
   if (S.mode === 'agent') { renderAgent(); }
   } catch (err) {
@@ -2044,6 +2069,7 @@ function aTab(id, el) {
   if (id==='productivity') renderProductivity();
   if (id==='performance')  renderPerformance();
   if (id==='wow')          renderWow();
+  if (id==='forecasting')  renderForecasting();
   if (id==='rootcause')    renderRootCause();
   if (id==='schedule')     renderSchedule();
   if (id==='exceptions')   renderExcList();
@@ -3204,6 +3230,142 @@ function rcDrill(label){
     ${rows.length>cap?`<div style="font-size:11px;color:var(--text3);margin-top:8px">Showing ${cap} of ${rows.length} — narrow the filters to see the rest.</div>`:''}`;
   openModal(`${dim}: ${attrEsc(label)}`, body);
 }
+// ════════════════════════════════════════
+// FORECASTING
+// ════════════════════════════════════════
+function historicalDailyVolume(rows){
+  const byDate={};
+  rows.forEach(r=>{
+    const d=parseDate(r.agent_assigned_at||rcDate(r)); if(!d) return;
+    const k=d.toISOString().slice(0,10);
+    byDate[k]=(byDate[k]||0)+1;
+  });
+  return Object.keys(byDate).sort().map(k=>({date:k,val:byDate[k]}));
+}
+
+function forecastByDoW(rows, horizonDays){
+  const byDate={};
+  rows.forEach(r=>{
+    const d=parseDate(r.agent_assigned_at||rcDate(r)); if(!d) return;
+    const k=d.toISOString().slice(0,10);
+    byDate[k]=(byDate[k]||0)+1;
+  });
+  const dates=Object.keys(byDate).sort();
+  const today=new Date(); today.setHours(0,0,0,0);
+  const result=[];
+  for(let i=1;i<=horizonDays;i++){
+    const fd=new Date(today); fd.setDate(today.getDate()+i);
+    const dow=fd.getDay();
+    const fdStr=fd.toISOString().slice(0,10);
+    const sameDoW=dates.filter(d=>new Date(d).getDay()===dow);
+    if(!sameDoW.length){ result.push({date:fdStr,val:null}); continue; }
+    let wSum=0,wTot=0;
+    sameDoW.forEach((d,idx)=>{ const w=idx+1; wSum+=byDate[d]*w; wTot+=w; });
+    result.push({date:fdStr,val:wTot>0?wSum/wTot:null});
+  }
+  return result;
+}
+
+function kpiCard(title,val,sub,color){
+  return `<div class="card" style="margin:0"><div class="card-bd" style="padding:16px 20px">
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">${title}</div>
+    <div style="font-size:28px;font-weight:700;color:${color}">${val}</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px">${sub}</div>
+  </div></div>`;
+}
+
+function renderForecasting(){
+  const el=document.getElementById('forecastingContent'); if(!el) return;
+  if(!S.rRows.length){ el.innerHTML=emptyHtml('No raw data','Add a Raw Data sheet in Setup, then Sync'); return; }
+  const lookbackWeeks=parseInt((document.getElementById('fcastLookback')||{}).value||'8');
+  const horizonDays=parseInt((document.getElementById('fcastHorizon')||{}).value||'14');
+  const prodHrs=parseFloat((document.getElementById('fcastProdHrs')||{}).value||'7.8')||7.8;
+
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-lookbackWeeks*7); cutoff.setHours(0,0,0,0);
+  const rows=S.rRows.filter(r=>{ const d=parseDate(r.agent_assigned_at||rcDate(r)); return d&&d>=cutoff; });
+  if(!rows.length){ el.innerHTML=emptyHtml('No data in selected period','Try a longer lookback window'); return; }
+
+  const histVol=historicalDailyVolume(rows);
+  const forecast=forecastByDoW(rows,horizonDays);
+  const fcLabels=forecast.map(x=>x.date);
+  const fcVol=forecast.map(x=>x.val!=null?Math.round(x.val):null);
+
+  const ahtVals=rows.map(r=>parseFloat(r.agent_handle_time_min)).filter(v=>!isNaN(v)&&v>0);
+  const avgAhtMin=ahtVals.length?ahtVals.reduce((a,b)=>a+b,0)/ahtVals.length:0;
+  const fcStaff=fcVol.map(v=>v!=null&&avgAhtMin>0?Math.ceil(v*avgAhtMin/60/prodHrs):null);
+
+  const csatByDate={};
+  rows.forEach(r=>{
+    const d=parseDate(r.agent_assigned_at||rcDate(r)); if(!d) return;
+    const k=d.toISOString().slice(0,10);
+    const rating=rcRating(r); if(rating==null) return;
+    if(!csatByDate[k]) csatByDate[k]={pos:0,tot:0};
+    csatByDate[k].tot++;
+    if(rcBucket(rating)==='CSAT') csatByDate[k].pos++;
+  });
+  const histCsat=Object.keys(csatByDate).sort().map(k=>({date:k,val:+(csatByDate[k].pos/csatByDate[k].tot*100).toFixed(1)}));
+
+  const today=new Date(); today.setHours(0,0,0,0);
+  const fcCsat=forecast.map(fx=>{
+    const dow=new Date(fx.date).getDay();
+    const sameDoW=histCsat.filter(h=>new Date(h.date).getDay()===dow);
+    if(!sameDoW.length) return null;
+    let wSum=0,wTot=0;
+    sameDoW.forEach((h,i)=>{ wSum+=h.val*(i+1); wTot+=(i+1); });
+    return wTot>0?+(wSum/wTot).toFixed(1):null;
+  });
+
+  const validVol=fcVol.filter(v=>v!=null);
+  const validStaff=fcStaff.filter(v=>v!=null);
+  const validCsat=fcCsat.filter(v=>v!=null);
+  const avgFcVol=validVol.length?validVol.reduce((a,b)=>a+b,0)/validVol.length:0;
+  const avgFcStaff=validStaff.length?validStaff.reduce((a,b)=>a+b,0)/validStaff.length:0;
+  const avgFcCsat=validCsat.length?validCsat.reduce((a,b)=>a+b,0)/validCsat.length:0;
+  const peakIdx=fcVol.indexOf(Math.max(...validVol));
+  const peakDay=peakIdx>=0?fcLabels[peakIdx]:null;
+
+  el.innerHTML=`
+    <div class="charts-grid" style="margin-bottom:16px">
+      ${kpiCard('Avg Daily Inflow',Math.round(avgFcVol),'conversations/day','var(--blue)')}
+      ${kpiCard('Avg Agents Needed',avgFcStaff>0?avgFcStaff.toFixed(1):'—','agents/day ('+prodHrs+'h prod)','var(--amber)')}
+      ${kpiCard('Expected CSAT',validCsat.length?avgFcCsat.toFixed(1)+'%':'No ratings','projected','var(--green)')}
+      ${kpiCard('Busiest Day Ahead',peakDay?new Date(peakDay+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',month:'short',day:'numeric'}):'—',peakDay?fcVol[peakIdx]+' conv':'','var(--red)')}
+    </div>
+    <div class="charts-grid">
+      ${chartCard('Volume Forecast — conversations/day','fcastVolChart')}
+      ${chartCard('Staffing Needed — agents/day','fcastStaffChart')}
+      ${chartCard('CSAT Forecast — %','fcastCsatChart')}
+    </div>`;
+
+  const histLabels=histVol.map(x=>x.date);
+  const histVals=histVol.map(x=>x.val);
+  const accent=cssVar('--accent','#7c5af0');
+  const amber=cssVar('--amber','#f59e0b');
+  const green=cssVar('--green','#22c55e');
+
+  mkChart('fcastVolChart',{
+    type:'line',
+    data:{labels:[...histLabels,...fcLabels],datasets:[
+      {label:'Historical',data:[...histVals,...fcVol.map(()=>null)],borderColor:accent,borderWidth:2,pointRadius:1,tension:.3,fill:false},
+      {label:'Forecast', data:[...histVals.map(()=>null),...fcVol], borderColor:amber, borderWidth:2,borderDash:[6,4],pointRadius:3,tension:.3,fill:false},
+    ]},
+    options:{plugins:{legend:{position:'bottom'}},scales:{x:gridAxis({ticks:{maxTicksLimit:16,maxRotation:45}}),y:gridAxis({min:0})}}
+  });
+  mkChart('fcastStaffChart',{
+    type:'bar',
+    data:{labels:fcLabels,datasets:[{label:'Agents needed',data:fcStaff,backgroundColor:fcStaff.map(v=>v!=null?hexA('#f59e0b',.8):hexA('#3e3e60',.4)),borderRadius:4,borderWidth:0}]},
+    options:{plugins:{legend:{display:false}},scales:{x:gridAxis({ticks:{maxRotation:45}}),y:gridAxis({min:0,ticks:{stepSize:1}})}}
+  });
+  mkChart('fcastCsatChart',{
+    type:'line',
+    data:{labels:[...histCsat.map(x=>x.date),...fcLabels],datasets:[
+      {label:'Historical CSAT %',data:[...histCsat.map(x=>x.val),...fcCsat.map(()=>null)],borderColor:green,borderWidth:2,pointRadius:1,tension:.3,fill:false},
+      {label:'Forecast CSAT %', data:[...histCsat.map(()=>null),...fcCsat],borderColor:'#a78bfa',borderWidth:2,borderDash:[6,4],pointRadius:3,tension:.3,fill:false},
+    ]},
+    options:{plugins:{legend:{position:'bottom'}},scales:{x:gridAxis({ticks:{maxTicksLimit:16,maxRotation:45}}),y:gridAxis({min:0,max:100,ticks:{callback:v=>v+'%'}})}}
+  });
+}
+
 function renderRootCause(){
   const el=document.getElementById('rootcauseContent'); if(!el) return;
   if(!S.rRows.length){ el.innerHTML=emptyHtml('No raw data','Add a Raw Data sheet in Setup → Raw Data Sheet, then Sync'); return; }
