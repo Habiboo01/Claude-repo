@@ -324,6 +324,18 @@ select.inp{cursor:pointer}
           <input type="date" class="inp inp-sm" id="ovTo" onchange="renderOverview()" style="width:auto"/>
           <button class="btn btn-sm" onclick="document.getElementById('ovFrom').value='';document.getElementById('ovTo').value='';renderOverview()">Clear</button>
           <button class="btn btn-sm" onclick="toggleAgentFilter()">👥 Filter Agents</button>
+          <button class="btn btn-sm" onclick="toggleOvViewPanel()" id="ovViewBtn">⚙ View</button>
+        </div>
+      </div>
+      <div id="ovViewPanel" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:10px">Show / Hide Sections</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ovVis_kpi" onchange="applyOvViewPrefs()" style="cursor:pointer"> KPI Cards</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ovVis_spotlight" onchange="applyOvViewPrefs()" style="cursor:pointer"> Performance Spotlight</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ovVis_lb" onchange="applyOvViewPrefs()" style="cursor:pointer"> Leaderboard</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ovVis_charts" onchange="applyOvViewPrefs()" style="cursor:pointer"> Charts</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ovVis_disputed" onchange="applyOvViewPrefs()" style="cursor:pointer"> Disputed Tickets</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="ovVis_table" onchange="applyOvViewPrefs()" style="cursor:pointer"> Agent Summary Table</label>
         </div>
       </div>
       <div id="agentFilterBar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:16px">
@@ -2366,7 +2378,7 @@ function renderOverview() {
     </tr>`).join('')}
     </tbody></table></div></div>`:'';
   document.getElementById('overviewContent').innerHTML=_healthHtml+`
-    <div class="metrics-grid">
+    <div id="ovSec_kpi" class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cp">${agents.length}</div><div class="m-sub">in system</div></div>
       <div class="metric"><div class="m-lbl">Tickets</div><div class="m-val cb">${totTickets.toLocaleString()}</div><div class="m-sub">${scopeLabel}</div></div>
       <div class="metric"><div class="m-lbl">Avg QA Score</div><div class="m-val ${parseFloat(avgQ)>=90?'cg':parseFloat(avgQ)>=80?'ca':'cr'}">${avgQ}${avgQ!=='—'?'%':''}</div><div class="m-sub">all agents</div></div>
@@ -2378,20 +2390,22 @@ function renderOverview() {
       <div class="metric"><div class="m-lbl">Avg ART</div><div class="m-val ${avgART!=null?targetClass(avgART,T.artTargetSec,'low')||'cp':''}"><span style="font-size:${avgART!=null?'28':'22'}px">${avgART!=null?avgART+'s':'—'}</span></div><div class="m-sub">target ≤ ${T.artTargetSec}s</div></div>
       <div class="metric"><div class="m-lbl">Avg CSAT</div><div class="m-val ${avgCSAT!=null?targetClass(avgCSAT,T.csatTargetPct,'high')||'cp':''}"><span style="font-size:${avgCSAT!=null?'28':'22'}px">${avgCSAT!=null?avgCSAT+'%':'—'}</span></div><div class="m-sub">target ≥ ${T.csatTargetPct}%</div></div>
     </div>
-    ${perfCards}
-    ${lbHtml}
-    <div class="charts-grid">
-      ${chartCard('Avg QA Score by Agent','ovQaChart')}
-      ${chartCard('QA Outcome Split','ovDistChart')}
-      ${hp?'':chartCard('Productivity Achievement %','ovProdChart')}
-      ${chartCard('CSAT by Agent','ovCsatChart')}
+    <div id="ovSec_spotlight">${perfCards}</div>
+    <div id="ovSec_lb">${lbHtml}</div>
+    <div id="ovSec_charts">
+      <div class="charts-grid">
+        ${chartCard('Avg QA Score by Agent','ovQaChart')}
+        ${chartCard('QA Outcome Split','ovDistChart')}
+        ${hp?'':chartCard('Productivity Achievement %','ovProdChart')}
+        ${chartCard('CSAT by Agent','ovCsatChart')}
+      </div>
+      <div class="charts-grid" style="margin-top:16px">
+        ${chartCard('Avg AHT by Agent (min)','ovAhtChart')}
+        ${chartCard('Avg ART by Agent (sec)','ovArtChart')}
+      </div>
     </div>
-    <div class="charts-grid" style="margin-top:16px">
-      ${chartCard('Avg AHT by Agent (min)','ovAhtChart')}
-      ${chartCard('Avg ART by Agent (sec)','ovArtChart')}
-    </div>
-    ${disputedCard}
-    <div class="card">
+    <div id="ovSec_disputed">${disputedCard}</div>
+    <div id="ovSec_table" class="card">
       <div class="card-hd"><span class="card-title">Agent Summary</span><span class="badge bp">${agents.length} agents · ${scopeLabel}</span></div>
       <div class="tbl-wrap card-bd-0">
         <table class="tbl"><thead><tr><th>Agent</th><th>Team</th><th>Tickets</th><th>QA Score</th><th>AHT</th><th>ART</th><th>CSAT</th>${hp?'':'<th>Productivity</th><th>Missing/OT</th>'}</tr></thead>
@@ -2443,6 +2457,7 @@ function renderOverview() {
     options:{ plugins:{legend:{display:false},annotation:{annotations:[{type:'line',yMin:T.artTargetSec,yMax:T.artTargetSec,borderColor:'rgba(245,158,11,.6)',borderWidth:1,borderDash:[4,3]}]}},
       scales:{ x:gridAxis(), y:gridAxis({min:0,ticks:{callback:v=>v+'s'}}) } }
   });
+  applyOvViewPrefs();
 }
 
 function state_agentId(name) { return S.agentIds[name]||'No ID'; }
@@ -3971,6 +3986,35 @@ function renderAgent() {
 // ════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════
+// ── OVERVIEW VIEW CUSTOMISATION ──────────────────────────────────
+const OV_VIEW_DEFAULTS = { kpi:true, spotlight:true, lb:true, charts:true, disputed:true, table:true };
+function _ovViewPrefs() { return ls.get('ov_view') || {...OV_VIEW_DEFAULTS}; }
+function toggleOvViewPanel() {
+  const panel = document.getElementById('ovViewPanel');
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  if (!open) {
+    const prefs = _ovViewPrefs();
+    ['kpi','spotlight','lb','charts','disputed','table'].forEach(k=>{
+      const cb = document.getElementById('ovVis_'+k);
+      if (cb) cb.checked = prefs[k] !== false;
+    });
+  }
+  panel.style.display = open ? 'none' : 'block';
+}
+function applyOvViewPrefs() {
+  const prefs = {...OV_VIEW_DEFAULTS};
+  ['kpi','spotlight','lb','charts','disputed','table'].forEach(k=>{
+    const cb = document.getElementById('ovVis_'+k);
+    if (cb) prefs[k] = cb.checked;
+  });
+  ls.set('ov_view', prefs);
+  ['kpi','spotlight','lb','charts','disputed','table'].forEach(k=>{
+    const sec = document.getElementById('ovSec_'+k);
+    if (sec) sec.style.display = prefs[k] ? '' : 'none';
+  });
+}
+
 // ── AGENT FILTER HELPERS ──────────────────────────────────
 function toggleAgentFilter() {
   const bar = document.getElementById('agentFilterBar');
