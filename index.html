@@ -459,6 +459,14 @@ select.inp{cursor:pointer}
         </select>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Prod hrs/day</span>
         <input type="number" class="inp inp-sm" id="fcastProdHrs" value="7.8" min="1" max="12" step="0.5" onchange="renderForecasting()" style="width:70px"/>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Headcount</span>
+        <input type="number" class="inp inp-sm" id="fcastHeadcount" placeholder="Total agents" min="1" step="1" onchange="renderForecasting()" style="width:100px"/>
+        <select class="inp inp-sm" id="fcastShifts" onchange="renderForecasting()" style="width:110px">
+          <option value="2">2 Shifts</option>
+          <option value="3" selected>3 Shifts</option>
+          <option value="4">4 Shifts</option>
+        </select>
+        <input type="number" class="inp inp-sm" id="fcastShiftStart" value="6" min="0" max="23" step="1" title="First shift start hour (24h)" onchange="renderForecasting()" style="width:70px" placeholder="Start hr"/>
         <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-left:8px;white-space:nowrap">Hourly view</span>
         <select class="inp inp-sm" id="fcastDowFilter" onchange="renderForecasting()" style="width:130px">
           <option value="">All Days</option>
@@ -3349,6 +3357,17 @@ function renderForecasting(){
   const peakIdx=fcVol.indexOf(Math.max(...validVol));
   const peakDay=peakIdx>=0?fcLabels[peakIdx]:null;
 
+  const totalHeadcount=parseInt((document.getElementById('fcastHeadcount')||{}).value||'0')||0;
+  const numShifts=parseInt((document.getElementById('fcastShifts')||{}).value||'3');
+  const shiftStartHr=parseInt((document.getElementById('fcastShiftStart')||{}).value||'6');
+  const shiftLen=Math.round(24/numShifts);
+  const shifts=Array.from({length:numShifts},(_,i)=>{
+    const s=(shiftStartHr+i*shiftLen)%24;
+    const e=(shiftStartHr+(i+1)*shiftLen)%24;
+    return {start:s, end:e, label:`${String(s).padStart(2,'0')}:00 – ${String(e||24).padStart(2,'0')}:00`};
+  });
+  const dailyAvail=totalHeadcount>0?+(totalHeadcount*5/7).toFixed(1):null;
+
   const dowFilterVal=(document.getElementById('fcastDowFilter')||{}).value||'';
   const dowFilteredRows=rows.filter(r=>{
     const d=parseDate(r.agent_assigned_at||''); if(!d) return true;
@@ -3364,6 +3383,91 @@ function renderForecasting(){
   const peakHrLabel=peakHr>=0?`${String(peakHr).padStart(2,'0')}:00–${String(peakHr+1).padStart(2,'0')}:00`:'—';
   const hrLabels=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
   const dowLabel=dowFilterVal===''?'All Days':dowFilterVal==='wd'?'Weekdays':dowFilterVal==='we'?'Weekends':['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][parseInt(dowFilterVal)];
+
+  const shiftDemand=shifts.map(sh=>{
+    const hrs=[];
+    for(let h=sh.start;h!==sh.end;h=(h+1)%24) hrs.push(h);
+    const maxD=hrs.length?Math.max(...hrs.map(h=>hrStaff[h])):0;
+    const avgD=hrs.length?+(hrs.reduce((s,h)=>s+hrProfile[h],0)/hrs.length).toFixed(1):0;
+    return {...sh, maxD, avgD, recommended:maxD};
+  });
+  const totalRec=shiftDemand.reduce((s,sh)=>s+sh.recommended,0);
+  const shiftPlanHtml=totalHeadcount>0?`
+    <div class="card" style="margin-top:12px">
+      <div class="card-hd"><span class="card-title">Shift Planning</span>
+        <span class="badge ${totalRec<=dailyAvail?'bg':'br'}">${totalRec} needed · ${dailyAvail} avail/day (${totalHeadcount} × 5/7)</span>
+      </div>
+      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Shift</th><th>Hours</th><th>Avg Conv/hr</th><th>Peak Agents Needed</th><th>Recommended</th><th>Coverage</th></tr></thead><tbody>
+        ${shiftDemand.map((sh,i)=>{
+          const ok=sh.recommended<=Math.round(dailyAvail/numShifts+dailyAvail*0.15);
+          return `<tr>
+            <td><strong>Shift ${i+1}</strong></td>
+            <td style="font-family:monospace;font-size:12px">${sh.label}</td>
+            <td>${sh.avgD}</td>
+            <td>${sh.maxD}</td>
+            <td><span class="sc-badge ${ok?'pass':'fail'}" style="font-size:13px">${sh.recommended}</span></td>
+            <td>${ok?'<span class="cg">✓ Covered</span>':'<span class="cr">⚠ Check</span>'}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="border-top:2px solid var(--border)">
+          <td colspan="3"><strong>Total agents needed simultaneously</strong></td>
+          <td colspan="2"><strong>${totalRec}</strong></td>
+          <td>${totalRec<=dailyAvail?'<span class="cg">✓ Within headcount</span>':'<span class="cr">⚠ Exceeds daily available ('+dailyAvail+')</span>'}</td>
+        </tr>
+      </tbody></table></div>
+    </div>`:'';
+
+  const avgDailyVol=histVol.length?histVol.reduce((s,x)=>s+x.val,0)/histVol.length:1;
+  const calHtml=`
+    <div class="card" style="margin-top:12px">
+      <div class="card-hd"><span class="card-title">Forecast Calendar</span><span class="badge bp">Next ${horizonDays} days</span></div>
+      <div class="card-bd-0" style="overflow-x:auto">
+        <div style="display:grid;grid-template-columns:repeat(${Math.min(horizonDays,7)},1fr);gap:1px;background:var(--border);min-width:${Math.min(horizonDays,7)*120}px">
+          ${fcLabels.slice(0,horizonDays).map((dl,i)=>{
+            const vol=fcVol[i]||0;
+            const scale=avgDailyVol>0?vol/avgDailyVol:1;
+            const dayDate=new Date(dl+'T12:00:00');
+            const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayDate.getDay()];
+            const isWe=dayDate.getDay()===0||dayDate.getDay()===6;
+            const dayShifts=totalHeadcount>0?shiftDemand.map(sh=>({...sh,scaled:Math.ceil(sh.recommended*scale)})):[];
+            const dayTotal=dayShifts.reduce((s,sh)=>s+sh.scaled,0);
+            const coverage=dailyAvail?dayTotal<=dailyAvail:'ok';
+            return `<div style="background:var(--bg2);padding:10px 8px;min-height:120px">
+              <div style="font-size:11px;font-weight:700;color:${isWe?'var(--text3)':'var(--text)'}">${dow}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--accent);margin:2px 0">${dayDate.getDate()}/${dayDate.getMonth()+1}</div>
+              <div style="font-size:11px;color:var(--blue);margin-bottom:6px">${vol} conv</div>
+              ${totalHeadcount>0?dayShifts.map((sh,si)=>`
+                <div style="font-size:10px;background:${sh.scaled>Math.ceil(sh.recommended*1.2)?'rgba(239,68,68,.15)':'rgba(124,90,240,.12)'};border-radius:3px;padding:2px 4px;margin-bottom:2px">
+                  S${si+1} <strong>${sh.scaled}</strong> agents
+                </div>`).join(''):`<div style="font-size:10px;color:var(--text3)">Add headcount</div>`}
+              ${totalHeadcount>0&&dailyAvail?`<div style="font-size:10px;margin-top:4px;color:${coverage?'var(--green)':'var(--red)'}">${coverage?'✓':'⚠'} ${dayTotal}/${Math.round(dailyAvail)}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+        ${horizonDays>7?`<div style="overflow-x:auto;margin-top:1px"><div style="display:grid;grid-template-columns:repeat(${Math.min(horizonDays-7,7)},1fr);gap:1px;background:var(--border);min-width:${Math.min(horizonDays-7,7)*120}px">
+          ${fcLabels.slice(7,horizonDays).map((dl,i)=>{
+            const vol=fcVol[7+i]||0;
+            const scale=avgDailyVol>0?vol/avgDailyVol:1;
+            const dayDate=new Date(dl+'T12:00:00');
+            const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayDate.getDay()];
+            const isWe=dayDate.getDay()===0||dayDate.getDay()===6;
+            const dayShifts=totalHeadcount>0?shiftDemand.map(sh=>({...sh,scaled:Math.ceil(sh.recommended*scale)})):[];
+            const dayTotal=dayShifts.reduce((s,sh)=>s+sh.scaled,0);
+            const coverage=dailyAvail?dayTotal<=dailyAvail:'ok';
+            return `<div style="background:var(--bg2);padding:10px 8px;min-height:120px">
+              <div style="font-size:11px;font-weight:700;color:${isWe?'var(--text3)':'var(--text)'}">${dow}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--accent);margin:2px 0">${dayDate.getDate()}/${dayDate.getMonth()+1}</div>
+              <div style="font-size:11px;color:var(--blue);margin-bottom:6px">${vol} conv</div>
+              ${totalHeadcount>0?dayShifts.map((sh,si)=>`
+                <div style="font-size:10px;background:rgba(124,90,240,.12);border-radius:3px;padding:2px 4px;margin-bottom:2px">
+                  S${si+1} <strong>${sh.scaled}</strong> agents
+                </div>`).join(''):`<div style="font-size:10px;color:var(--text3)">Add headcount</div>`}
+              ${totalHeadcount>0&&dailyAvail?`<div style="font-size:10px;margin-top:4px;color:${coverage?'var(--green)':'var(--red)'}">${coverage?'✓':'⚠'} ${dayTotal}/${Math.round(dailyAvail)}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div></div>`:''}
+      </div>
+    </div>`;
 
   el.innerHTML=`
     <div class="charts-grid" style="margin-bottom:16px">
@@ -3390,7 +3494,9 @@ function renderForecasting(){
     <div class="card">
       <div class="card-hd"><span class="card-title">Hourly Staffing Need</span><span class="badge bp">${dowLabel} · agents needed per hour</span></div>
       <div class="card-bd"><div style="position:relative;height:220px"><canvas id="fcastHrStaffChart"></canvas></div></div>
-    </div>`;
+    </div>
+    ${shiftPlanHtml}
+    ${calHtml}`;
 
   const histLabels=histVol.map(x=>x.date);
   const histVals=histVol.map(x=>x.val);
