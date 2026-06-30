@@ -1936,10 +1936,30 @@ function getScore(r) {
 
 const QA_META = new Set(['Timestamp','Score','Agent Name','Tickets Link','Comment',
   'Final score','Final Score','Agent mail','WB Date','WD','Column 35','Column 28','Column 34',
-  'Column 31','Column 32','Column 33']);
+  'Column 31','Column 32','Column 33',
+  'Column 59','Column 60','Column 61','Column 62','Column 63','Column 64','Column 65',
+  'Column 66','Column 67','Column 68']);
 function qaFailedAttrs(r) {
   return Object.keys(r).filter(k => !QA_META.has(k) && /^no$/i.test(String(r[k]||'').trim()));
 }
+
+const QA_CRITERIA_GROUPS = [
+  { label: 'Process & Compliance', color: '#7c5af0', keys: [
+    'Checking Tools','Security checks','Team Reporting','memo on reporting',
+    'Zero Tolerance','Chat Avoidance','Failed to escalate.','description',
+    'Extra assistance.',' Extra assistance.'
+  ]},
+  { label: 'Interaction', color: '#3b7ef8', keys: [
+    'Closure','Hold Etiquette','Acknowledgement','Attitude','Language','tailored response'
+  ]},
+  { label: 'Resolution', color: '#22c55e', keys: [
+    'Resolution','Effective questions','Tree Triplets','Assurance','Ownership',
+    'Explaining to the user the steps of resolving','Education & Alternatives'
+  ]},
+  { label: 'Status', color: '#f59e0b', keys: [
+    'W/R Status','Pending Status','Assigned contact tree'
+  ]}
+];
 
 function calcQuality(name, mk) {
   const rows   = S.qRows.filter(r=>r['Agent Name']===name && inMonth(r['Timestamp'],mk));
@@ -2622,6 +2642,13 @@ function renderQuality() {
   const attrKeys=Object.keys(attrC).sort((a,b)=>attrC[b]-attrC[a]).slice(0,10);
   const attrVals=attrKeys.map(k=>attrC[k]);
 
+  const _qaTotalRows=rows.length;
+  const _qaGroupStats=QA_CRITERIA_GROUPS.map(g=>{
+    const criteriaStats=g.keys.map(k=>({ key:k, fails:attrC[k]||0, rate:_qaTotalRows?+((attrC[k]||0)/_qaTotalRows*100).toFixed(1):0 })).filter(c=>c.fails>0).sort((a,b)=>b.fails-a.fails);
+    const groupFails=criteriaStats.reduce((s,c)=>s+c.fails,0);
+    return {...g, criteriaStats, groupFails};
+  }).filter(g=>g.criteriaStats.length>0);
+
   // ── Duplicate ticket detection ──
   const _lnkCounts={};
   rows.forEach(r=>{ const lnk=(r['Tickets Link']||'').trim(); if(lnk) _lnkCounts[lnk]=(_lnkCounts[lnk]||0)+1; });
@@ -2717,6 +2744,27 @@ function renderQuality() {
       ${chartCard('Avg Score Over Time','qaTrendChart')}
       ${attrKeys.length?chartCard('Most Failed Attributes','qaAttrChart'):''}
     </div>
+    ${_qaGroupStats.length?`<div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><span class="card-title">QA Criteria Breakdown by Category</span><span style="font-size:11px;color:var(--text3)">% = tickets with this failure / total reviews</span></div>
+      <div class="card-bd" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+        ${_qaGroupStats.map(g=>`<div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:10px;height:10px;border-radius:50%;background:${g.color};flex-shrink:0;display:inline-block"></span>
+            <span style="font-weight:700;font-size:13px;color:var(--text)">${g.label}</span>
+            <span class="badge" style="background:rgba(239,68,68,.12);color:var(--red);margin-left:auto">${g.groupFails} fails</span>
+          </div>
+          ${g.criteriaStats.map(c=>`<div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+              <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:75%" title="${c.key.trim()}">${c.key.trim()}</span>
+              <span style="color:var(--red);font-weight:700;flex-shrink:0;margin-left:6px">${c.rate}%</span>
+            </div>
+            <div style="background:var(--bg3);border-radius:3px;height:5px;overflow:hidden">
+              <div style="height:100%;width:${Math.min(100,c.rate)}%;background:${g.color};border-radius:3px"></div>
+            </div>
+          </div>`).join('')}
+        </div>`).join('')}
+      </div>
+    </div>`:''}
     <div class="card"><div class="card-hd"><span class="card-title">Ticket-Level QA Reviews</span><div style="display:flex;gap:8px;align-items:center"><span class="badge bp">${total} records</span>${csvBtn('quality')}</div></div>
     <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr>${sortableTh('qual','date','Date')}${sortableTh('qual','agent','Agent')}${sortableTh('qual','score','Score')}<th>Failed Attributes</th><th>Ticket</th><th>Comment</th><th>Coaching</th></tr></thead><tbody>${trs||`<tr><td colspan="7" style="color:var(--text3);padding:20px;text-align:center">No tickets match your filters</td></tr>`}</tbody></table></div>${pag}</div>`;
 
