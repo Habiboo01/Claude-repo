@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
 :root{
   --bg:#f4f5fa;--bg1:#ffffff;--bg2:#ffffff;--bg3:#eef0f6;
@@ -325,6 +326,7 @@ select.inp{cursor:pointer}
           <button class="btn btn-sm" onclick="document.getElementById('ovFrom').value='';document.getElementById('ovTo').value='';renderOverview()">Clear</button>
           <button class="btn btn-sm" onclick="toggleAgentFilter()">👥 Filter Agents</button>
           <button class="btn btn-sm" onclick="toggleOvViewPanel()" id="ovViewBtn">⚙ View</button>
+          <button class="btn btn-sm btn-accent" onclick="generateWBR()" id="wbrBtn" title="Generate the weekly business review deck (.pptx) from the current data">📊 Weekly Deck</button>
         </div>
       </div>
       <div id="ovViewPanel" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;margin-bottom:12px">
@@ -4212,6 +4214,283 @@ function applyOvViewPrefs() {
     const sec = document.getElementById('ovSec_'+k);
     if (sec) sec.style.display = prefs[k] ? '' : 'none';
   });
+}
+
+/* ════════════════════════════════════════
+   WEEKLY BUSINESS REVIEW (WBR) DECK GENERATOR
+   Builds a native .pptx from live dashboard data, matching the WBR template.
+   ════════════════════════════════════════ */
+const WBR = {
+  bg:'0E1117', panel:'171E2B', panel2:'1E2634', line:'2A3342',
+  text:'EAEEF5', muted:'93A0B4', dim:'5C6779',
+  teal:'2DD4BF', orange:'F8893A', indigo:'7C8CF8', green:'22C55E', red:'EF4444',
+  fontH:'Poppins', fontB:'Arial', fontM:'Courier New'
+};
+
+function wbrMaxDate() {
+  let mx=null;
+  const bump=v=>{ const d=parseDate(v); if(d&&(!mx||d>mx)) mx=d; };
+  S.pRows.forEach(r=>bump(r.work_date));
+  S.qRows.forEach(r=>bump(r['Timestamp']));
+  S.rRows.forEach(r=>bump(rcDate(r)));
+  return mx||new Date();
+}
+function wbrIsoWeek(d) {
+  const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-day);
+  const ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  return Math.ceil((((dt-ys)/86400000)+1)/7);
+}
+function wbrIso(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
+
+function wbrAgentData(from,to,rrIdx,rrWin) {
+  return allAgents().map(a=>{
+    const q=calcQualityRange(a,from,to);
+    const perf=aggPerf(getAgentPerfRows(a,from,to));
+    const rr=calcRepeatRate(a,from,to,rrIdx,rrWin);
+    return { a,
+      qa:   q?q.avg:null,
+      tickets: q?q.total:0,
+      csat: perf?parseFloat(perf.csat_pct):null,
+      aht:  perf?parseFloat(perf.avg_aht_min):null,
+      frt:  perf?parseFloat(perf.avg_art_sec):null,
+      rr };
+  });
+}
+function wbrAvg(arr){ const v=arr.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; }
+function wbrRawScope(from,to) {
+  return S.rRows.filter(r=>{ const d=parseDate(rcDate(r)); if(!d) return false;
+    if(from&&d<parseDateLocal(from)) return false; if(to&&d>parseDateLocal(to)) return false; return true; });
+}
+
+async function generateWBR() {
+  const btn=document.getElementById('wbrBtn');
+  if(typeof PptxGenJS==='undefined'){ toast('Presentation library not loaded — check your connection and retry'); return; }
+  if(!allAgents().length){ toast('No data to build a deck — Sync your sheets first'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Building…'; }
+  try {
+    const T=S.cfgTargets;
+    const rrIdx=buildRRIndex();
+    const rrWin=parseInt(ls.get('rr_window')||'7')||7;
+    const repeatTarget=parseFloat(ls.get('rr_target'))||20;
+
+    const end=wbrMaxDate();
+    const lwTo=wbrIso(end);
+    const lwFromD=new Date(end.getTime()-6*86400000); const lwFrom=wbrIso(lwFromD);
+    const mtdFrom=wbrIso(new Date(end.getFullYear(),end.getMonth(),1));
+    const week=wbrIsoWeek(end);
+
+    const lw=wbrAgentData(lwFrom,lwTo,rrIdx,rrWin);
+    const mtd=wbrAgentData(mtdFrom,lwTo,rrIdx,rrWin);
+
+    const overall=data=>({
+      csat:wbrAvg(data.map(d=>d.csat)),
+      qa:wbrAvg(data.map(d=>d.qa)),
+      aht:wbrAvg(data.map(d=>d.aht)),
+      frt:wbrAvg(data.map(d=>d.frt))
+    });
+    const oLw=overall(lw), oMtd=overall(mtd);
+
+    const P=new PptxGenJS();
+    P.defineLayout({name:'W',width:13.333,height:7.5});
+    P.layout='W';
+    P.author='telda~ Workforce Dashboard';
+    P.title='WBR / Week-'+week;
+
+    const num=(v,suf,dp)=>v==null?'—':(dp!=null?v.toFixed(dp):Math.round(v))+(suf||'');
+    const good=(v,tgt,lower)=>v==null?WBR.muted:(lower?(v<=tgt?WBR.teal:WBR.orange):(v>=tgt?WBR.teal:WBR.orange));
+
+    /* ---- shared slide chrome ---- */
+    const base=(eyebrow,title)=>{
+      const s=P.addSlide(); s.background={color:WBR.bg};
+      s.addText(String(eyebrow).toUpperCase(),{ x:0.55,y:0.42,w:9,h:0.3,fontFace:WBR.fontM,fontSize:12,color:WBR.teal,charSpacing:2,bold:true });
+      s.addText(title,{ x:0.55,y:0.72,w:12.2,h:0.7,fontFace:WBR.fontH,fontSize:30,color:WBR.text,bold:true });
+      s.addText('telda~ · WBR Week-'+week,{ x:9.6,y:6.95,w:3.2,h:0.3,align:'right',fontFace:WBR.fontB,fontSize:9,color:WBR.dim });
+      return s;
+    };
+    const kpiTable=(s,o)=>{
+      const hdr=['KPI Metric','Target','Score'];
+      const rows=[[
+        { text:'CSAT',opt:{color:WBR.text}}, {text:T.csatTargetPct+'%'}, {text:num(o.csat,'%',1),color:good(o.csat,T.csatTargetPct,false)}
+      ],[
+        {text:'Quality',color:WBR.text}, {text:T.qaPassPct+'%'}, {text:num(o.qa,'%',1),color:good(o.qa,T.qaPassPct,false)}
+      ],[
+        {text:'AHT',color:WBR.text}, {text:T.ahtTargetMin+' M'}, {text:num(o.aht,' M',1),color:good(o.aht,T.ahtTargetMin,true)}
+      ],[
+        {text:'FRT',color:WBR.text}, {text:'—'}, {text:num(o.frt,'s',0),color:WBR.teal}
+      ]];
+      const trs=[ hdr.map(h=>({ text:h,options:{ bold:true,color:WBR.muted,fontFace:WBR.fontM,fontSize:12,fill:{color:WBR.panel},valign:'middle'} })) ];
+      rows.forEach(r=>trs.push(r.map(c=>({ text:c.text,options:{ bold:c.color?true:false,color:c.color||WBR.text,fontSize:16,fontFace:WBR.fontB,fill:{color:WBR.panel2},valign:'middle',align: (c===r[0]?'left':'center') } }))));
+      s.addTable(trs,{ x:0.55,y:1.9,w:7.4,colW:[3.6,1.9,1.9],rowH:0.7,border:{type:'solid',color:WBR.line,pt:1} });
+    };
+
+    /* Slide 1 — Title */
+    const t1=P.addSlide(); t1.background={color:WBR.bg};
+    t1.addShape(P.ShapeType.rect,{ x:0,y:3.05,w:0.9,h:0.14,fill:{color:WBR.indigo} });
+    t1.addText('WEEKLY BUSINESS REVIEW',{ x:1.15,y:2.55,w:11,h:0.4,fontFace:WBR.fontM,fontSize:14,color:WBR.teal,charSpacing:3,bold:true });
+    t1.addText('WBR / Week-'+week,{ x:1.1,y:2.95,w:11,h:1.1,fontFace:WBR.fontH,fontSize:54,color:WBR.text,bold:true });
+    t1.addText(parseDateLocal(lwFrom).toLocaleDateString('en-GB')+'  –  '+parseDateLocal(lwTo).toLocaleDateString('en-GB'),{ x:1.15,y:4.05,w:11,h:0.4,fontFace:WBR.fontB,fontSize:18,color:WBR.muted });
+    t1.addText('telda~ Customer Support · generated '+new Date().toLocaleDateString('en-GB'),{ x:1.15,y:6.7,w:11,h:0.3,fontFace:WBR.fontB,fontSize:11,color:WBR.dim });
+
+    /* Slides 2 & 3 — Overall KPIs */
+    kpiTable(base('Overall KPI scores','Overall KPIs / Last Week'),oLw);
+    kpiTable(base('Overall KPI scores','Overall KPIs / MTD'),oMtd);
+
+    /* Slides 4 & 5 — Team Performance tables */
+    const teamSlide=(title,data)=>{
+      const s=base('Team Performance Overview',title);
+      const sorted=[...data].filter(d=>d.csat!=null||d.qa!=null||d.aht!=null).sort((a,b)=>(b.csat??-1)-(a.csat??-1));
+      const head=['Agent','CSAT','Quality','AHT','FRT','Repeat'];
+      const trs=[ head.map(h=>({ text:h,options:{bold:true,color:WBR.muted,fontFace:WBR.fontM,fontSize:11,fill:{color:WBR.panel},valign:'middle',align:'center'} })) ];
+      trs[0][0].options.align='left';
+      sorted.forEach(d=>{
+        trs.push([
+          { text:d.a,options:{color:WBR.text,fontSize:11,fontFace:WBR.fontB,fill:{color:WBR.panel2},align:'left',valign:'middle'} },
+          { text:num(d.csat,'%',1),options:{color:good(d.csat,T.csatTargetPct,false),fontSize:11,fill:{color:WBR.panel2},align:'center',valign:'middle'} },
+          { text:num(d.qa,'%',1),options:{color:good(d.qa,T.qaPassPct,false),fontSize:11,fill:{color:WBR.panel2},align:'center',valign:'middle'} },
+          { text:num(d.aht,'M',1),options:{color:good(d.aht,T.ahtTargetMin,true),fontSize:11,fill:{color:WBR.panel2},align:'center',valign:'middle'} },
+          { text:num(d.frt,'s',0),options:{color:WBR.text,fontSize:11,fill:{color:WBR.panel2},align:'center',valign:'middle'} },
+          { text:d.rr?d.rr.rate+'%':'—',options:{color:d.rr?good(d.rr.rate,repeatTarget,true):WBR.muted,fontSize:11,fill:{color:WBR.panel2},align:'center',valign:'middle'} }
+        ]);
+      });
+      s.addTable(trs,{ x:0.55,y:1.75,w:12.2,colW:[4.2,1.6,1.6,1.6,1.6,1.6],rowH:0.36,border:{type:'solid',color:WBR.line,pt:1},autoPage:false });
+    };
+    teamSlide('Last Week',lw);
+    teamSlide('MTD',mtd);
+
+    /* Slides 6-8 — Low performers */
+    const lowSlide=(eyebrow,title,data,key,fmt,lower,tgt)=>{
+      const s=base(eyebrow,title);
+      const ranked=[...data].filter(d=>d[key]!=null).sort((a,b)=>lower?(b[key]-a[key]):(a[key]-b[key])).slice(0,3);
+      const head=['Agent Name',title.split('[')[0].trim()+' Score','Reason (Root Cause)','Action Taken'];
+      const trs=[ head.map(h=>({ text:h,options:{bold:true,color:WBR.muted,fontFace:WBR.fontM,fontSize:11,fill:{color:WBR.panel},valign:'middle'} })) ];
+      ranked.forEach(d=>{
+        trs.push([
+          { text:d.a,options:{color:WBR.text,fontSize:13,fill:{color:WBR.panel2},valign:'middle'} },
+          { text:fmt(d[key]),options:{color:good(d[key],tgt,lower),bold:true,fontSize:13,fill:{color:WBR.panel2},valign:'middle',align:'center'} },
+          { text:'',options:{fill:{color:WBR.panel2}} },
+          { text:'',options:{fill:{color:WBR.panel2}} }
+        ]);
+      });
+      s.addTable(trs,{ x:0.55,y:1.9,w:12.2,colW:[3,2,3.6,3.6],rowH:0.9,border:{type:'solid',color:WBR.line,pt:1} });
+      s.addText('Reason & Action columns are left blank for coaching notes — fill in before presenting.',{ x:0.55,y:6.7,w:12,h:0.3,fontFace:WBR.fontB,fontSize:10,italic:true,color:WBR.dim });
+    };
+    lowSlide('CSAT Performance [Low Performers]','CSAT [Low Performers] / Last Week',lw,'csat',v=>v.toFixed(1)+'%',false,T.csatTargetPct);
+    lowSlide('Quality Scores per Agent [Low Performers]','Quality [Low Performers] / Last Week',lw,'qa',v=>v.toFixed(1)+'%',false,T.qaPassPct);
+    lowSlide('AHT Performance [Low Performers]','AHT [Low Performers] / Last Week',lw,'aht',v=>v.toFixed(2)+' Mins',true,T.ahtTargetMin);
+
+    /* ---- Repeat / Payment section (MTD scope on raw data) ---- */
+    const rrows=wbrRawScope(mtdFrom,lwTo);
+    if(rrows.length){
+      const total=rrows.length;
+      const repRows=rrows.filter(rcIsRepeat);
+      const repeat=repRows.length;
+      const repeatPct=total?+(repeat/total*100).toFixed(1):0;
+      const users=new Set(rrows.map(r=>rcVal(r,'telda_user_id')).filter(Boolean)).size;
+
+      /* Section header */
+      const sh=P.addSlide(); sh.background={color:WBR.bg};
+      sh.addText('CUSTOMER SUPPORT · PAYMENT',{ x:0.7,y:2.5,w:12,h:0.4,fontFace:WBR.fontM,fontSize:14,color:WBR.orange,charSpacing:2,bold:true });
+      sh.addText('Repeat Rate Analysis',{ x:0.65,y:2.9,w:12,h:0.9,fontFace:WBR.fontH,fontSize:44,color:WBR.text,bold:true });
+      sh.addText('How often customers come back versus get resolved on first contact — and which agents drive the difference.',{ x:0.7,y:3.9,w:11,h:0.5,fontFace:WBR.fontB,fontSize:15,color:WBR.muted });
+      const chips=[[String(allAgents().length),'agents'],[total.toLocaleString(),'tickets'],[users.toLocaleString(),'unique users']];
+      chips.forEach((c,i)=>{ const x=0.7+i*3.0;
+        sh.addText([{text:c[0]+'\n',options:{fontSize:26,bold:true,color:WBR.teal,fontFace:WBR.fontH}},{text:c[1],options:{fontSize:12,color:WBR.muted}}],{ x,y:4.9,w:2.8,h:1,align:'left',fill:{color:WBR.panel},valign:'middle' }); });
+
+      /* THE HEADLINE */
+      const hl=base('The Headline','Repeat vs first contact');
+      hl.addText(repeatPct+'%',{ x:0.55,y:2.3,w:6,h:1.8,fontFace:WBR.fontH,fontSize:96,bold:true,color:repeatPct<repeatTarget?WBR.teal:WBR.orange });
+      hl.addText('repeat rate',{ x:0.6,y:4.0,w:6,h:0.4,fontFace:WBR.fontB,fontSize:18,color:WBR.muted });
+      hl.addText('TARGET < '+repeatTarget+'%',{ x:0.6,y:4.5,w:6,h:0.4,fontFace:WBR.fontM,fontSize:13,color:WBR.dim });
+      const fcr=total?(100-repeatPct).toFixed(1):0;
+      hl.addText([{text:repeat.toLocaleString()+'\n',options:{fontSize:30,bold:true,color:WBR.orange,fontFace:WBR.fontH}},{text:'customers came back',options:{fontSize:13,color:WBR.muted}}],{ x:7.1,y:2.4,w:5.4,h:1.3,fill:{color:WBR.panel},valign:'middle',align:'left' });
+      hl.addText([{text:(total-repeat).toLocaleString()+'\n',options:{fontSize:30,bold:true,color:WBR.teal,fontFace:WBR.fontH}},{text:'resolved first contact ('+fcr+'%)',options:{fontSize:13,color:WBR.muted}}],{ x:7.1,y:3.9,w:5.4,h:1.3,fill:{color:WBR.panel},valign:'middle',align:'left' });
+
+      /* THE BOOK OF WORK — status breakdown */
+      const statusC={}; rrows.forEach(r=>{ const s=rcVal(r,'ticket_status')||'—'; statusC[s]=(statusC[s]||0)+1; });
+      const statusArr=Object.entries(statusC).sort((a,b)=>b[1]-a[1]).slice(0,6);
+      const bw=base('The Book of Work','Ticket status breakdown');
+      bw.addText(total.toLocaleString()+' total tickets',{ x:0.55,y:1.72,w:8,h:0.35,fontFace:WBR.fontB,fontSize:14,color:WBR.muted });
+      statusArr.forEach(([k,v],i)=>{ const y=2.3+i*0.72; const pct=(v/total*100).toFixed(1);
+        bw.addText(k,{ x:0.55,y,w:3.6,h:0.5,fontFace:WBR.fontB,fontSize:14,color:WBR.text,valign:'middle' });
+        bw.addShape(P.ShapeType.rect,{ x:4.2,y:y+0.12,w:6.5,h:0.26,fill:{color:WBR.panel} });
+        bw.addShape(P.ShapeType.rect,{ x:4.2,y:y+0.12,w:Math.max(0.05,6.5*v/total),h:0.26,fill:{color:[WBR.teal,WBR.indigo,WBR.orange,WBR.dim][i%4]} });
+        bw.addText(v.toLocaleString()+'  ·  '+pct+'%',{ x:10.85,y,w:2,h:0.5,fontFace:WBR.fontM,fontSize:13,color:WBR.text,valign:'middle' });
+      });
+
+      /* WHAT REPEATS ARE ABOUT — top repeated subcategories */
+      const subKey=repRows.some(r=>rcVal(r,'sub_category_1'))?'sub_category_1':'assigned_label';
+      const subC={}; repRows.forEach(r=>{ const k=rcVal(r,subKey)||'(blank)'; subC[k]=(subC[k]||0)+1; });
+      const subArr=Object.entries(subC).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const wr=base('What Repeats Are About','Top repeated subcategories');
+      wr.addText('REPEATED TICKETS · '+repeat.toLocaleString()+' total · top '+subArr.length+' shown',{ x:0.55,y:1.72,w:11,h:0.35,fontFace:WBR.fontM,fontSize:12,color:WBR.dim });
+      const wrTrs=subArr.map(([k,v],i)=>[
+        { text:String(i+1),options:{color:WBR.dim,fontSize:11,fill:{color:WBR.panel2},align:'center',valign:'middle'} },
+        { text:k,options:{color:WBR.text,fontSize:12,fill:{color:WBR.panel2},valign:'middle'} },
+        { text:String(v),options:{color:WBR.teal,bold:true,fontSize:12,fill:{color:WBR.panel2},align:'center',valign:'middle'} },
+        { text:(v/repeat*100).toFixed(1)+'%',options:{color:WBR.muted,fontSize:12,fill:{color:WBR.panel2},align:'center',valign:'middle'} }
+      ]);
+      wr.addTable(wrTrs,{ x:0.55,y:2.2,w:12.2,colW:[0.8,8.2,1.6,1.6],rowH:0.42,border:{type:'solid',color:WBR.line,pt:1} });
+
+      /* HANDLE TIME — AHT by agent (from raw) */
+      const ahtA={}; rrows.forEach(r=>{ const a=rcVal(r,'agent_name'); const t=parseFloat(r.agent_handle_time_min); if(a&&!isNaN(t)&&t>0){(ahtA[a]=ahtA[a]||[]).push(t);} });
+      const ahtArr=Object.entries(ahtA).map(([a,v])=>[a,v.reduce((x,y)=>x+y,0)/v.length]).sort((a,b)=>a[1]-b[1]);
+      const ahtAvg=ahtArr.length?wbrAvg(ahtArr.map(x=>x[1])):null;
+      const ht=base('Handle Time','AHT by agent');
+      if(ahtAvg!=null) ht.addText(ahtAvg.toFixed(1)+' avg min / ticket',{ x:0.55,y:1.72,w:8,h:0.35,fontFace:WBR.fontB,fontSize:14,color:WBR.muted });
+      const htMax=Math.max(...ahtArr.map(x=>x[1]),1);
+      ahtArr.slice(0,13).forEach(([a,v],i)=>{ const y=2.25+i*0.34;
+        ht.addText(a,{ x:0.55,y,w:3.4,h:0.3,fontFace:WBR.fontB,fontSize:11,color:WBR.text,valign:'middle' });
+        ht.addShape(P.ShapeType.rect,{ x:4.0,y:y+0.05,w:Math.max(0.05,7*v/htMax),h:0.2,fill:{color:v<=T.ahtTargetMin?WBR.teal:WBR.orange} });
+        ht.addText(v.toFixed(1)+' min',{ x:11.2,y,w:1.7,h:0.3,fontFace:WBR.fontM,fontSize:11,color:WBR.text,valign:'middle' });
+      });
+
+      /* BY AGENT — repeat rate per agent */
+      const byA=allAgents().map(a=>({a,rr:calcRepeatRate(a,mtdFrom,lwTo,rrIdx,rrWin)})).filter(x=>x.rr).sort((a,b)=>b.rr.rate-a.rr.rate);
+      const ba=base('By Agent','Repeat rate by agent');
+      ba.addText('TARGET < '+repeatTarget+'%',{ x:0.55,y:1.72,w:6,h:0.35,fontFace:WBR.fontM,fontSize:12,color:WBR.dim });
+      const baMax=Math.max(...byA.map(x=>x.rr.rate),repeatTarget,1);
+      byA.slice(0,13).forEach(({a,rr},i)=>{ const y=2.25+i*0.34;
+        ba.addText(a,{ x:0.55,y,w:3.4,h:0.3,fontFace:WBR.fontB,fontSize:11,color:WBR.text,valign:'middle' });
+        ba.addShape(P.ShapeType.rect,{ x:4.0,y:y+0.05,w:Math.max(0.05,7*rr.rate/baMax),h:0.2,fill:{color:rr.rate<repeatTarget?WBR.teal:WBR.orange} });
+        ba.addText(rr.rate+'%',{ x:11.2,y,w:1.7,h:0.3,fontFace:WBR.fontM,fontSize:11,color:rr.rate<repeatTarget?WBR.teal:WBR.orange,valign:'middle' });
+      });
+
+      /* BY VOLUME — repeat customers handled per agent */
+      const volA={}; repRows.forEach(r=>{ const a=rcVal(r,'agent_name'); const u=rcVal(r,'telda_user_id'); if(a&&u){(volA[a]=volA[a]||new Set()).add(u);} });
+      const volArr=Object.entries(volA).map(([a,s])=>[a,s.size]).sort((a,b)=>b[1]-a[1]);
+      const bv=base('By Volume','Where repeat volume concentrates');
+      const volTot=volArr.reduce((s,x)=>s+x[1],0);
+      const top5=volArr.slice(0,5).reduce((s,x)=>s+x[1],0);
+      if(volTot) bv.addText(Math.round(top5/volTot*100)+'% of repeats from the top 5 · '+volTot.toLocaleString()+' repeat customers',{ x:0.55,y:1.72,w:11,h:0.35,fontFace:WBR.fontB,fontSize:14,color:WBR.muted });
+      const volMax=Math.max(...volArr.map(x=>x[1]),1);
+      volArr.slice(0,13).forEach(([a,v],i)=>{ const y=2.25+i*0.34;
+        bv.addText(a,{ x:0.55,y,w:3.4,h:0.3,fontFace:WBR.fontB,fontSize:11,color:WBR.text,valign:'middle' });
+        bv.addShape(P.ShapeType.rect,{ x:4.0,y:y+0.05,w:Math.max(0.05,7*v/volMax),h:0.2,fill:{color:WBR.indigo} });
+        bv.addText(String(v),{ x:11.2,y,w:1.7,h:0.3,fontFace:WBR.fontM,fontSize:11,color:WBR.text,valign:'middle' });
+      });
+
+      /* BY CATEGORY — repeat drivers by main category */
+      const catKey=repRows.some(r=>rcVal(r,'main_category'))?'main_category':(repRows.some(r=>rcVal(r,'assigned_group'))?'assigned_group':subKey);
+      const catC={}; repRows.forEach(r=>{ const k=rcVal(r,catKey)||'(blank)'; catC[k]=(catC[k]||0)+1; });
+      const catArr=Object.entries(catC).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const bc=base('By Category','Repeat drivers by category');
+      const bcTrs=catArr.map(([k,v])=>[
+        { text:k,options:{color:WBR.text,fontSize:13,fill:{color:WBR.panel2},valign:'middle'} },
+        { text:String(v),options:{color:WBR.orange,bold:true,fontSize:13,fill:{color:WBR.panel2},align:'center',valign:'middle'} },
+        { text:(v/repeat*100).toFixed(1)+'%',options:{color:WBR.muted,fontSize:12,fill:{color:WBR.panel2},align:'center',valign:'middle'} }
+      ]);
+      bc.addTable(bcTrs,{ x:0.55,y:2.0,w:12.2,colW:[8.6,1.8,1.8],rowH:0.46,border:{type:'solid',color:WBR.line,pt:1} });
+    }
+
+    await P.writeFile({ fileName:'WBR_Week-'+week+'_'+lwTo+'.pptx' });
+    toast('Weekly deck downloaded — Week '+week);
+  } catch(e){
+    console.error('WBR generation failed',e);
+    toast('Deck generation failed: '+(e.message||e));
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='📊 Weekly Deck'; }
+  }
 }
 
 function saveLbWeights() {
