@@ -849,10 +849,14 @@ window.debugAdherence = function(name) {
   })));
 };
 window.debugSync = function() {
+  console.log('Per-sheet fetch result:'); console.table(S.fetchDiag||[]);
   console.log('Quality rows:', S.qRows.length, S.qRows[0]);
   console.log('Performance rows:', S.pRows.length, S.pRows[0]);
-  console.log('Adherence rows:', S.aRows.length, S.aRows[0]);
+  console.log('Timeline rows:', S.tRows.length, S.tRows[0]);
+  console.log('Raw (Root Cause) rows:', S.rRows.length, S.rRows[0]);
   console.log('Config:', cfg());
+  const ns=(S.fetchDiag||[]).filter(d=>d.status==='not-shared').map(d=>d.name);
+  if(ns.length) console.warn('NOT SHARED PUBLICLY → '+ns.join(', ')+'. Share each as "Anyone with the link — Viewer".');
 };
 
 const GAS_SCRIPT = `function doGet(e) {
@@ -1407,33 +1411,59 @@ async function syncAll(silent=false) {
   if (spin) spin.style.display = 'inline-block';
   if (stat) stat.textContent = 'Syncing…';
 
-  const fetchSheet = async (id, tab, gid, range, raw) => {
-    if (!id || (!tab && !gid)) return [];
+  S.fetchDiag = [];
+  const fetchSheet = async (id, tab, gid, range, raw, name) => {
+    const who = name || tab || gid || 'sheet';
+    if (!id || (!tab && !gid)) { S.fetchDiag.push({name:who,status:'not-configured'}); return []; }
     let url = gid
       ? `https:\/\/docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${encodeURIComponent(gid)}`
       : `https:\/\/docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
     if (range) url += `&range=${encodeURIComponent(range)}`; // limit import to a cell range, e.g. B1:NL18
     try {
       const res = await fetchWithTimeout(url, 10000);
-      if (!res.ok) { console.warn('Sheet fetch failed', tab||gid, res.status); return []; }
+      if (!res.ok) { console.warn('Sheet fetch failed', who, res.status); S.fetchDiag.push({name:who,status:'http-'+res.status}); return []; }
       const txt = await res.text();
-      if (!txt || txt.trim().length < 5) { console.warn('Sheet fetch returned empty', tab||gid); return []; }
+      if (!txt || txt.trim().length < 5) { console.warn('Sheet fetch returned empty', who); S.fetchDiag.push({name:who,status:'empty'}); return []; }
+      // Google serves an HTML sign-in/permission page (200 OK) when the sheet is not shared publicly — detect it.
+      const head = txt.slice(0, 200).toLowerCase();
+      if (head.includes('<!doctype') || head.includes('<html') || head.includes('google docs encountered an error')) {
+        console.warn('Sheet not public — got HTML instead of CSV:', who, url);
+        S.fetchDiag.push({name:who,status:'not-shared'});
+        return [];
+      }
       // raw ⇒ array-of-arrays (keep blank rows so table boundaries are detectable); else keyed objects
       const parsed = await new Promise(r => Papa.parse(txt, {header:!raw, skipEmptyLines:raw?false:true, complete: d=>r(d.data), error:()=>r([])}));
-      if (!parsed.length) console.warn('Sheet parsed but 0 rows — check tab name/gid:', tab||gid, url);
+      if (!parsed.length) console.warn('Sheet parsed but 0 rows — check tab name/gid:', who, url);
+      S.fetchDiag.push({name:who,status:'ok',rows:parsed.length});
       return parsed;
-    } catch (e) { console.warn('Sheet fetch error/timeout', tab||gid, e.message); return []; }
+    } catch (e) { console.warn('Sheet fetch error/timeout', who, e.message); S.fetchDiag.push({name:who,status:'error',msg:e.message}); return []; }
   };
 
   try {
     const [q, p, t, sch, disp, raw] = await Promise.all([
-      fetchSheet(c.qId, c.qTab, c.qGid),
-      fetchSheet(c.pId, c.pTab, c.pGid),
-      fetchSheet(c.tId || c.aId, c.tTab || c.aTab, c.tGid || c.aGid), // tId/tTab = Timeline sheet (replaces old Adherence)
-      fetchSheet(c.sId, c.sTab || 'Schedule', c.sGid, c.sRange, true), // Schedule (raw rows — handles the wide roster matrix); optional range e.g. B1:NL18
-      fetchSheet(c.dId, c.dTab || 'Form Responses 1', c.dGid),        // Dispute Google Form responses
-      fetchSheet(c.rId, c.rTab || 'Query result', c.rGid),            // Raw support-desk data (Root Cause)
+      fetchSheet(c.qId, c.qTab, c.qGid, null, false, 'Quality'),
+      fetchSheet(c.pId, c.pTab, c.pGid, null, false, 'Performance'),
+      fetchSheet(c.tId || c.aId, c.tTab || c.aTab, c.tGid || c.aGid, null, false, 'Timeline'), // tId/tTab = Timeline sheet (replaces old Adherence)
+      fetchSheet(c.sId, c.sTab || 'Schedule', c.sGid, c.sRange, true, 'Schedule'), // Schedule (raw rows — handles the wide roster matrix); optional range e.g. B1:NL18
+      fetchSheet(c.dId, c.dTab || 'Form Responses 1', c.dGid, null, false, 'Disputes'),        // Dispute Google Form responses
+      fetchSheet(c.rId, c.rTab || 'Query result', c.rGid, null, false, 'Raw Data'),            // Raw support-desk data (Root Cause)
     ]);
+    // If nothing was configured at all, guide the user to Setup instead of silently showing empty tabs.
+    const _cfgd = S.fetchDiag.filter(d=>d.status!=='not-configured');
+    if (!_cfgd.length) {
+      const oc=document.getElementById('overviewContent');
+      if (oc && S.mode==='admin') oc.innerHTML = `<div class="alert alert-d">⚠ No sheets are configured. Open <strong>Setup Wizard → Sheet Config</strong>, paste your Sheet IDs, and Save — then Sync.</div>`;
+    }
+    // If sheets are configured but every one came back blocked/empty, the sheets aren't shared publicly.
+    const _shared = _cfgd.filter(d=>d.status==='ok');
+    if (_cfgd.length && !_shared.length) {
+      const notShared = _cfgd.some(d=>d.status==='not-shared');
+      const oc=document.getElementById('overviewContent');
+      const msg = notShared
+        ? `⚠ Your sheets returned Google's sign-in page instead of data. Each source sheet must be shared as <strong>Anyone with the link → Viewer</strong> (or File → Share → Publish to web). Fix sharing, then Sync.`
+        : `⚠ Sheets are configured but returned no rows (${_cfgd.map(d=>d.name+': '+d.status).join(' · ')}). Check the Tab Names and Sheet IDs in Setup, then Sync.`;
+      if (oc && S.mode==='admin') oc.innerHTML = `<div class="alert alert-d">${msg}</div>`;
+    }
 
   // Disputes — store raw form responses; parsed into a disputed set after agents are known (below)
   S.dRows = disp || [];
