@@ -1494,6 +1494,8 @@ async function syncAll(silent=false) {
   // Raw support-desk data (Root Cause) — keep all columns; canonicalize the agent name.
   S.rRows = (raw||[]).filter(r => r && Object.values(r).some(v => String(v||'').trim()))
     .map(r => ({ ...r, agent_name: ID.resolve((r.agent_name||r['Agent Name']||'').trim(), r.agent_email, r.user_added_id) }));
+  // Remember why Root Cause might be empty so the tab can show a helpful reason instead of a generic message.
+  S.rawDiag = { configured: !!c.rId, tab: c.rTab||'Query result', fetched: (raw||[]).length, kept: S.rRows.length };
 
   // Discover any AUX status_name not yet classified — auto-add as Non-Productive default so nothing is silently dropped
   let auxUpdated = false;
@@ -3752,7 +3754,14 @@ function renderForecasting(){
 
 function renderRootCause(){
   const el=document.getElementById('rootcauseContent'); if(!el) return;
-  if(!S.rRows.length){ el.innerHTML=emptyHtml('No raw data','Add a Raw Data sheet in Setup → Raw Data Sheet, then Sync'); return; }
+  if(!S.rRows.length){
+    const d=S.rawDiag||{};
+    let msg;
+    if(!d.configured) msg='No Raw Data Sheet is configured. Open Setup → Raw Data Sheet, paste the Sheet ID (and correct Tab Name), then Sync.';
+    else if(!d.fetched) msg='Raw sheet is configured but the fetch returned 0 rows. Check that the Tab Name is exactly “'+(d.tab||'Query result')+'”, and that the sheet is shared as “Anyone with the link — Viewer”.';
+    else msg='Raw sheet returned '+d.fetched+' rows but none had data after cleanup. Check the export has a header row and non-empty cells.';
+    el.innerHTML=emptyHtml('No raw data', msg); return;
+  }
   const g=id=>(document.getElementById(id)||{}).value||'';
   const from=g('rcFrom'), to=g('rcTo'), dim=g('rcDim')||'assigned_label', statusF=g('rcStatus'), typeF=g('rcType'), domF=g('rcDomain'), qf=g('rcSearch').toLowerCase();
 
