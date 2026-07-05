@@ -981,32 +981,125 @@ function disputeLink(r, s){
     + '&score='+encodeURIComponent(s!=null?s:'');
   return base + sep + p;
 }
-// Parse the dispute Google Form responses sheet into a set of disputed ticket links + records.
-// Columns are auto-detected (forms vary): the ticket URL, the agent name, a timestamp and a reason.
+// Read a value from a dispute row by trying exact column names first, then a loose "contains" match.
+function dispGet(row, names){
+  const keys = Object.keys(row);
+  for (const nm of names){
+    const k = keys.find(k=>k.trim().toLowerCase() === nm.toLowerCase());
+    if (k){ const v=String(row[k]==null?'':row[k]).trim(); if(v) return v; }
+  }
+  for (const nm of names){
+    const k = keys.find(k=>k.trim().toLowerCase().includes(nm.toLowerCase()));
+    if (k){ const v=String(row[k]==null?'':row[k]).trim(); if(v) return v; }
+  }
+  return '';
+}
+// Parse the dispute responses sheet into disputed ticket links + staged records
+// (TL → SME → QA → Final). Named columns are read explicitly, with auto-detect fallback.
 function buildDisputed(dRows){
   const links = new Set();
   const records = [];
   const known = new Set(allAgents());
   (dRows||[]).forEach(row=>{
     const vals = Object.keys(row).map(k=>({k, v:(row[k]==null?'':String(row[k])).trim()})).filter(o=>o.v);
-    // ticket: first value that looks like a URL but is NOT the Google Form itself
-    const ticket = (vals.find(o=>/^https?:/i.test(o.v) && !/docs\.google\.com\/forms/i.test(o.v))||{}).v || '';
-    // agent: a value that matches a known agent name (case-insensitive)
-    const agent = (vals.find(o=>known.has(o.v) || [...known].some(n=>n.toLowerCase()===o.v.toLowerCase()))||{}).v || '';
-    // timestamp: a column literally named Timestamp, else the first date-looking value
-    const tsRaw = row['Timestamp'] || (vals.find(o=>/timestamp|date|time/i.test(o.k))||{}).v || (vals[0]||{}).v || '';
-    // reason: the longest free-text value that isn't the ticket/agent/timestamp
-    const reason = vals.filter(o=>o.v!==ticket && o.v!==agent && o.v!==tsRaw && !/^https?:/i.test(o.v))
-                       .sort((a,b)=>b.v.length-a.v.length).map(o=>o.v)[0] || '';
+    let ticket = dispGet(row, ['Ticket Link','Tickets Link','Ticket']);
+    if (!ticket) ticket = (vals.find(o=>/^https?:/i.test(o.v) && !/docs\.google\.com\/forms/i.test(o.v))||{}).v || '';
+    let agent = dispGet(row, ['Agent Name']);
+    if (!agent) agent = (vals.find(o=>known.has(o.v) || [...known].some(n=>n.toLowerCase()===o.v.toLowerCase()))||{}).v || '';
+    const tsRaw = row['Timestamp'] || dispGet(row, ['Date of Audit','Timestamp','Date']) || '';
+    const reason = dispGet(row, ['Reason of the dispute','Reason of dispute','Reason']);
+    const qaComment = dispGet(row, ['QA Comment']);
+    const stages = [
+      { k:'TL',    label:'Team Lead', resp:dispGet(row,['TL Response']),    comment:dispGet(row,['TL Comment']) },
+      { k:'SME',   label:'SME',       resp:dispGet(row,['SME Response']),   comment:dispGet(row,['SME Comment']) },
+      { k:'QA',    label:'QA',        resp:dispGet(row,['QA Response']),    comment:dispGet(row,['Quality Comment']) },
+      { k:'Final', label:'Final Decision', resp:dispGet(row,['Final Response']), comment:dispGet(row,['Final Comment']) },
+    ];
     if (ticket) links.add(ticket.toLowerCase());
-    records.push({ agent, ticket, ts:tsRaw, reason });
+    records.push({ agent, ticket, ts:tsRaw, reason, qaComment, stages });
   });
   return { links, records };
+}
+// The current dispute status: the latest stage that has a response — but the Final Decision
+// always wins if present, even when SME/QA stages were left blank.
+function disputeStatus(rec){
+  const st = (rec&&rec.stages) || [];
+  const fin = st.find(s=>s.k==='Final');
+  if (fin && fin.resp) return fin;
+  const filled = st.filter(s=>s.resp);
+  return filled.length ? filled[filled.length-1] : null;
+}
+// Colour a verdict text: accepted/overturned ⇒ green, rejected/upheld-score ⇒ red, else neutral.
+function disputeVerdictClass(text){
+  const t=(text||'').toLowerCase();
+  if (/accept|approv|overturn|in favou?r|valid(?!ate)|revis|adjust|correct|grant/.test(t)) return 'ok';
+  if (/reject|declin|denied|deny|invalid|not valid|no change|score stands|uphold/.test(t))  return 'no';
+  return 'pending';
+}
+function disputeRecFor(ticket){
+  const l=String(ticket||'').trim().toLowerCase();
+  return (S.disputed.records||[]).find(r=>r.ticket && r.ticket.toLowerCase()===l) || null;
 }
 // A QA review row is disputed if its ticket link appears in the dispute responses.
 function isDisputed(r){
   const l=(r['Tickets Link']||'').trim().toLowerCase();
   return !!l && S.disputed.links.has(l);
+}
+// Small badge summarising the current dispute stage; click opens the full timeline.
+function disputeBadge(ticket){
+  const rec=disputeRecFor(ticket); if(!rec) return '';
+  const cur=disputeStatus(rec);
+  const cls=cur?disputeVerdictClass(cur.resp):'pending';
+  const badgeCls = cls==='ok'?'bg':cls==='no'?'br':'ba';
+  const label = cur ? cur.label+' · '+cur.resp : 'Under review';
+  const short = label.length>28 ? label.slice(0,27)+'…' : label;
+  return `<button class="badge ${badgeCls}" style="cursor:pointer;border:none;font:inherit" data-dt="${attrEsc(ticket)}" onclick="openDisputeStatus(this.dataset.dt)" title="Click for full dispute status">⚖ ${short}</button>`;
+}
+// Full dispute status timeline (agent-facing): Raised → TL → SME → QA → Final.
+function openDisputeStatus(ticket){
+  const rec=disputeRecFor(ticket);
+  if(!rec){ toast('No dispute record found for this ticket'); return; }
+  const cur=disputeStatus(rec);
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const stepRow=(icon,label,resp,comment,active,cls)=>{
+    const color = cls==='ok'?'var(--green)':cls==='no'?'var(--red)':'var(--text3)';
+    const done = !!resp;
+    return `<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="flex-shrink:0;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${done?color:'var(--bg3)'};color:${done?'#fff':'var(--text3)'};font-size:14px;font-weight:700">${done?icon:'○'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;color:var(--text)">${label}</span>
+          ${active?'<span class="badge bp" style="font-size:10px">CURRENT</span>':''}
+          ${done?`<span style="font-weight:700;color:${color}">${esc(resp)}</span>`:'<span style="color:var(--text3);font-size:12px">Awaiting response…</span>'}
+        </div>
+        ${comment?`<div style="font-size:12.5px;color:var(--text2);margin-top:4px;white-space:pre-wrap">${esc(comment)}</div>`:''}
+      </div>
+    </div>`;
+  };
+  const rows = (rec.stages||[]).map(s=>{
+    const cls=disputeVerdictClass(s.resp);
+    const icon = cls==='ok'?'✓':cls==='no'?'✕':'•';
+    const isCur = cur && cur.k===s.k;
+    return stepRow(icon, s.label, s.resp, s.comment, isCur, cls);
+  }).join('');
+  const headCls = cur?disputeVerdictClass(cur.resp):'pending';
+  const headColor = headCls==='ok'?'var(--green)':headCls==='no'?'var(--red)':'var(--amber)';
+  const body=`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:13px;color:var(--text3)">Current status:</span>
+        <span style="font-weight:800;color:${headColor};font-size:16px">${cur?esc(cur.label+' · '+cur.resp):'Under review — awaiting first response'}</span>
+      </div>
+      ${rec.ticket?`<a href="${esc(rec.ticket)}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open ticket</a>`:''}
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 16px;margin-bottom:14px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:700;margin-bottom:4px">Your dispute reason</div>
+      <div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${esc(rec.reason)||'—'}</div>
+      ${rec.qaComment?`<div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:700;margin:10px 0 4px">Original QA comment</div><div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${esc(rec.qaComment)}</div>`:''}
+    </div>
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:700;margin-bottom:2px">Review timeline</div>
+    ${rows}`;
+  openModal('⚖ Dispute Status', body);
 }
 
 function toggleCoach(key){
@@ -1962,15 +2055,16 @@ function aggregateAuxRows(rows, name, from, to, mk) {
 // QUALITY
 // ════════════════════════════════════════
 function getScore(r) {
-  const raw = r['Final score']||r['Final Score']||r['Score']||'';
+  const raw = r['Final Score']||r['Final score']||r['Score']||'';
   const n   = parseFloat(String(raw).replace('%','').replace(',','.'));
   if (isNaN(n)) return null;
   return n <= 1 ? n * 100 : n;
 }
 
+/* Columns that are NOT pass/fail criteria (metadata) — excluded from failed-attribute analysis. */
 const QA_META = new Set(['Timestamp','Score','Agent Name','Tickets Link','Comment',
-  'Final score','Final Score','Agent mail','WB Date','WD','Column 35','Column 28','Column 34',
-  'Column 31','Column 32','Column 33',
+  'Final score','Final Score','Chat Date:','Chat Date','Date of Audit','Agent mail','WB Date','WD',
+  'Column 35','Column 28','Column 34','Column 31','Column 32','Column 33',
   'Column 59','Column 60','Column 61','Column 62','Column 63','Column 64','Column 65',
   'Column 66','Column 67','Column 68']);
 function qaFailedAttrs(r) {
@@ -1978,20 +2072,21 @@ function qaFailedAttrs(r) {
 }
 
 const QA_CRITERIA_GROUPS = [
-  { label: 'Process & Compliance', color: '#7c5af0', keys: [
-    'Checking Tools','Security checks','Team Reporting','memo on reporting',
-    'Zero Tolerance','Chat Avoidance','Failed to escalate.','description',
-    'Extra assistance.',' Extra assistance.'
+  { label: 'Communication & Soft Skills', color: '#3b7ef8', keys: [
+    'Opening and Ending','Hold Etiquette','Empathy and Assurance','Ownership','Acknowledgement',
+    'Attitude','Language Affecting Meaning','Writing Mistakes','Concise and Rephrasing',
+    'Closure','Language','tailored response'
   ]},
-  { label: 'Interaction', color: '#3b7ef8', keys: [
-    'Closure','Hold Etiquette','Acknowledgement','Attitude','Language','tailored response'
+  { label: 'Resolution & Process', color: '#22c55e', keys: [
+    'Explaining to the user the steps of resolving','Resolution','Effective questions',
+    'Education & Alternatives','Tree Triplets','Checking Tools','Assurance'
   ]},
-  { label: 'Resolution', color: '#22c55e', keys: [
-    'Resolution','Effective questions','Tree Triplets','Assurance','Ownership',
-    'Explaining to the user the steps of resolving','Education & Alternatives'
+  { label: 'Compliance & Security', color: '#7c5af0', keys: [
+    'Security checks','Team Reporting','Memo on reporting','memo on reporting','Chat Avoidance',
+    'Zero Tolerance','Failed to escalate','Failed to escalate.','description','Extra assistance.',' Extra assistance.'
   ]},
   { label: 'Status', color: '#f59e0b', keys: [
-    'W/R Status','Pending Status','Assigned contact tree'
+    'Assigned contact tree','Ticket status','W/R Status','Pending Status'
   ]}
 ];
 
@@ -2374,12 +2469,13 @@ function renderOverview() {
       <td>${s!==null?`<span class="sc-badge ${scoreCls(s)}">${s.toFixed(1)}%</span>`:'—'}</td>
       <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>`:'—'}</td>
       <td style="font-size:11.5px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(rec.reason||'').replace(/"/g,'&quot;')}">${rec.reason||'—'}</td>
+      <td>${lnk?disputeBadge(lnk):'—'}</td>
     </tr>`;
   }).join('');
   const disputedCard = `<div class="card">
     <div class="card-hd"><span class="card-title">⚖️ Disputed Tickets</span><span class="badge ${totDisputed?'ba':'bg'}">${totDisputed} disputed</span></div>
-    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Date</th><th>Agent</th><th>Score</th><th>Ticket</th><th>Reason</th></tr></thead>
-    <tbody>${dispTrs||`<tr><td colspan="5" style="color:var(--text3);padding:20px;text-align:center">No disputed tickets${S.dRows.length?'':'. Link the dispute responses sheet in Setup → Dispute Responses Sheet to track these.'}</td></tr>`}</tbody></table></div>
+    <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Date</th><th>Agent</th><th>Score</th><th>Ticket</th><th>Reason</th><th>Status</th></tr></thead>
+    <tbody>${dispTrs||`<tr><td colspan="6" style="color:var(--text3);padding:20px;text-align:center">No disputed tickets${S.dRows.length?'':'. Link the dispute responses sheet in Setup → Dispute Responses Sheet to track these.'}</td></tr>`}</tbody></table></div>
   </div>`;
 
   const T = S.cfgTargets;
@@ -2735,7 +2831,7 @@ function renderQuality() {
     const disputed = isDisputed(r);
     // Already-disputed tickets show a badge; otherwise offer the Dispute link on tickets < 100%
     const dispute = disputed
-      ? `<span class="badge ba" style="margin-left:6px" title="${(recByTicketQ[(r['Tickets Link']||'').trim().toLowerCase()]?.reason||'Disputed via the agent dispute form').replace(/"/g,'&quot;')}">⚖ Disputed</span>`
+      ? `<span style="margin-left:6px;display:inline-block">${disputeBadge((r['Tickets Link']||'').trim())}</span>`
       : (disputeUrl && s!==null && s<100 ? `<a class="btn btn-sm" style="margin-left:6px;border-color:var(--blue);color:var(--blue)" target="_blank" href="${disputeLink(r,s)}">Dispute</a>` : '');
     const fa=qaFailedAttrs(r);
     const isDup=dupSet.has(lnk);
@@ -4090,7 +4186,7 @@ function renderAgent() {
           const failed=qaFailedAttrs(r);
           const disputed=isDisputed(r);
           const dispute = disputed
-            ? `<span class="badge ba" title="${(recByTicketA[lnk.trim().toLowerCase()]?.reason||'Dispute submitted').replace(/"/g,'&quot;')}">⚖ Disputed</span>`
+            ? disputeBadge(lnk)
             : (disputeUrl && s!==null && s<100 ? `<a class="btn btn-sm" style="border-color:var(--blue);color:var(--blue)" target="_blank" href="${disputeLink(r,s)}">Dispute</a>` : '<span style="color:var(--text3)">—</span>');
           return `<tr>
             <td style="font-size:11px">${ts}</td>
