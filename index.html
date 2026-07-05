@@ -1525,7 +1525,8 @@ async function syncAll(silent=false) {
         return [];
       }
       // raw ⇒ array-of-arrays (keep blank rows so table boundaries are detectable); else keyed objects
-      const parsed = await new Promise(r => Papa.parse(txt, {header:!raw, skipEmptyLines:raw?false:true, complete: d=>r(d.data), error:()=>r([])}));
+      // transformHeader trims stray whitespace/newlines in column names so lookups like r['Agent Name'] stay reliable.
+      const parsed = await new Promise(r => Papa.parse(txt, {header:!raw, skipEmptyLines:raw?false:true, transformHeader:h=>String(h).replace(/\s+/g,' ').trim(), complete: d=>r(d.data), error:()=>r([])}));
       if (!parsed.length) console.warn('Sheet parsed but 0 rows — check tab name/gid:', who, url);
       S.fetchDiag.push({name:who,status:'ok',rows:parsed.length});
       return parsed;
@@ -1566,9 +1567,13 @@ async function syncAll(silent=false) {
   const ID = resolveIdentities({q, p, t, sch, r: raw, aliases: S.aliases});
   const qd=ID.dets.quality, pd=ID.dets.performance, td=ID.dets.timeline;
 
-  // Quality — normalize + canonicalize agent name
-  S.qRows = q.filter(r => (r['Agent Name']||r['agent_name']||'').trim())
-    .map(r => ({...r, 'Agent Name': ID.resolve((r['Agent Name']||r['agent_name']||r['Agent']||'').trim(), r[qd.email], r[qd.id])}));
+  // Quality — normalize + canonicalize agent name. Fall back to any "agent name"-like column
+  // so a renamed/space-padded header doesn't silently drop every review row.
+  const _qAgentKey = (q[0] ? Object.keys(q[0]).find(k=>/agent\s*name/i.test(k) || /^agent$/i.test(k.trim())) : '') || 'Agent Name';
+  const qAgentOf = r => (r['Agent Name'] || r['agent_name'] || r['Agent'] || r[_qAgentKey] || '').toString().trim();
+  S.qRows = q.filter(r => qAgentOf(r))
+    .map(r => ({...r, 'Agent Name': ID.resolve(qAgentOf(r), r[qd.email], r[qd.id])}));
+  if (q.length && !S.qRows.length) console.warn('Quality: '+q.length+' rows fetched but 0 had an agent name. Header keys:', Object.keys(q[0]||{}));
 
   // Performance — normalize to new schema (used for AHT/ART/CSAT/resolution; NOT for login/logout anymore)
   S.pRows = p.filter(r => (r['agent_name']||r['Agent Name']||'').trim())
@@ -2737,7 +2742,20 @@ function renderQuality() {
     if (to   && d > parseDateLocal(to))   return false;
     return true;
   });
-  if (!rows.length) { document.getElementById('qualityContent').innerHTML=emptyHtml('No quality data','Sync to load or widen your filters'); return; }
+  if (!rows.length) {
+    const diag=(S.fetchDiag||[]).find(d=>d.name==='Quality');
+    let msg='Sync to load or widen your filters';
+    if (!S.qRows.length) {
+      if (diag && diag.status==='not-shared') msg='The Quality sheet returned Google’s sign-in page. Share it as “Anyone with the link — Viewer”, then Sync.';
+      else if (diag && (diag.status==='empty'||/^http-/.test(diag.status))) msg='The Quality sheet fetch came back '+diag.status+'. Check the Sheet ID and Tab Name in Setup → Sheet Config.';
+      else if (diag && diag.status==='ok') msg='The Quality sheet loaded '+ (diag.rows||0) +' rows but none had a recognised “Agent Name”. Check the Agent Name column header.';
+      else if (diag && diag.status==='not-configured') msg='No Quality sheet is configured. Add it in Setup → Sheet Config, then Sync.';
+      else msg='No quality rows loaded yet — press Sync.';
+    } else {
+      msg='Quality data is loaded ('+S.qRows.length+' rows) but no agent matches the current view. The names in the Quality sheet may differ from your other sheets — check Setup → Identity/Aliases, or clear the agent filter.';
+    }
+    document.getElementById('qualityContent').innerHTML=emptyHtml('No quality data',msg); return;
+  }
 
   const disputeUrl = (S.cfgTargets.disputeFormUrl||'').trim();
   const recByTicketQ = {};
