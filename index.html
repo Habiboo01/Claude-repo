@@ -4258,7 +4258,7 @@ function auxBreachHtml(name, breaches, admin) {
 }
 
 /* ---- AUX exceptions (admin only) ---- */
-const AUX = { agent: null, pending: null };
+const AUX = { sel: new Set(), pending: null, agents: [] };
 function saveAuxExceptions() {
   ls.set('t_aux_exc', S.auxExceptions);
   if (typeof cloudSaveAll === 'function' && S.gasUrl) { try { cloudSaveAll(); } catch (e) {} }
@@ -4297,7 +4297,6 @@ function removeAuxException(id) {
 }
 
 /* ---- Admin AUX tab ---- */
-function selectAuxAgent(name) { AUX.agent = name; renderAux(); }
 /* Distinct days an agent has any status-timeline activity within the range. */
 function auxDaysWorked(name, from, to) {
   const days = {};
@@ -4308,56 +4307,95 @@ function auxDaysWorked(name, from, to) {
   });
   return Object.keys(days).length;
 }
+function auxToggleAgent(name) { if (AUX.sel.has(name)) AUX.sel.delete(name); else AUX.sel.add(name); renderAux(); }
+function auxSelectAll()   { AUX.agents.forEach(a => AUX.sel.add(a)); renderAux(); }
+function auxSelectFlagged(){ AUX.sel = new Set(AUX.agents.filter(a => computeAuxBreaches(a, auxRangeFrom(), auxRangeTo()).length)); renderAux(); }
+function auxClearSel()    { AUX.sel.clear(); renderAux(); }
+function auxRangeFrom()   { return (document.getElementById('auxFrom') || {}).value || ''; }
+function auxRangeTo()     { return (document.getElementById('auxTo')   || {}).value || ''; }
 function renderAux() {
   const el = document.getElementById('auxContent'); if (!el) return;
   if (!S.tRows.length) { el.innerHTML = emptyHtml('No timeline data', 'Add the status-timeline sheet in Setup, then Sync'); return; }
-  const from = (document.getElementById('auxFrom') || {}).value || '';
-  const to   = (document.getElementById('auxTo')   || {}).value || '';
+  const from = auxRangeFrom(), to = auxRangeTo();
+  const q = ((document.getElementById('auxSearch') || {}).value || '').toLowerCase();
   const _sel = getSelectedAgents();
   let agents = allAgents().filter(a => S.tRows.some(r => r.agent_name === a));
   if (_sel.length) agents = agents.filter(a => _sel.includes(a));
-  const summary = agents.map(a => {
-    const b = computeAuxBreaches(a, from, to);
-    const over = b.reduce((s, x) => s + x.over, 0);
-    return { a, count: b.length, over, days: auxDaysWorked(a, from, to) };
-  }).sort((x, y) => y.count - x.count || y.over - x.over);
-  if (AUX.agent && !agents.includes(AUX.agent)) AUX.agent = null;
+  AUX.agents = agents.slice();
 
-  const chips = summary.map(s => {
-    const active = s.a === AUX.agent;
-    const bad = s.count > 0;
-    const bg = active ? 'var(--accent)' : bad ? 'rgba(239,68,68,.12)' : 'var(--bg3)';
-    const fg = active ? '#fff' : bad ? 'var(--red)' : 'var(--text2)';
-    return `<button onclick="selectAuxAgent('${s.a.replace(/'/g, "\\'")}')" style="border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};background:${bg};color:${fg};border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px">
-      ${s.a}<span style="background:${active?'rgba(255,255,255,.2)':'var(--bg2)'};color:${active?'#fff':'var(--text3)'};border-radius:10px;padding:1px 7px;font-size:10.5px" title="days worked in range">${s.days}d</span>${s.count ? `<span style="background:${active ? 'rgba(255,255,255,.25)' : 'var(--red)'};color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">${s.count}</span>` : `<span style="color:${active ? '#fff' : 'var(--green)'};font-size:11px">✓</span>`}
-    </button>`;
+  const rows = agents.map(a => {
+    const b = computeAuxBreaches(a, from, to);
+    return {
+      a,
+      days: auxDaysWorked(a, from, to),
+      brk: b.filter(x => x.type === 'Break').length,
+      op:  b.filter(x => x.type === 'Offline + Personal').length,
+      flags: b.length
+    };
+  }).sort((x, y) => y.flags - x.flags || y.brk + y.op - (x.brk + x.op) || x.a.localeCompare(y.a));
+  const view = q ? rows.filter(r => r.a.toLowerCase().includes(q)) : rows;
+
+  const flaggedCount = rows.filter(r => r.flags).length;
+  const totalFlags = rows.reduce((s, r) => s + r.flags, 0);
+  const totalDays = rows.reduce((s, r) => s + r.days, 0);
+
+  const cell = (n, unit) => n ? `<span class="badge br">${n} ${unit}</span>` : `<span style="color:var(--green)">✓</span>`;
+  const tableRows = view.map(r => {
+    const on = AUX.sel.has(r.a);
+    return `<tr onclick="auxToggleAgent('${r.a.replace(/'/g, "\\'")}')" style="cursor:pointer;background:${on ? 'rgba(124,90,240,.10)' : r.flags ? 'rgba(239,68,68,.05)' : ''}">
+      <td style="text-align:center;font-size:15px">${on ? '☑' : '☐'}</td>
+      <td style="color:var(--text);font-weight:600">${r.a}</td>
+      <td>${r.days}</td>
+      <td>${cell(r.brk, 'day' + (r.brk === 1 ? '' : 's'))}</td>
+      <td>${cell(r.op, 'day' + (r.op === 1 ? '' : 's'))}</td>
+      <td>${r.flags ? `<span class="badge br">Flagged</span>` : `<span class="badge bg">OK</span>`}</td>
+    </tr>`;
   }).join('');
 
-  const totalBreaches = summary.reduce((s, x) => s + x.count, 0);
-  const totalDays = summary.reduce((s, x) => s + x.days, 0);
-  let detail;
-  if (AUX.agent) {
-    const br = computeAuxBreaches(AUX.agent, from, to);
-    const exList = (S.auxExceptions || []).filter(e => e.agent === AUX.agent);
-    const exHtml = exList.length ? `<div class="card" style="margin-top:4px"><div class="card-hd"><span class="card-title">Logged exceptions for ${AUX.agent}</span><span class="badge bp">${exList.length}</span></div>
+  const selAgents = rows.filter(r => AUX.sel.has(r.a));
+  const detail = selAgents.length ? selAgents.map(s => {
+    const br = computeAuxBreaches(s.a, from, to);
+    const exList = (S.auxExceptions || []).filter(e => e.agent === s.a);
+    const exHtml = exList.length ? `<div class="card" style="margin:4px 0 12px"><div class="card-hd"><span class="card-title">Logged exceptions</span><span class="badge bp">${exList.length}</span></div>
       <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Deduct</th><th>Reason</th><th></th></tr></thead>
       <tbody>${exList.map(e => `<tr><td>${e.date}</td><td>${e.type}</td><td>${e.minutes === '' ? 'Excuse day' : e.minutes + ' min'}</td><td>${e.reason || '—'}</td><td><button class="btn btn-sm btn-danger" onclick="removeAuxException(${e.id})">Remove</button></td></tr>`).join('')}</tbody></table></div></div>` : '';
-    detail = `<div style="margin-bottom:8px;font-size:13px;color:var(--text2)"><strong style="color:var(--text)">${AUX.agent}</strong> · ${auxDaysWorked(AUX.agent, from, to)} days worked in range</div>${auxBreachHtml(AUX.agent, br, true)}${exHtml}`;
-  } else {
-    detail = `<div style="padding:18px;color:var(--text3);font-size:13px">Select an agent above to see the status sessions that exceeded the limit (from → till), and to log exceptions.</div>`;
-  }
+    return `<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+        <h3 style="margin:0;font-size:16px;color:var(--text)">${s.a}</h3>
+        <span class="badge bp">${s.days} day${s.days === 1 ? '' : 's'} worked</span>
+        <span class="badge ${s.flags ? 'br' : 'bg'}">${s.flags ? s.flags + ' flag-day' + (s.flags === 1 ? '' : 's') : 'within limits'}</span>
+        <button class="btn btn-sm" style="margin-left:auto" onclick="auxToggleAgent('${s.a.replace(/'/g, "\\'")}')">✕ Close</button>
+      </div>
+      ${auxBreachHtml(s.a, br, true)}${exHtml}
+    </div>`;
+  }).join('') : `<div style="padding:18px;color:var(--text3);font-size:13px">Tick one or more agents in the table above to see the status sessions that exceeded the limit (from → till) and to log exceptions.</div>`;
 
   el.innerHTML = `
     <div class="metrics-grid">
-      <div class="metric"><div class="m-lbl">Agents Tracked</div><div class="m-val cb">${agents.length}</div><div class="m-sub">with timeline data</div></div>
-      <div class="metric"><div class="m-lbl">Agents Over Limit</div><div class="m-val ${summary.filter(s=>s.count).length?'cr':'cg'}">${summary.filter(s => s.count).length}</div><div class="m-sub">on ≥ 1 day</div></div>
-      <div class="metric"><div class="m-lbl">Total Breaches</div><div class="m-val ${totalBreaches?'cr':'cg'}">${totalBreaches}</div><div class="m-sub">agent-day-type</div></div>
-      <div class="metric"><div class="m-lbl">Total Days Worked</div><div class="m-val cb">${totalDays}</div><div class="m-sub">across ${agents.length} agents</div></div>
-      <div class="metric"><div class="m-lbl">Limits (min/day)</div><div class="m-val" style="font-size:16px">Break ${auxLimits().Break} · Off+Pers ${auxLimits()['Offline + Personal']}</div><div class="m-sub">after-shift time excluded</div></div>
+      <div class="metric"><div class="m-lbl">Agents Tracked</div><div class="m-val cb">${rows.length}</div><div class="m-sub">with timeline data</div></div>
+      <div class="metric"><div class="m-lbl">Flagged Agents</div><div class="m-val ${flaggedCount?'cr':'cg'}">${flaggedCount}</div><div class="m-sub">over a limit</div></div>
+      <div class="metric"><div class="m-lbl">Total Flag-Days</div><div class="m-val ${totalFlags?'cr':'cg'}">${totalFlags}</div><div class="m-sub">Break or Off+Pers</div></div>
+      <div class="metric"><div class="m-lbl">Total Days Worked</div><div class="m-val cb">${totalDays}</div><div class="m-sub">across ${rows.length} agents</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px"><div class="card-hd"><span class="card-title">Agents — click to drill in ${_sel.length ? `<span class="badge ba" style="margin-left:6px">filtered: ${agents.length}</span>` : ''}</span><span style="font-size:11px;color:var(--text3)">Nd = days worked · red = over limit · ✓ = within limits</span></div>
-      <div class="card-bd" style="display:flex;flex-wrap:wrap;gap:8px">${chips || '<span style="color:var(--text3)">No agents with timeline data</span>'}</div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd" style="flex-wrap:wrap;gap:10px">
+        <span class="card-title">Agents · tick to open detail</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto">
+          <input class="inp inp-sm" id="auxSearch" placeholder="Search agent…" value="${q.replace(/"/g,'&quot;')}" oninput="renderAux()" style="width:150px"/>
+          <button class="btn btn-sm" onclick="auxSelectFlagged()">⚑ Flagged only</button>
+          <button class="btn btn-sm" onclick="auxSelectAll()">Select all</button>
+          <button class="btn btn-sm" onclick="auxClearSel()">Clear</button>
+          <span class="badge bp">${AUX.sel.size} selected</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);padding:0 16px 4px">Daily limits: Break ${auxLimits().Break} min · combined Upcoming Offline + Personal ${auxLimits()['Offline + Personal']} min. Time after each agent's shift end is not counted.</div>
+      <div class="tbl-wrap card-bd-0"><table class="tbl">
+        <thead><tr><th style="width:36px"></th><th>Agent</th><th>Days Worked</th><th>Break over</th><th>Off + Personal over</th><th>Status</th></tr></thead>
+        <tbody>${tableRows || `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:18px">No agents match</td></tr>`}</tbody>
+      </table></div>
     </div>
+
     <div id="auxDetailWrap">${detail}</div>`;
 }
 
@@ -4522,7 +4560,7 @@ function renderAgent() {
   const auxCardHtml = hasTimeline ? `<div class="card">
     <div class="card-hd" style="cursor:pointer" onclick="toggleAgentAux()">
       <span class="card-title">⏱ Break &amp; AUX Adherence <span id="agentAuxCaret" style="color:var(--text3);font-size:12px">▸</span></span>
-      <span style="display:flex;align-items:center;gap:8px"><span class="badge bp">${agentDaysWorked} days worked</span><span class="badge ${agentBreaches.length ? 'br' : 'bg'}">${agentBreaches.length ? agentBreaches.length + ' over limit' : 'within limits'}</span></span>
+      <span style="display:flex;align-items:center;gap:8px"><span class="badge bp">${agentDaysWorked} day${agentDaysWorked === 1 ? '' : 's'} worked</span><span class="badge ${agentBreaches.length ? 'br' : 'bg'}">${agentBreaches.length ? agentBreaches.length + ' over limit' : 'within limits'}</span></span>
     </div>
     <div id="agentAuxDetail" style="display:none">${auxBreachHtml(name, agentBreaches, false)}</div>
   </div>` : '';
