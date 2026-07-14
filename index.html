@@ -928,8 +928,7 @@ const DEFAULT_TARGETS = {
   resolutionTargetPct: 85,
   maxDailyBreakMin:    60,   // flag a day when total break minutes exceed this
   maxOfflinePersonalMin: 30, // allowed offline+personal minutes/day
-  auxOfflineLimitMin:  20,   // daily Upcoming Offline allowance
-  auxPersonalLimitMin: 20,   // daily Personal allowance
+  auxOffPersLimitMin:  20,   // daily combined Upcoming Offline + Personal allowance
   disputeFormUrl:      'https:\/\/docs.google.com/forms/d/e/1FAIpQLSdSDuc4Mz_YYYOww06PzkQV0k0DX0bYI_qPjUd9xu_C8S3ZOA/viewform',   // Google Form link shown on QA tickets < 100%
   breakStatuses:       [],   // AUX names counted as Break (empty ⇒ name heuristic)
   offlineStatuses:     [],   // AUX names counted as Offline/Personal (empty ⇒ heuristic)
@@ -943,7 +942,7 @@ const S = {
   mode: null, agentId: null, agentName: null, adminPass: null, adminUser: null,
   qRows: [], pRows: [], aRows: [], tRows: [], sRows: [], dRows: [], rRows: [], // sRows = schedule, dRows = dispute responses, rRows = raw support-desk data (Root Cause)
   disputed: { links:new Set(), records:[] }, // disputed ticket links + parsed dispute records
-  agentIds: {}, exceptions: [], gasUrl: null,
+  agentIds: {}, exceptions: [], auxExceptions: [], gasUrl: null,
   identity: {}, identityClusters: [], // identity overrides (key→canonical name) + detected clusters
   aliases: {}, // name alias map: lowercase original → canonical name
   teams: {},   // team assignment: agent name → team name
@@ -1147,6 +1146,7 @@ const ls = {
 function loadLocal() {
   S.agentIds   = ls.get('t_ids')  || {};
   S.exceptions = ls.get('t_exc')  || [];
+  S.auxExceptions = ls.get('t_aux_exc') || [];
   S.identity   = ls.get('t_identity') || {};
   S.gasUrl     = ls.get('t_gas')  || null;
   S.auxConfig  = ls.get('t_aux')  || {...DEFAULT_AUX_CONFIG};
@@ -1200,7 +1200,7 @@ async function cloudRead() {
 async function cloudSaveAll() {
   if (!SUPA_ON() || !S.adminPass) return false;
   try {
-    const data = { agentIds:S.agentIds, agentIdentity:S.identity, agentAliases:S.aliases, teams:S.teams, exceptions:S.exceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
+    const data = { agentIds:S.agentIds, agentIdentity:S.identity, agentAliases:S.aliases, teams:S.teams, exceptions:S.exceptions, auxExceptions:S.auxExceptions, auxConfig:S.auxConfig, cfgTargets:S.cfgTargets, cfg:cfg(), coached:[...QS.coached] };
     const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/rpc/save_config`, 8000, {
       method:'POST', headers: supaHeaders({'Content-Type':'application/json'}),
       body: JSON.stringify({ pw:S.adminPass, new_data:data })
@@ -1251,6 +1251,7 @@ async function pullGASConfig() {
   if (data.agentIdentity){ S.identity = data.agentIdentity; ls.set('t_identity', S.identity); }
   if (data.agentAliases) { S.aliases  = data.agentAliases;  ls.set('t_aliases', S.aliases); }
   if (data.exceptions) { S.exceptions = data.exceptions; ls.set('t_exc', S.exceptions); }
+  if (data.auxExceptions) { S.auxExceptions = data.auxExceptions; ls.set('t_aux_exc', S.auxExceptions); }
   if (data.auxConfig)  { S.auxConfig  = data.auxConfig;  ls.set('t_aux', S.auxConfig); }
   if (data.cfgTargets) { S.cfgTargets = {...DEFAULT_TARGETS, ...data.cfgTargets}; ls.set('t_targets', S.cfgTargets); }
   if (data.cfg)        { ls.set('t_cfg', data.cfg); }
@@ -1828,6 +1829,7 @@ function importConfig(input) {
       if (data.agentIds)   { S.agentIds   = data.agentIds;   ls.set('t_ids', S.agentIds); }
       if (data.agentIdentity){ S.identity = data.agentIdentity; ls.set('t_identity', S.identity); }
       if (data.exceptions) { S.exceptions = data.exceptions; ls.set('t_exc', S.exceptions); }
+      if (data.auxExceptions) { S.auxExceptions = data.auxExceptions; ls.set('t_aux_exc', S.auxExceptions); }
       if (data.gasUrl)     { S.gasUrl = data.gasUrl;         ls.set('t_gas', S.gasUrl); }
       if (data.teams)      { S.teams = data.teams;           ls.set('t_teams', S.teams); }
       toast('Config imported ✓ — refresh to apply');
@@ -2878,7 +2880,7 @@ function renderQuality() {
       <td>${s!==null?`<span class="sc-badge ${cls}">${s.toFixed(1)}%</span>`:'—'}</td>
       <td style="font-size:11px;max-width:220px">${fa.length?fa.map(a=>`<span class="badge" style="background:rgba(239,68,68,.12);color:var(--red);margin:1px 2px;display:inline-block;white-space:nowrap">${a}</span>`).join(''):'<span style="color:var(--text3)">—</span>'}</td>
       <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>${isDup?'<span class="badge" style="background:rgba(239,68,68,.15);color:var(--red);margin-left:4px;font-size:10px">dup</span>':''}`:'—'}</td>
-      <td style="font-size:11.5px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r['Comment']||'').replace(/"/g,'&quot;')}">${r['Comment']||'—'}</td>
+      <td style="font-size:11.5px;max-width:280px;white-space:normal;word-break:break-word;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" title="${(r['Comment']||'').replace(/"/g,'&quot;')}">${r['Comment']||'—'}</td>
       <td style="white-space:nowrap">${action}${dispute}</td>
     </tr>`;
   }).join('');
@@ -4134,10 +4136,12 @@ function renderExcList() {
    Flags days where Break / Upcoming Offline / Personal exceed their daily limit,
    and lists the individual status sessions (from → till) behind each breach.
    ════════════════════════════════════════ */
-const AUX_PATTERNS = { 'Break':/break/i, 'Upcoming Offline':/offline/i, 'Personal':/personal/i };
+/* Personal time and Upcoming Offline are treated as ONE combined bucket (20 min/day). */
+const AUX_PATTERNS = { 'Break':/break/i, 'Offline + Personal':/offline|personal/i };
+const AUX_COL = { 'Break':'#ef4444', 'Offline + Personal':'#f59e0b' };
 function auxLimits() {
   const t = S.cfgTargets || {};
-  return { 'Break': t.maxDailyBreakMin || 60, 'Upcoming Offline': t.auxOfflineLimitMin || 20, 'Personal': t.auxPersonalLimitMin || 20 };
+  return { 'Break': t.maxDailyBreakMin || 60, 'Offline + Personal': t.auxOffPersLimitMin || 20 };
 }
 function auxTypeOf(status) {
   for (const type in AUX_PATTERNS) { if (AUX_PATTERNS[type].test(status)) return type; }
@@ -4150,7 +4154,45 @@ function auxDateInRange(dstr, from, to) {
   if (to   && d > parseDateLocal(to))   return false;
   return true;
 }
-/* Returns the breaching day+type groups for one agent, each with its underlying sessions. */
+/* Parse a clock value ("17:00", "5 PM", "9") to minutes past midnight. */
+function auxParseClock(v) {
+  const s = String(v == null ? '' : v).trim(); if (!s) return null;
+  const m = s.match(/(\d{1,2}):(\d{2})/);
+  if (m) return (+m[1]) * 60 + (+m[2]);
+  const b = s.match(/^(\d{1,2})\s*(am|pm)?$/i);
+  if (b) { let h = +b[1]; const ap = (b[2] || '').toLowerCase(); if (ap === 'pm' && h < 12) h += 12; if (ap === 'am' && h === 12) h = 0; return h * 60; }
+  return null;
+}
+/* Extract the end time from a shift label like "9-17" or "09:00 - 17:00". */
+function auxEndFromShift(label) {
+  const parts = String(label == null ? '' : label).split(/\s*(?:-|–|to)\s*/i);
+  return parts.length >= 2 ? parts[parts.length - 1] : '';
+}
+/* The agent's shift-end Date for a given day, from the Performance sheet (last_hour, else detected_shift). */
+function auxShiftEndFor(name, dateStr) {
+  const rows = S.pRows.filter(r => r.agent_name === name && String(r.work_date || '').slice(0, 10) === dateStr);
+  for (const r of rows) {
+    let mins = auxParseClock(r.last_hour);
+    if (mins == null) mins = auxParseClock(auxEndFromShift(r.detected_shift));
+    if (mins != null) { const d = parseDate(dateStr); if (d) return new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(mins / 60), mins % 60, 0); }
+  }
+  return null;
+}
+/* Counted minutes for a session, excluding any time after the agent's shift end. */
+function auxCountedMins(session, shiftEnd) {
+  const raw = session.rawMins;
+  if (!shiftEnd) return raw;
+  const sStart = parseDate(session.start), sEnd = parseDate(session.end);
+  if (!sStart || !sEnd) return raw;
+  if (sEnd <= shiftEnd) return raw;
+  if (sStart >= shiftEnd) return (sStart - shiftEnd) > 6 * 3600000 ? raw : 0; /* fully after shift (guard night shifts) */
+  return Math.max(0, (shiftEnd - sStart) / 60000);
+}
+/* Exceptions the admin logged against a specific agent/date/type. */
+function auxExceptionsFor(name, date, type) {
+  return (S.auxExceptions || []).filter(e => e.agent === name && e.date === date && e.type === type);
+}
+/* Breaching day+type groups for one agent, after shift-end trimming and admin exceptions. */
 function computeAuxBreaches(name, from, to) {
   const limits = auxLimits();
   const byKey = {};
@@ -4158,19 +4200,26 @@ function computeAuxBreaches(name, from, to) {
     if (r.agent_name !== name) return;
     if (!auxDateInRange(r.activity_date, from, to)) return;
     const type = auxTypeOf(r.status_name); if (!type) return;
-    const mins = (parseFloat(r.duration_sec) || 0) / 60; if (mins <= 0) return;
+    const raw = (parseFloat(r.duration_sec) || 0) / 60; if (raw <= 0) return;
     const date = String(r.activity_date || '').slice(0, 10);
     const key = date + '|' + type;
-    const g = byKey[key] = byKey[key] || { date, type, total: 0, sessions: [] };
-    g.total += mins;
-    g.sessions.push({ start: r.status_start, end: r.status_end, mins });
+    const g = byKey[key] = byKey[key] || { date, type, sessions: [] };
+    g.sessions.push({ start: r.status_start, end: r.status_end, rawMins: raw });
   });
   const out = [];
   Object.keys(byKey).forEach(k => {
     const g = byKey[k];
-    if (g.total > limits[g.type]) {
+    const shiftEnd = auxShiftEndFor(name, g.date);
+    let total = 0;
+    g.sessions.forEach(s => { s.mins = auxCountedMins(s, shiftEnd); s.trimmed = s.mins < s.rawMins - 0.01; total += s.mins; });
+    const exs = auxExceptionsFor(name, g.date, g.type);
+    let deducted = 0, excused = false;
+    exs.forEach(e => { if (e.minutes == null || e.minutes === '') excused = true; else deducted += (+e.minutes || 0); });
+    const adjTotal = excused ? 0 : Math.max(0, total - deducted);
+    if (adjTotal > limits[g.type]) {
       g.sessions.sort((a, b) => String(a.start).localeCompare(String(b.start)));
-      out.push({ date: g.date, type: g.type, total: g.total, limit: limits[g.type], over: g.total - limits[g.type], sessions: g.sessions });
+      out.push({ date: g.date, type: g.type, total, adjTotal, deducted, exceptions: exs,
+        limit: limits[g.type], over: adjTotal - limits[g.type], sessions: g.sessions });
     }
   });
   out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0) || (b.over - a.over));
@@ -4180,31 +4229,85 @@ function auxFmtTime(v) {
   const d = parseDate(v);
   return d ? d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : String(v || '—');
 }
-/* HTML for one agent's breach detail (shared by admin tab + agent portal). */
-function auxBreachHtml(name, breaches) {
+/* HTML for one agent's breach detail. admin=true adds exception controls. */
+function auxBreachHtml(name, breaches, admin) {
   if (!breaches.length) return `<div style="padding:18px;color:var(--text3);font-size:13px">✓ ${name} stayed within Break / Upcoming Offline / Personal limits for this range.</div>`;
-  const col = { 'Break':'#ef4444', 'Upcoming Offline':'#f59e0b', 'Personal':'#7c5af0' };
-  return breaches.map(b => `
-    <div class="card" style="margin-bottom:12px">
+  return breaches.map(b => {
+    const excLine = b.deducted || b.exceptions.length
+      ? `<div style="font-size:11.5px;color:var(--accent2);padding:6px 14px">− ${Math.round(b.deducted)} min from ${b.exceptions.length} exception(s): ${b.exceptions.map(e => (e.reason || 'no reason') + (e.minutes ? ' (−' + e.minutes + 'm)' : ' (excused)') + (admin ? ` <a href="#" onclick="removeAuxException(${e.id});return false" style="color:var(--red)">✕</a>` : '')).join(' · ')}</div>`
+      : '';
+    return `<div class="card" style="margin-bottom:12px">
       <div class="card-hd">
-        <span class="card-title"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${col[b.type]||'#888'};margin-right:8px"></span>${b.type} · ${b.date}</span>
-        <span class="badge br">${Math.round(b.total)} min · limit ${b.limit} · over ${Math.round(b.over)} min</span>
+        <span class="card-title"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${AUX_COL[b.type]||'#888'};margin-right:8px"></span>${b.type} · ${b.date}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span class="badge br">${Math.round(b.adjTotal)} min · limit ${b.limit} · over ${Math.round(b.over)} min</span>
+          ${admin ? `<button class="btn btn-sm" onclick="openAuxException('${name.replace(/'/g,"\\'")}','${b.date}','${b.type}')" style="border-color:var(--accent);color:var(--accent2)">＋ Exception</button>` : ''}
+        </span>
       </div>
+      ${excLine}
       <div class="tbl-wrap card-bd-0">
-        <table class="tbl"><thead><tr><th>#</th><th>From</th><th>Till</th><th>Duration</th></tr></thead>
+        <table class="tbl"><thead><tr><th>#</th><th>From</th><th>Till</th><th>Counted</th></tr></thead>
         <tbody>${b.sessions.map((s, i) => `<tr>
           <td style="color:var(--text3)">${i + 1}</td>
           <td>${auxFmtTime(s.start)}</td>
           <td>${auxFmtTime(s.end)}</td>
-          <td class="cr">${Math.round(s.mins)} min</td>
+          <td class="cr">${Math.round(s.mins)} min${s.trimmed ? ` <span style="color:var(--text3);font-size:10px" title="Time after shift end excluded">(was ${Math.round(s.rawMins)})</span>` : ''}</td>
         </tr>`).join('')}</tbody></table>
       </div>
-    </div>`).join('');
+    </div>`; }).join('');
+}
+
+/* ---- AUX exceptions (admin only) ---- */
+const AUX = { agent: null, pending: null };
+function saveAuxExceptions() {
+  ls.set('t_aux_exc', S.auxExceptions);
+  if (typeof cloudSaveAll === 'function' && S.gasUrl) { try { cloudSaveAll(); } catch (e) {} }
+}
+function openAuxException(agent, date, type) {
+  AUX.pending = { agent, date, type };
+  openModal('Add AUX Exception', `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:13px;color:var(--text2)">Deduct from <strong style="color:var(--text)">${agent}</strong> · ${type} · ${date}</div>
+      <label style="font-size:12px;color:var(--text3)">Minutes to deduct <span style="color:var(--text3)">(leave blank to excuse the whole day)</span>
+        <input type="number" id="auxExcMinutes" class="inp" min="0" step="1" placeholder="e.g. 10" style="margin-top:4px"/></label>
+      <label style="font-size:12px;color:var(--text3)">Reason
+        <input type="text" id="auxExcReason" class="inp" placeholder="e.g. approved system outage" style="margin-top:4px"/></label>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-sm btn-accent" onclick="addAuxException()">Save exception</button>
+      </div>
+    </div>`);
+}
+function addAuxException() {
+  if (!AUX.pending) return;
+  const minsRaw = (document.getElementById('auxExcMinutes') || {}).value;
+  const reason = ((document.getElementById('auxExcReason') || {}).value || '').trim();
+  S.auxExceptions.push({ id: Date.now(), agent: AUX.pending.agent, date: AUX.pending.date, type: AUX.pending.type,
+    minutes: (minsRaw === '' || minsRaw == null) ? '' : Math.max(0, parseInt(minsRaw) || 0), reason });
+  AUX.pending = null;
+  saveAuxExceptions();
+  closeModal();
+  renderAux();
+  toast('Exception added');
+}
+function removeAuxException(id) {
+  S.auxExceptions = (S.auxExceptions || []).filter(e => e.id !== id);
+  saveAuxExceptions();
+  renderAux();
 }
 
 /* ---- Admin AUX tab ---- */
-const AUX = { agent: null };
 function selectAuxAgent(name) { AUX.agent = name; renderAux(); }
+/* Distinct days an agent has any status-timeline activity within the range. */
+function auxDaysWorked(name, from, to) {
+  const days = {};
+  S.tRows.forEach(r => {
+    if (r.agent_name !== name) return;
+    if (!auxDateInRange(r.activity_date, from, to)) return;
+    const d = String(r.activity_date || '').slice(0, 10); if (d) days[d] = true;
+  });
+  return Object.keys(days).length;
+}
 function renderAux() {
   const el = document.getElementById('auxContent'); if (!el) return;
   if (!S.tRows.length) { el.innerHTML = emptyHtml('No timeline data', 'Add the status-timeline sheet in Setup, then Sync'); return; }
@@ -4216,7 +4319,7 @@ function renderAux() {
   const summary = agents.map(a => {
     const b = computeAuxBreaches(a, from, to);
     const over = b.reduce((s, x) => s + x.over, 0);
-    return { a, count: b.length, over };
+    return { a, count: b.length, over, days: auxDaysWorked(a, from, to) };
   }).sort((x, y) => y.count - x.count || y.over - x.over);
   if (AUX.agent && !agents.includes(AUX.agent)) AUX.agent = null;
 
@@ -4226,23 +4329,33 @@ function renderAux() {
     const bg = active ? 'var(--accent)' : bad ? 'rgba(239,68,68,.12)' : 'var(--bg3)';
     const fg = active ? '#fff' : bad ? 'var(--red)' : 'var(--text2)';
     return `<button onclick="selectAuxAgent('${s.a.replace(/'/g, "\\'")}')" style="border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};background:${bg};color:${fg};border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px">
-      ${s.a}${s.count ? `<span style="background:${active ? 'rgba(255,255,255,.25)' : 'var(--red)'};color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">${s.count}</span>` : `<span style="color:${active ? '#fff' : 'var(--green)'};font-size:11px">✓</span>`}
+      ${s.a}<span style="background:${active?'rgba(255,255,255,.2)':'var(--bg2)'};color:${active?'#fff':'var(--text3)'};border-radius:10px;padding:1px 7px;font-size:10.5px" title="days worked in range">${s.days}d</span>${s.count ? `<span style="background:${active ? 'rgba(255,255,255,.25)' : 'var(--red)'};color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">${s.count}</span>` : `<span style="color:${active ? '#fff' : 'var(--green)'};font-size:11px">✓</span>`}
     </button>`;
   }).join('');
 
   const totalBreaches = summary.reduce((s, x) => s + x.count, 0);
-  const detail = AUX.agent
-    ? auxBreachHtml(AUX.agent, computeAuxBreaches(AUX.agent, from, to))
-    : `<div style="padding:18px;color:var(--text3);font-size:13px">Select an agent above to see the status sessions that exceeded the limit (from → till).</div>`;
+  const totalDays = summary.reduce((s, x) => s + x.days, 0);
+  let detail;
+  if (AUX.agent) {
+    const br = computeAuxBreaches(AUX.agent, from, to);
+    const exList = (S.auxExceptions || []).filter(e => e.agent === AUX.agent);
+    const exHtml = exList.length ? `<div class="card" style="margin-top:4px"><div class="card-hd"><span class="card-title">Logged exceptions for ${AUX.agent}</span><span class="badge bp">${exList.length}</span></div>
+      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>Deduct</th><th>Reason</th><th></th></tr></thead>
+      <tbody>${exList.map(e => `<tr><td>${e.date}</td><td>${e.type}</td><td>${e.minutes === '' ? 'Excuse day' : e.minutes + ' min'}</td><td>${e.reason || '—'}</td><td><button class="btn btn-sm btn-danger" onclick="removeAuxException(${e.id})">Remove</button></td></tr>`).join('')}</tbody></table></div></div>` : '';
+    detail = `<div style="margin-bottom:8px;font-size:13px;color:var(--text2)"><strong style="color:var(--text)">${AUX.agent}</strong> · ${auxDaysWorked(AUX.agent, from, to)} days worked in range</div>${auxBreachHtml(AUX.agent, br, true)}${exHtml}`;
+  } else {
+    detail = `<div style="padding:18px;color:var(--text3);font-size:13px">Select an agent above to see the status sessions that exceeded the limit (from → till), and to log exceptions.</div>`;
+  }
 
   el.innerHTML = `
     <div class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents Tracked</div><div class="m-val cb">${agents.length}</div><div class="m-sub">with timeline data</div></div>
       <div class="metric"><div class="m-lbl">Agents Over Limit</div><div class="m-val ${summary.filter(s=>s.count).length?'cr':'cg'}">${summary.filter(s => s.count).length}</div><div class="m-sub">on ≥ 1 day</div></div>
       <div class="metric"><div class="m-lbl">Total Breaches</div><div class="m-val ${totalBreaches?'cr':'cg'}">${totalBreaches}</div><div class="m-sub">agent-day-type</div></div>
-      <div class="metric"><div class="m-lbl">Limits (min/day)</div><div class="m-val" style="font-size:15px">B ${auxLimits().Break} · O ${auxLimits()['Upcoming Offline']} · P ${auxLimits().Personal}</div><div class="m-sub">Break · Offline · Personal</div></div>
+      <div class="metric"><div class="m-lbl">Total Days Worked</div><div class="m-val cb">${totalDays}</div><div class="m-sub">across ${agents.length} agents</div></div>
+      <div class="metric"><div class="m-lbl">Limits (min/day)</div><div class="m-val" style="font-size:16px">Break ${auxLimits().Break} · Off+Pers ${auxLimits()['Offline + Personal']}</div><div class="m-sub">after-shift time excluded</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px"><div class="card-hd"><span class="card-title">Agents — click to drill in ${_sel.length ? `<span class="badge ba" style="margin-left:6px">filtered: ${agents.length}</span>` : ''}</span><span style="font-size:11px;color:var(--text3)">red = over limit · ✓ = within limits</span></div>
+    <div class="card" style="margin-bottom:16px"><div class="card-hd"><span class="card-title">Agents — click to drill in ${_sel.length ? `<span class="badge ba" style="margin-left:6px">filtered: ${agents.length}</span>` : ''}</span><span style="font-size:11px;color:var(--text3)">Nd = days worked · red = over limit · ✓ = within limits</span></div>
       <div class="card-bd" style="display:flex;flex-wrap:wrap;gap:8px">${chips || '<span style="color:var(--text3)">No agents with timeline data</span>'}</div>
     </div>
     <div id="auxDetailWrap">${detail}</div>`;
@@ -4350,7 +4463,7 @@ function renderAgent() {
             <td>${s!==null?`<span class="sc-badge ${cls}">${s.toFixed(1)}%</span>`:'—'}</td>
             <td style="font-size:11px;color:var(--red)">${failed.length?failed.join(', '):'—'}</td>
             <td>${lnk?`<a href="${lnk}" target="_blank" style="color:var(--accent);font-size:12px">↗ Open</a>`:'—'}</td>
-            <td style="font-size:11.5px;color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Comment']||'—'}</td>
+            <td style="font-size:11.5px;color:var(--text2);max-width:280px;white-space:normal;word-break:break-word;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" title="${(r['Comment']||'').replace(/"/g,'&quot;')}">${r['Comment']||'—'}</td>
             <td style="white-space:nowrap">${dispute}</td>
           </tr>`;
         }).join('')}</tbody>
@@ -4399,12 +4512,19 @@ function renderAgent() {
 
   /* Break & AUX adherence — the agent can expand to see which statuses exceeded and when */
   const agentBreaches = computeAuxBreaches(name, from, to);
-  const auxCardHtml = S.tRows.some(r => r.agent_name === name) ? `<div class="card">
+  const agentDaysWorked = auxDaysWorked(name, from, to);
+  const hasTimeline = S.tRows.some(r => r.agent_name === name);
+  const auxFlagHtml = agentBreaches.length ? `<div style="background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:var(--r2);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:20px">🚩</span>
+    <div><div style="font-weight:700;color:var(--red)">Adherence flag — ${agentBreaches.length} day(s) over limit</div>
+    <div style="font-size:12px;color:var(--text2)">You exceeded Break (60m) or combined Upcoming Offline + Personal (20m) on ${agentBreaches.length} day(s). See the breakdown below.</div></div>
+  </div>` : '';
+  const auxCardHtml = hasTimeline ? `<div class="card">
     <div class="card-hd" style="cursor:pointer" onclick="toggleAgentAux()">
       <span class="card-title">⏱ Break &amp; AUX Adherence <span id="agentAuxCaret" style="color:var(--text3);font-size:12px">▸</span></span>
-      <span class="badge ${agentBreaches.length ? 'br' : 'bg'}">${agentBreaches.length ? agentBreaches.length + ' over limit' : 'within limits'}</span>
+      <span style="display:flex;align-items:center;gap:8px"><span class="badge bp">${agentDaysWorked} days worked</span><span class="badge ${agentBreaches.length ? 'br' : 'bg'}">${agentBreaches.length ? agentBreaches.length + ' over limit' : 'within limits'}</span></span>
     </div>
-    <div id="agentAuxDetail" style="display:none">${auxBreachHtml(name, agentBreaches)}</div>
+    <div id="agentAuxDetail" style="display:none">${auxBreachHtml(name, agentBreaches, false)}</div>
   </div>` : '';
 
   document.getElementById('agentContent').innerHTML=`
@@ -4420,6 +4540,7 @@ function renderAgent() {
       </div>
     </div>
 
+    ${auxFlagHtml}
     ${minsHtml}
 
     <div class="metrics-grid">
