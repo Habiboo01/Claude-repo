@@ -285,6 +285,9 @@ select.inp{cursor:pointer}
     <div class="nav-item" onclick="aTab('performance',this)">
       <svg style="color:#3b7ef8" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Performance
     </div>
+    <div class="nav-item" onclick="aTab('aux',this)">
+      <svg style="color:#f59e0b" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Break &amp; AUX
+    </div>
     <div class="nav-item" onclick="aTab('wow',this)">
       <svg style="color:#06b6d4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Week-over-Week
     </div>
@@ -499,6 +502,19 @@ select.inp{cursor:pointer}
     </section>
 
     <!-- ROOT CAUSE -->
+    <!-- BREAK & AUX -->
+    <section class="tab" id="at-aux">
+      <div class="ph"><div><h1>Break &amp; AUX Adherence</h1><p>Agents exceeding Break / Upcoming Offline / Personal daily limits — click an agent for session-level detail (from → till)</p></div></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">From</span>
+        <input type="date" class="inp inp-sm" id="auxFrom" onchange="renderAux()" style="width:130px"/>
+        <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">To</span>
+        <input type="date" class="inp inp-sm" id="auxTo" onchange="renderAux()" style="width:130px"/>
+        <button class="btn btn-sm" onclick="document.getElementById('auxFrom').value='';document.getElementById('auxTo').value='';renderAux()">Clear</button>
+      </div>
+      <div id="auxContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><h3>No timeline data yet</h3><p>Add the status-timeline sheet in Setup, then Sync</p></div></div>
+    </section>
+
     <section class="tab" id="at-rootcause">
       <div class="ph"><div><h1>Root Cause</h1><p>CSAT &amp; repeat-rate drivers from the support-desk raw data</p></div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
@@ -912,6 +928,8 @@ const DEFAULT_TARGETS = {
   resolutionTargetPct: 85,
   maxDailyBreakMin:    60,   // flag a day when total break minutes exceed this
   maxOfflinePersonalMin: 30, // allowed offline+personal minutes/day
+  auxOfflineLimitMin:  20,   // daily Upcoming Offline allowance
+  auxPersonalLimitMin: 20,   // daily Personal allowance
   disputeFormUrl:      'https:\/\/docs.google.com/forms/d/e/1FAIpQLSdSDuc4Mz_YYYOww06PzkQV0k0DX0bYI_qPjUd9xu_C8S3ZOA/viewform',   // Google Form link shown on QA tickets < 100%
   breakStatuses:       [],   // AUX names counted as Break (empty ⇒ name heuristic)
   offlineStatuses:     [],   // AUX names counted as Offline/Personal (empty ⇒ heuristic)
@@ -1678,7 +1696,7 @@ async function syncAll(silent=false) {
     const act=document.querySelector('#adminScreen .tab.active');
     if (act) { const id=act.id.replace('at-','');
       if (id==='quality') renderQuality(); else if (id==='productivity') renderProductivity();
-      else if (id==='performance') renderPerformance(); else if (id==='wow') renderWow(); else if (id==='forecasting') renderForecasting(); else if (id==='rootcause') renderRootCause(); else if (id==='schedule') renderSchedule(); }
+      else if (id==='performance') renderPerformance(); else if (id==='aux') renderAux(); else if (id==='wow') renderWow(); else if (id==='forecasting') renderForecasting(); else if (id==='rootcause') renderRootCause(); else if (id==='schedule') renderSchedule(); }
   }
   if (S.mode === 'agent') { renderAgent(); }
   } catch (err) {
@@ -2288,6 +2306,7 @@ function aTab(id, el) {
   if (id==='quality')      renderQuality();
   if (id==='productivity') renderProductivity();
   if (id==='performance')  renderPerformance();
+  if (id==='aux')          renderAux();
   if (id==='wow')          renderWow();
   if (id==='forecasting')  renderForecasting();
   if (id==='rootcause')    renderRootCause();
@@ -4110,10 +4129,128 @@ function renderExcList() {
 
 // ════════════════════════════════════════
 // AGENT DASHBOARD
+/* ════════════════════════════════════════
+   AUX / BREAK ADHERENCE — per-agent status-timeline breaches
+   Flags days where Break / Upcoming Offline / Personal exceed their daily limit,
+   and lists the individual status sessions (from → till) behind each breach.
+   ════════════════════════════════════════ */
+const AUX_PATTERNS = { 'Break':/break/i, 'Upcoming Offline':/offline/i, 'Personal':/personal/i };
+function auxLimits() {
+  const t = S.cfgTargets || {};
+  return { 'Break': t.maxDailyBreakMin || 60, 'Upcoming Offline': t.auxOfflineLimitMin || 20, 'Personal': t.auxPersonalLimitMin || 20 };
+}
+function auxTypeOf(status) {
+  for (const type in AUX_PATTERNS) { if (AUX_PATTERNS[type].test(status)) return type; }
+  return null;
+}
+function auxDateInRange(dstr, from, to) {
+  if (!from && !to) return true;
+  const d = parseDate(dstr); if (!d) return false;
+  if (from && d < parseDateLocal(from)) return false;
+  if (to   && d > parseDateLocal(to))   return false;
+  return true;
+}
+/* Returns the breaching day+type groups for one agent, each with its underlying sessions. */
+function computeAuxBreaches(name, from, to) {
+  const limits = auxLimits();
+  const byKey = {};
+  S.tRows.forEach(r => {
+    if (r.agent_name !== name) return;
+    if (!auxDateInRange(r.activity_date, from, to)) return;
+    const type = auxTypeOf(r.status_name); if (!type) return;
+    const mins = (parseFloat(r.duration_sec) || 0) / 60; if (mins <= 0) return;
+    const date = String(r.activity_date || '').slice(0, 10);
+    const key = date + '|' + type;
+    const g = byKey[key] = byKey[key] || { date, type, total: 0, sessions: [] };
+    g.total += mins;
+    g.sessions.push({ start: r.status_start, end: r.status_end, mins });
+  });
+  const out = [];
+  Object.keys(byKey).forEach(k => {
+    const g = byKey[k];
+    if (g.total > limits[g.type]) {
+      g.sessions.sort((a, b) => String(a.start).localeCompare(String(b.start)));
+      out.push({ date: g.date, type: g.type, total: g.total, limit: limits[g.type], over: g.total - limits[g.type], sessions: g.sessions });
+    }
+  });
+  out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0) || (b.over - a.over));
+  return out;
+}
+function auxFmtTime(v) {
+  const d = parseDate(v);
+  return d ? d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : String(v || '—');
+}
+/* HTML for one agent's breach detail (shared by admin tab + agent portal). */
+function auxBreachHtml(name, breaches) {
+  if (!breaches.length) return `<div style="padding:18px;color:var(--text3);font-size:13px">✓ ${name} stayed within Break / Upcoming Offline / Personal limits for this range.</div>`;
+  const col = { 'Break':'#ef4444', 'Upcoming Offline':'#f59e0b', 'Personal':'#7c5af0' };
+  return breaches.map(b => `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hd">
+        <span class="card-title"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${col[b.type]||'#888'};margin-right:8px"></span>${b.type} · ${b.date}</span>
+        <span class="badge br">${Math.round(b.total)} min · limit ${b.limit} · over ${Math.round(b.over)} min</span>
+      </div>
+      <div class="tbl-wrap card-bd-0">
+        <table class="tbl"><thead><tr><th>#</th><th>From</th><th>Till</th><th>Duration</th></tr></thead>
+        <tbody>${b.sessions.map((s, i) => `<tr>
+          <td style="color:var(--text3)">${i + 1}</td>
+          <td>${auxFmtTime(s.start)}</td>
+          <td>${auxFmtTime(s.end)}</td>
+          <td class="cr">${Math.round(s.mins)} min</td>
+        </tr>`).join('')}</tbody></table>
+      </div>
+    </div>`).join('');
+}
+
+/* ---- Admin AUX tab ---- */
+const AUX = { agent: null };
+function selectAuxAgent(name) { AUX.agent = name; renderAux(); }
+function renderAux() {
+  const el = document.getElementById('auxContent'); if (!el) return;
+  if (!S.tRows.length) { el.innerHTML = emptyHtml('No timeline data', 'Add the status-timeline sheet in Setup, then Sync'); return; }
+  const from = (document.getElementById('auxFrom') || {}).value || '';
+  const to   = (document.getElementById('auxTo')   || {}).value || '';
+  const agents = allAgents().filter(a => S.tRows.some(r => r.agent_name === a));
+  const summary = agents.map(a => {
+    const b = computeAuxBreaches(a, from, to);
+    const over = b.reduce((s, x) => s + x.over, 0);
+    return { a, count: b.length, over };
+  }).sort((x, y) => y.count - x.count || y.over - x.over);
+  if (AUX.agent && !agents.includes(AUX.agent)) AUX.agent = null;
+
+  const chips = summary.map(s => {
+    const active = s.a === AUX.agent;
+    const bad = s.count > 0;
+    const bg = active ? 'var(--accent)' : bad ? 'rgba(239,68,68,.12)' : 'var(--bg3)';
+    const fg = active ? '#fff' : bad ? 'var(--red)' : 'var(--text2)';
+    return `<button onclick="selectAuxAgent('${s.a.replace(/'/g, "\\'")}')" style="border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};background:${bg};color:${fg};border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px">
+      ${s.a}${s.count ? `<span style="background:${active ? 'rgba(255,255,255,.25)' : 'var(--red)'};color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">${s.count}</span>` : `<span style="color:${active ? '#fff' : 'var(--green)'};font-size:11px">✓</span>`}
+    </button>`;
+  }).join('');
+
+  const totalBreaches = summary.reduce((s, x) => s + x.count, 0);
+  const detail = AUX.agent
+    ? auxBreachHtml(AUX.agent, computeAuxBreaches(AUX.agent, from, to))
+    : `<div style="padding:18px;color:var(--text3);font-size:13px">Select an agent above to see the status sessions that exceeded the limit (from → till).</div>`;
+
+  el.innerHTML = `
+    <div class="metrics-grid">
+      <div class="metric"><div class="m-lbl">Agents Tracked</div><div class="m-val cb">${agents.length}</div><div class="m-sub">with timeline data</div></div>
+      <div class="metric"><div class="m-lbl">Agents Over Limit</div><div class="m-val ${summary.filter(s=>s.count).length?'cr':'cg'}">${summary.filter(s => s.count).length}</div><div class="m-sub">on ≥ 1 day</div></div>
+      <div class="metric"><div class="m-lbl">Total Breaches</div><div class="m-val ${totalBreaches?'cr':'cg'}">${totalBreaches}</div><div class="m-sub">agent-day-type</div></div>
+      <div class="metric"><div class="m-lbl">Limits (min/day)</div><div class="m-val" style="font-size:15px">B ${auxLimits().Break} · O ${auxLimits()['Upcoming Offline']} · P ${auxLimits().Personal}</div><div class="m-sub">Break · Offline · Personal</div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px"><div class="card-hd"><span class="card-title">Agents — click to drill in</span><span style="font-size:11px;color:var(--text3)">red = over limit · ✓ = within limits</span></div>
+      <div class="card-bd" style="display:flex;flex-wrap:wrap;gap:8px">${chips || '<span style="color:var(--text3)">No agents with timeline data</span>'}</div>
+    </div>
+    <div id="auxDetailWrap">${detail}</div>`;
+}
+
 // ════════════════════════════════════════
 // Agent QA table sort state (default: Score high→low)
 const AGQ = { col:'score', dir:-1 };
 function agqSort(col){ if(AGQ.col===col) AGQ.dir*=-1; else { AGQ.col=col; AGQ.dir=-1; } renderAgent(); }
+function toggleAgentAux(){ const d=document.getElementById('agentAuxDetail'); const c=document.getElementById('agentAuxCaret'); if(!d) return; const open=d.style.display!=='none'; d.style.display=open?'none':'block'; if(c) c.textContent=open?'▸':'▾'; }
 
 function renderAgent() {
   const name = S.agentName;
@@ -4258,6 +4395,16 @@ function renderAgent() {
     }
   }
 
+  /* Break & AUX adherence — the agent can expand to see which statuses exceeded and when */
+  const agentBreaches = computeAuxBreaches(name, from, to);
+  const auxCardHtml = S.tRows.some(r => r.agent_name === name) ? `<div class="card">
+    <div class="card-hd" style="cursor:pointer" onclick="toggleAgentAux()">
+      <span class="card-title">⏱ Break &amp; AUX Adherence <span id="agentAuxCaret" style="color:var(--text3);font-size:12px">▸</span></span>
+      <span class="badge ${agentBreaches.length ? 'br' : 'bg'}">${agentBreaches.length ? agentBreaches.length + ' over limit' : 'within limits'}</span>
+    </div>
+    <div id="agentAuxDetail" style="display:none">${auxBreachHtml(name, agentBreaches)}</div>
+  </div>` : '';
+
   document.getElementById('agentContent').innerHTML=`
     <div class="agent-hero">
       <div class="agent-avatar">${initials}</div>
@@ -4295,6 +4442,7 @@ function renderAgent() {
     ${chartsHtml}
     ${wowHtml}
     ${prodHtml}
+    ${auxCardHtml}
     ${qaHtml}`;
 
   // ── Render Week-over-Week charts ──
