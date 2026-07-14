@@ -4210,7 +4210,9 @@ function renderAux() {
   if (!S.tRows.length) { el.innerHTML = emptyHtml('No timeline data', 'Add the status-timeline sheet in Setup, then Sync'); return; }
   const from = (document.getElementById('auxFrom') || {}).value || '';
   const to   = (document.getElementById('auxTo')   || {}).value || '';
-  const agents = allAgents().filter(a => S.tRows.some(r => r.agent_name === a));
+  const _sel = getSelectedAgents();
+  let agents = allAgents().filter(a => S.tRows.some(r => r.agent_name === a));
+  if (_sel.length) agents = agents.filter(a => _sel.includes(a));
   const summary = agents.map(a => {
     const b = computeAuxBreaches(a, from, to);
     const over = b.reduce((s, x) => s + x.over, 0);
@@ -4240,7 +4242,7 @@ function renderAux() {
       <div class="metric"><div class="m-lbl">Total Breaches</div><div class="m-val ${totalBreaches?'cr':'cg'}">${totalBreaches}</div><div class="m-sub">agent-day-type</div></div>
       <div class="metric"><div class="m-lbl">Limits (min/day)</div><div class="m-val" style="font-size:15px">B ${auxLimits().Break} · O ${auxLimits()['Upcoming Offline']} · P ${auxLimits().Personal}</div><div class="m-sub">Break · Offline · Personal</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px"><div class="card-hd"><span class="card-title">Agents — click to drill in</span><span style="font-size:11px;color:var(--text3)">red = over limit · ✓ = within limits</span></div>
+    <div class="card" style="margin-bottom:16px"><div class="card-hd"><span class="card-title">Agents — click to drill in ${_sel.length ? `<span class="badge ba" style="margin-left:6px">filtered: ${agents.length}</span>` : ''}</span><span style="font-size:11px;color:var(--text3)">red = over limit · ✓ = within limits</span></div>
       <div class="card-bd" style="display:flex;flex-wrap:wrap;gap:8px">${chips || '<span style="color:var(--text3)">No agents with timeline data</span>'}</div>
     </div>
     <div id="auxDetailWrap">${detail}</div>`;
