@@ -285,6 +285,9 @@ select.inp{cursor:pointer}
     <div class="nav-item" onclick="aTab('performance',this)">
       <svg style="color:#3b7ef8" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Performance
     </div>
+    <div class="nav-item" onclick="aTab('attendance',this)">
+      <svg style="color:#f59e0b" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>Attendance
+    </div>
     <div class="nav-item" onclick="aTab('wow',this)">
       <svg style="color:#06b6d4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Week-over-Week
     </div>
@@ -499,6 +502,12 @@ select.inp{cursor:pointer}
     </section>
 
     <!-- ROOT CAUSE -->
+    <!-- ATTENDANCE (Apps Script feed) -->
+    <section class="tab" id="at-attendance">
+      <div class="ph"><div><h1>Attendance &amp; Wasted Time</h1><p>Lateness + Break and Offline/Personal exceedance per agent — from the Apps Script "Attendance Summary" tab (updates when the script runs)</p></div></div>
+      <div id="attendanceContent"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg><h3>No attendance data yet</h3><p>Run the Apps Script (⏰ Attendance → Run ALL reports) to create the “Attendance Summary” tab, then Sync</p></div></div>
+    </section>
+
     <section class="tab" id="at-rootcause">
       <div class="ph"><div><h1>Root Cause</h1><p>CSAT &amp; repeat-rate drivers from the support-desk raw data</p></div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
@@ -923,7 +932,7 @@ const DEFAULT_TARGETS = {
 // ════════════════════════════════════════
 const S = {
   mode: null, agentId: null, agentName: null, adminPass: null, adminUser: null,
-  qRows: [], pRows: [], aRows: [], tRows: [], sRows: [], dRows: [], rRows: [], // sRows = schedule, dRows = dispute responses, rRows = raw support-desk data (Root Cause)
+  qRows: [], pRows: [], aRows: [], tRows: [], sRows: [], dRows: [], rRows: [], attRows: [], // sRows = schedule, dRows = disputes, rRows = raw (Root Cause), attRows = Attendance Summary feed
   disputed: { links:new Set(), records:[] }, // disputed ticket links + parsed dispute records
   agentIds: {}, exceptions: [], gasUrl: null,
   identity: {}, identityClusters: [], // identity overrides (key→canonical name) + detected clusters
@@ -1534,13 +1543,14 @@ async function syncAll(silent=false) {
   };
 
   try {
-    const [q, p, t, sch, disp, raw] = await Promise.all([
+    const [q, p, t, sch, disp, raw, att] = await Promise.all([
       fetchSheet(c.qId, c.qTab, c.qGid, null, false, 'Quality'),
       fetchSheet(c.pId, c.pTab, c.pGid, null, false, 'Performance'),
       fetchSheet(c.tId || c.aId, c.tTab || c.aTab, c.tGid || c.aGid, null, false, 'Timeline'), // tId/tTab = Timeline sheet (replaces old Adherence)
       fetchSheet(c.sId, c.sTab || 'Schedule', c.sGid, c.sRange, true, 'Schedule'), // Schedule (raw rows — handles the wide roster matrix); optional range e.g. B1:NL18
       fetchSheet(c.dId, c.dTab || 'Form Responses 1', c.dGid, null, false, 'Disputes'),        // Dispute Google Form responses
       fetchSheet(c.rId, c.rTab || 'Query result', c.rGid, null, false, 'Raw Data'),            // Raw support-desk data (Root Cause)
+      fetchSheet(c.atId || c.pId, c.atTab || 'Attendance Summary', c.atGid, null, false, 'Attendance'), // Apps Script feed (lateness + AUX over-minutes)
     ]);
     // If nothing was configured at all, guide the user to Setup instead of silently showing empty tabs.
     const _cfgd = S.fetchDiag.filter(d=>d.status!=='not-configured');
@@ -1627,6 +1637,19 @@ async function syncAll(silent=false) {
   // Remember why Root Cause might be empty so the tab can show a helpful reason instead of a generic message.
   S.rawDiag = { configured: !!c.rId, tab: c.rTab||'Query result', fetched: (raw||[]).length, kept: S.rRows.length };
 
+  // Attendance Summary — the Apps Script feed (lateness + AUX over-minutes). Read as-is from the sheet
+  // the trigger produces; the dashboard only reflects what the last script run wrote.
+  const _atNum = v => { const n = parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
+  S.attRows = (att||[]).filter(r => (r['Agent']||r['agent']||'').trim()).map(r => ({
+    agent:   ID.resolve((r['Agent']||r['agent']||'').trim(), '', ''),
+    days:    _atNum(r['Days Worked']),
+    late:    _atNum(r['Late (min)']),
+    brk:     _atNum(r['Break Over (min)']),
+    op:      _atNum(r['Offline+Personal Over (min)']),
+    total:   _atNum(r['Total Wasted (min)']),
+    updated: (r['Updated']||'').trim()
+  }));
+
   // Discover any AUX status_name not yet classified — auto-add as Non-Productive default so nothing is silently dropped
   let auxUpdated = false;
   S.tRows.forEach(r => {
@@ -1678,7 +1701,7 @@ async function syncAll(silent=false) {
     const act=document.querySelector('#adminScreen .tab.active');
     if (act) { const id=act.id.replace('at-','');
       if (id==='quality') renderQuality(); else if (id==='productivity') renderProductivity();
-      else if (id==='performance') renderPerformance(); else if (id==='wow') renderWow(); else if (id==='forecasting') renderForecasting(); else if (id==='rootcause') renderRootCause(); else if (id==='schedule') renderSchedule(); }
+      else if (id==='performance') renderPerformance(); else if (id==='attendance') renderAttendance(); else if (id==='wow') renderWow(); else if (id==='forecasting') renderForecasting(); else if (id==='rootcause') renderRootCause(); else if (id==='schedule') renderSchedule(); }
   }
   if (S.mode === 'agent') { renderAgent(); }
   } catch (err) {
@@ -2288,6 +2311,7 @@ function aTab(id, el) {
   if (id==='quality')      renderQuality();
   if (id==='productivity') renderProductivity();
   if (id==='performance')  renderPerformance();
+  if (id==='attendance')   renderAttendance();
   if (id==='wow')          renderWow();
   if (id==='forecasting')  renderForecasting();
   if (id==='rootcause')    renderRootCause();
@@ -3449,6 +3473,70 @@ function wowWeeksTable(wp, wq){
     <td>${w.qa!=null?w.qa+'%':'—'}</td>
   </tr>`; }).join('');
 }
+
+/* ════════════════════════════════════════
+   ATTENDANCE — reads the Apps Script "Attendance Summary" feed (lateness + AUX over-minutes).
+   ════════════════════════════════════════ */
+function renderAttendance() {
+  const el = document.getElementById('attendanceContent'); if (!el) return;
+  if (!S.attRows.length) {
+    const diag = (S.fetchDiag||[]).find(d=>d.name==='Attendance');
+    let why = 'Run the Apps Script (⏰ Attendance → Run ALL reports) to create the “Attendance Summary” tab, then Sync.';
+    if (diag && diag.status==='not-shared') why = 'The workbook returned Google’s sign-in page. Share it as “Anyone with the link — Viewer”, then Sync.';
+    else if (diag && diag.status==='ok') why = 'The “Attendance Summary” tab loaded but no agent rows were found — run the Apps Script to populate it.';
+    el.innerHTML = emptyHtml('No attendance data yet', why); return;
+  }
+  const _sel = getSelectedAgents();
+  let rows = S.attRows.slice();
+  if (_sel.length) rows = rows.filter(r => _sel.includes(r.agent));
+  rows.sort((a,b)=>b.total-a.total);
+  if (!rows.length) { el.innerHTML = emptyHtml('No agents in view','Clear the agent filter to see all agents.'); return; }
+
+  const sum = k => rows.reduce((s,r)=>s+r[k],0);
+  const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op');
+  const hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
+  const worst = rows[0];
+  const updated = (rows.find(r=>r.updated)||{}).updated || '—';
+
+  const trs = rows.map(r=>`<tr>
+    <td style="color:var(--text);font-weight:600">${r.agent}<br><span style="font-size:11px;color:var(--text3)">${S.teams[r.agent]||''}</span></td>
+    <td>${r.days}</td>
+    <td class="${r.late>0?'cr':'cg'}">${r.late?Math.round(r.late)+' min':'—'}</td>
+    <td class="${r.brk>0?'cr':'cg'}">${r.brk?Math.round(r.brk)+' min':'—'}</td>
+    <td class="${r.op>0?'cr':'cg'}">${r.op?Math.round(r.op)+' min':'—'}</td>
+    <td><strong class="${r.total>0?'cr':'cg'}">${r.total?Math.round(r.total)+' min':'0'}</strong><br><span style="font-size:11px;color:var(--text3)">${r.total?hm(r.total):''}</span></td>
+    <td style="min-width:120px"><div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden"><div style="height:100%;width:${worst.total?Math.min(100,r.total/worst.total*100):0}%;background:var(--amber);border-radius:4px"></div></div></td>
+  </tr>`).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <span class="badge bp">Updated: ${updated}</span>
+      <span style="font-size:11px;color:var(--text3)">Reflects the sheet as of the last Apps Script run${_sel.length?` · filtered: ${rows.length}`:''}</span>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cb">${rows.length}</div><div class="m-sub">in view</div></div>
+      <div class="metric"><div class="m-lbl">Total Wasted Time</div><div class="m-val ${totWasted?'cr':'cg'}"><span style="font-size:26px">${hm(totWasted)}</span></div><div class="m-sub">to compensate</div></div>
+      <div class="metric"><div class="m-lbl">Total Lateness</div><div class="m-val ${totLate?'cr':'cg'}">${hm(totLate)}</div><div class="m-sub">minutes late</div></div>
+      <div class="metric"><div class="m-lbl">Break Over</div><div class="m-val ${totBrk?'cr':'cg'}">${hm(totBrk)}</div><div class="m-sub">over 60m/day</div></div>
+      <div class="metric"><div class="m-lbl">Offline+Personal Over</div><div class="m-val ${totOp?'cr':'cg'}">${hm(totOp)}</div><div class="m-sub">over 20m/day</div></div>
+    </div>
+    <div class="charts-grid">${chartCard('Total Wasted Time by Agent','attWasteChart')}</div>
+    <div class="card"><div class="card-hd"><span class="card-title">Wasted Time by Agent</span><span style="font-size:11px;color:var(--text3)">Late + Break-over + Offline/Personal-over · compensation basis</span></div>
+      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Agent</th><th>Days</th><th>Late</th><th>Break Over</th><th>Off+Pers Over</th><th>Total Wasted</th><th>Share</th></tr></thead>
+      <tbody>${trs}</tbody></table></div>
+    </div>`;
+
+  const top = rows.slice(0,15);
+  mkChart('attWasteChart', {
+    type:'bar',
+    data:{ labels:top.map(r=>r.agent), datasets:[
+      { label:'Late', data:top.map(r=>Math.round(r.late)), backgroundColor:hexA('#ef4444',.85), stack:'s' },
+      { label:'Break over', data:top.map(r=>Math.round(r.brk)), backgroundColor:hexA('#f59e0b',.85), stack:'s' },
+      { label:'Offline+Personal over', data:top.map(r=>Math.round(r.op)), backgroundColor:hexA('#7c5af0',.85), stack:'s' }
+    ]},
+    options:{ indexAxis:'y', plugins:{legend:{position:'bottom'}}, scales:{ x:gridAxis({min:0,stacked:true,title:{display:true,text:'minutes',color:'#8080a0'}}), y:gridAxis({stacked:true}) } }
+  });
+}
 function renderWow(){
   const el=document.getElementById('wowContent'); if(!el) return;
   const from=(document.getElementById('wowFrom')||{}).value||'';
@@ -4258,6 +4346,23 @@ function renderAgent() {
     }
   }
 
+  /* Attendance / wasted-time card from the Apps Script feed (only present after the script runs) */
+  const _attRow = (S.attRows||[]).find(r=>r.agent===name);
+  let attCardHtml = '';
+  if (_attRow) {
+    const _hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
+    const cell = (lbl,v,sub) => `<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val ${v>0?'cr':'cg'}">${v?Math.round(v)+' min':'—'}</div><div class="m-sub">${sub}</div></div>`;
+    attCardHtml = `<div class="card" style="margin-bottom:14px">
+      <div class="card-hd"><span class="card-title">⏱ Attendance &amp; Wasted Time</span><span class="badge ${_attRow.total>0?'br':'bg'}">${_attRow.total?_hm(_attRow.total)+' to compensate':'nothing to compensate'}</span></div>
+      <div class="card-bd"><div class="metrics-grid" style="margin:0">
+        ${cell('Lateness',_attRow.late,'minutes late')}
+        ${cell('Break Over',_attRow.brk,'over 60m/day')}
+        ${cell('Offline+Personal Over',_attRow.op,'over 20m/day')}
+        <div class="metric"><div class="m-lbl">Total Wasted</div><div class="m-val ${_attRow.total>0?'cr':'cg'}"><span style="font-size:24px">${_hm(_attRow.total)}</span></div><div class="m-sub">${_attRow.days} days · updated ${_attRow.updated||'—'}</div></div>
+      </div></div>
+    </div>`;
+  }
+
   document.getElementById('agentContent').innerHTML=`
     <div class="agent-hero">
       <div class="agent-avatar">${initials}</div>
@@ -4271,6 +4376,7 @@ function renderAgent() {
       </div>
     </div>
 
+    ${attCardHtml}
     ${minsHtml}
 
     <div class="metrics-grid">
