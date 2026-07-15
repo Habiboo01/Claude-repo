@@ -1644,6 +1644,7 @@ async function syncAll(silent=false) {
     agent:   ID.resolve((r['Agent']||r['agent']||'').trim(), '', ''),
     month:   (r['Month']||'').trim(),
     days:    _atNum(r['Days Worked']),
+    inc:     _atNum(r['Incidents']),
     late:    _atNum(r['Late (min)']),
     brk:     _atNum(r['Break Over (min)']),
     op:      _atNum(r['Offline+Personal Over (min)']),
@@ -3517,7 +3518,7 @@ function renderAttendance() {
   let rows;
   if (ATT.month === 'ALL') {
     const byAgent = {};
-    src.forEach(r => { const o = byAgent[r.agent] || (byAgent[r.agent] = { agent:r.agent, month:'ALL', days:0, late:0, brk:0, op:0, total:0, ot:0, updated:r.updated }); o.days+=r.days; o.late+=r.late; o.brk+=r.brk; o.op+=r.op; o.total+=r.total; o.ot+=(r.ot||0); if(r.updated>o.updated) o.updated=r.updated; });
+    src.forEach(r => { const o = byAgent[r.agent] || (byAgent[r.agent] = { agent:r.agent, month:'ALL', days:0, inc:0, late:0, brk:0, op:0, total:0, ot:0, updated:r.updated }); o.days+=r.days; o.inc+=(r.inc||0); o.late+=r.late; o.brk+=r.brk; o.op+=r.op; o.total+=r.total; o.ot+=(r.ot||0); if(r.updated>o.updated) o.updated=r.updated; });
     rows = Object.values(byAgent);
   } else {
     rows = src.filter(r => r.month === ATT.month);
@@ -3525,21 +3526,24 @@ function renderAttendance() {
   rows.sort((a,b)=>b.total-a.total);
   if (!rows.length) { el.innerHTML = `<div style="margin-bottom:12px">${attMonthBar(monthOpts)}</div>` + emptyHtml('No data for this month','Pick another month, or run the Apps Script to refresh the feed.'); return; }
 
+  rows.forEach(r => { r.net = (r.total||0) - (r.ot||0); });
   const sum = k => rows.reduce((s,r)=>s+(r[k]||0),0);
-  const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op'), totOt = sum('ot');
-  const hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
+  const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op'), totOt = sum('ot'), totInc = sum('inc'), totNet = totWasted - totOt;
+  const hm = m => { m=Math.round(m); const a=Math.abs(m); const h=Math.floor(a/60), r=a%60; return (m<0?'-':'')+(h?h+'h ':'')+r+'m'; };
+  const netCell = n => n>0 ? `<span class="cr">${Math.round(n)} min missing</span>` : n<0 ? `<span class="cg">${Math.round(-n)} min over</span>` : '<span style="color:var(--text3)">balanced</span>';
   const worst = rows[0];
   const updated = (rows.find(r=>r.updated)||{}).updated || '—';
 
   const trs = rows.map(r=>`<tr>
     <td style="color:var(--text);font-weight:600">${r.agent}<br><span style="font-size:11px;color:var(--text3)">${S.teams[r.agent]||''}</span></td>
     <td>${r.days}</td>
+    <td class="${r.inc>0?'ca':'cg'}">${r.inc||0}</td>
     <td class="${r.late>0?'cr':'cg'}">${r.late?Math.round(r.late)+' min':'—'}</td>
     <td class="${r.brk>0?'cr':'cg'}">${r.brk?Math.round(r.brk)+' min':'—'}</td>
     <td class="${r.op>0?'cr':'cg'}">${r.op?Math.round(r.op)+' min':'—'}</td>
     <td><strong class="${r.total>0?'cr':'cg'}">${r.total?Math.round(r.total)+' min':'0'}</strong><br><span style="font-size:11px;color:var(--text3)">${r.total?hm(r.total):''}</span></td>
     <td class="${r.ot>0?'cg':''}">${r.ot?Math.round(r.ot)+' min':'—'}</td>
-    <td style="min-width:120px"><div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden"><div style="height:100%;width:${worst.total?Math.min(100,r.total/worst.total*100):0}%;background:var(--amber);border-radius:4px"></div></div></td>
+    <td><strong>${netCell(r.net)}</strong></td>
   </tr>`).join('');
 
   el.innerHTML = `
@@ -3550,15 +3554,14 @@ function renderAttendance() {
     </div>
     <div class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cb">${rows.length}</div><div class="m-sub">in view</div></div>
-      <div class="metric"><div class="m-lbl">Total Wasted Time</div><div class="m-val ${totWasted?'cr':'cg'}"><span style="font-size:26px">${hm(totWasted)}</span></div><div class="m-sub">to compensate</div></div>
-      <div class="metric"><div class="m-lbl">Total Lateness</div><div class="m-val ${totLate?'cr':'cg'}">${hm(totLate)}</div><div class="m-sub">minutes late</div></div>
-      <div class="metric"><div class="m-lbl">Break Over</div><div class="m-val ${totBrk?'cr':'cg'}">${hm(totBrk)}</div><div class="m-sub">over 60m/day</div></div>
-      <div class="metric"><div class="m-lbl">Offline+Personal Over</div><div class="m-val ${totOp?'cr':'cg'}">${hm(totOp)}</div><div class="m-sub">over 20m/day</div></div>
+      <div class="metric"><div class="m-lbl">Incidents</div><div class="m-val ${totInc?'ca':'cg'}">${totInc}</div><div class="m-sub">late + break + off/pers</div></div>
+      <div class="metric"><div class="m-lbl">Total Wasted Time</div><div class="m-val ${totWasted?'cr':'cg'}">${hm(totWasted)}</div><div class="m-sub">late + break + off/pers</div></div>
       <div class="metric"><div class="m-lbl">Overtime</div><div class="m-val ${totOt?'cg':''}">${hm(totOt)}</div><div class="m-sub">available past shift end</div></div>
+      <div class="metric"><div class="m-lbl">Net to Compensate</div><div class="m-val ${totNet>0?'cr':totNet<0?'cg':''}"><span style="font-size:24px">${totNet>0?hm(totNet)+' missing':totNet<0?hm(-totNet)+' over':'balanced'}</span></div><div class="m-sub">wasted − overtime</div></div>
     </div>
     <div class="charts-grid">${chartCard('Total Wasted Time by Agent','attWasteChart')}</div>
     <div class="card"><div class="card-hd"><span class="card-title">Wasted Time by Agent</span><span style="font-size:11px;color:var(--text3)">Late + Break-over + Offline/Personal-over · compensation basis</span></div>
-      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Agent</th><th>Days</th><th>Late</th><th>Break Over</th><th>Off+Pers Over</th><th>Total Wasted</th><th>Overtime</th><th>Share</th></tr></thead>
+      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Agent</th><th>Days</th><th>Incidents</th><th>Late</th><th>Break Over</th><th>Off+Pers Over</th><th>Total Wasted</th><th>Overtime</th><th>Net (Missing / Over)</th></tr></thead>
       <tbody>${trs}</tbody></table></div>
     </div>`;
 
@@ -4386,16 +4389,20 @@ function renderAgent() {
   const _attRow = (S.attRows||[]).filter(r=>r.agent===name).sort((a,b)=>(b.month||'').localeCompare(a.month||''))[0];
   let attCardHtml = '';
   if (_attRow) {
-    const _hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
+    const _hm = m => { m=Math.round(m); const a=Math.abs(m); const h=Math.floor(a/60), r=a%60; return (m<0?'-':'')+(h?h+'h ':'')+r+'m'; };
     const cell = (lbl,v,sub) => `<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val ${v>0?'cr':'cg'}">${v?Math.round(v)+' min':'—'}</div><div class="m-sub">${sub}</div></div>`;
+    const _net = (_attRow.total||0) - (_attRow.ot||0);
+    const _netTxt = _net>0 ? _hm(_net)+' missing' : _net<0 ? _hm(-_net)+' over' : 'balanced';
     attCardHtml = `<div class="card" style="margin-bottom:14px">
-      <div class="card-hd"><span class="card-title">⏱ Attendance &amp; Wasted Time${_attRow.month?` · ${fmtYm(_attRow.month)}`:''}</span><span class="badge ${_attRow.total>0?'br':'bg'}">${_attRow.total?_hm(_attRow.total)+' to compensate':'nothing to compensate'}</span></div>
+      <div class="card-hd"><span class="card-title">⏱ Attendance &amp; Wasted Time${_attRow.month?` · ${fmtYm(_attRow.month)}`:''}</span><span class="badge ${_net>0?'br':_net<0?'bg':'bp'}">Net: ${_netTxt}</span></div>
       <div class="card-bd"><div class="metrics-grid" style="margin:0">
+        <div class="metric"><div class="m-lbl">Incidents</div><div class="m-val ${(_attRow.inc||0)>0?'ca':'cg'}">${_attRow.inc||0}</div><div class="m-sub">${_attRow.days} days worked</div></div>
         ${cell('Lateness',_attRow.late,'minutes late')}
         ${cell('Break Over',_attRow.brk,'over 60m/day')}
         ${cell('Offline+Personal Over',_attRow.op,'over 20m/day')}
-        <div class="metric"><div class="m-lbl">Overtime</div><div class="m-val ${(_attRow.ot||0)>0?'cg':''}">${_attRow.ot?Math.round(_attRow.ot)+' min':'—'}</div><div class="m-sub">available past shift end</div></div>
-        <div class="metric"><div class="m-lbl">Total Wasted</div><div class="m-val ${_attRow.total>0?'cr':'cg'}"><span style="font-size:24px">${_hm(_attRow.total)}</span></div><div class="m-sub">${_attRow.days} days · updated ${_attRow.updated||'—'}</div></div>
+        <div class="metric"><div class="m-lbl">Total Wasted</div><div class="m-val ${_attRow.total>0?'cr':'cg'}">${_hm(_attRow.total)}</div><div class="m-sub">to compensate</div></div>
+        <div class="metric"><div class="m-lbl">Overtime</div><div class="m-val ${(_attRow.ot||0)>0?'cg':''}">${_attRow.ot?Math.round(_attRow.ot)+' min':'—'}</div><div class="m-sub">past shift end</div></div>
+        <div class="metric"><div class="m-lbl">Net (Missing / Over)</div><div class="m-val ${_net>0?'cr':_net<0?'cg':''}"><span style="font-size:24px">${_netTxt}</span></div><div class="m-sub">wasted − overtime · updated ${_attRow.updated||'—'}</div></div>
       </div></div>
     </div>`;
   }
