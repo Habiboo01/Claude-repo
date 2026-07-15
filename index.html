@@ -1642,6 +1642,7 @@ async function syncAll(silent=false) {
   const _atNum = v => { const n = parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
   S.attRows = (att||[]).filter(r => (r['Agent']||r['agent']||'').trim()).map(r => ({
     agent:   ID.resolve((r['Agent']||r['agent']||'').trim(), '', ''),
+    month:   (r['Month']||'').trim(),
     days:    _atNum(r['Days Worked']),
     late:    _atNum(r['Late (min)']),
     brk:     _atNum(r['Break Over (min)']),
@@ -3477,6 +3478,20 @@ function wowWeeksTable(wp, wq){
 /* ════════════════════════════════════════
    ATTENDANCE — reads the Apps Script "Attendance Summary" feed (lateness + AUX over-minutes).
    ════════════════════════════════════════ */
+const ATT = { month: null };
+function setAttMonth(m) { ATT.month = m; renderAttendance(); }
+function fmtYm(m) {
+  const mm = /^(\d{4})-(\d{2})$/.exec(m||''); if (!mm) return m||'—';
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return names[(+mm[2]-1)%12] + ' ' + mm[1];
+}
+function attMonthBar(monthOpts) {
+  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:10px 14px;margin-bottom:16px">
+    <span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;white-space:nowrap">Month</span>
+    <select class="inp inp-sm" onchange="setAttMonth(this.value)" style="width:auto">${monthOpts}</select>
+    <span style="font-size:11px;color:var(--text3)">One row per agent per month · switch months without touching the sheet</span>
+  </div>`;
+}
 function renderAttendance() {
   const el = document.getElementById('attendanceContent'); if (!el) return;
   if (!S.attRows.length) {
@@ -3487,10 +3502,27 @@ function renderAttendance() {
     el.innerHTML = emptyHtml('No attendance data yet', why); return;
   }
   const _sel = getSelectedAgents();
-  let rows = S.attRows.slice();
-  if (_sel.length) rows = rows.filter(r => _sel.includes(r.agent));
+  let src = S.attRows.slice();
+  if (_sel.length) src = src.filter(r => _sel.includes(r.agent));
+
+  /* Month picker — distinct months from the feed (newest first) plus an "All months" roll-up. */
+  const months = [...new Set(S.attRows.map(r=>r.month).filter(Boolean))].sort().reverse();
+  if (ATT.month === null) ATT.month = months.length ? months[0] : 'ALL';
+  if (ATT.month !== 'ALL' && !months.includes(ATT.month)) ATT.month = months.length ? months[0] : 'ALL';
+  const monthOpts = `<option value="ALL"${ATT.month==='ALL'?' selected':''}>All months</option>` +
+    months.map(m=>`<option value="${m}"${ATT.month===m?' selected':''}>${fmtYm(m)}</option>`).join('');
+
+  /* Build the rows for the chosen month. "All months" sums each agent across months. */
+  let rows;
+  if (ATT.month === 'ALL') {
+    const byAgent = {};
+    src.forEach(r => { const o = byAgent[r.agent] || (byAgent[r.agent] = { agent:r.agent, month:'ALL', days:0, late:0, brk:0, op:0, total:0, updated:r.updated }); o.days+=r.days; o.late+=r.late; o.brk+=r.brk; o.op+=r.op; o.total+=r.total; if(r.updated>o.updated) o.updated=r.updated; });
+    rows = Object.values(byAgent);
+  } else {
+    rows = src.filter(r => r.month === ATT.month);
+  }
   rows.sort((a,b)=>b.total-a.total);
-  if (!rows.length) { el.innerHTML = emptyHtml('No agents in view','Clear the agent filter to see all agents.'); return; }
+  if (!rows.length) { el.innerHTML = `<div style="margin-bottom:12px">${attMonthBar(monthOpts)}</div>` + emptyHtml('No data for this month','Pick another month, or run the Apps Script to refresh the feed.'); return; }
 
   const sum = k => rows.reduce((s,r)=>s+r[k],0);
   const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op');
@@ -3509,6 +3541,7 @@ function renderAttendance() {
   </tr>`).join('');
 
   el.innerHTML = `
+    ${attMonthBar(monthOpts)}
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
       <span class="badge bp">Updated: ${updated}</span>
       <span style="font-size:11px;color:var(--text3)">Reflects the sheet as of the last Apps Script run${_sel.length?` · filtered: ${rows.length}`:''}</span>
@@ -4347,13 +4380,13 @@ function renderAgent() {
   }
 
   /* Attendance / wasted-time card from the Apps Script feed (only present after the script runs) */
-  const _attRow = (S.attRows||[]).find(r=>r.agent===name);
+  const _attRow = (S.attRows||[]).filter(r=>r.agent===name).sort((a,b)=>(b.month||'').localeCompare(a.month||''))[0];
   let attCardHtml = '';
   if (_attRow) {
     const _hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
     const cell = (lbl,v,sub) => `<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val ${v>0?'cr':'cg'}">${v?Math.round(v)+' min':'—'}</div><div class="m-sub">${sub}</div></div>`;
     attCardHtml = `<div class="card" style="margin-bottom:14px">
-      <div class="card-hd"><span class="card-title">⏱ Attendance &amp; Wasted Time</span><span class="badge ${_attRow.total>0?'br':'bg'}">${_attRow.total?_hm(_attRow.total)+' to compensate':'nothing to compensate'}</span></div>
+      <div class="card-hd"><span class="card-title">⏱ Attendance &amp; Wasted Time${_attRow.month?` · ${fmtYm(_attRow.month)}`:''}</span><span class="badge ${_attRow.total>0?'br':'bg'}">${_attRow.total?_hm(_attRow.total)+' to compensate':'nothing to compensate'}</span></div>
       <div class="card-bd"><div class="metrics-grid" style="margin:0">
         ${cell('Lateness',_attRow.late,'minutes late')}
         ${cell('Break Over',_attRow.brk,'over 60m/day')}
