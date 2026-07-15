@@ -1648,6 +1648,7 @@ async function syncAll(silent=false) {
     brk:     _atNum(r['Break Over (min)']),
     op:      _atNum(r['Offline+Personal Over (min)']),
     total:   _atNum(r['Total Wasted (min)']),
+    ot:      _atNum(r['Overtime (min)']),
     updated: (r['Updated']||'').trim()
   }));
 
@@ -3516,7 +3517,7 @@ function renderAttendance() {
   let rows;
   if (ATT.month === 'ALL') {
     const byAgent = {};
-    src.forEach(r => { const o = byAgent[r.agent] || (byAgent[r.agent] = { agent:r.agent, month:'ALL', days:0, late:0, brk:0, op:0, total:0, updated:r.updated }); o.days+=r.days; o.late+=r.late; o.brk+=r.brk; o.op+=r.op; o.total+=r.total; if(r.updated>o.updated) o.updated=r.updated; });
+    src.forEach(r => { const o = byAgent[r.agent] || (byAgent[r.agent] = { agent:r.agent, month:'ALL', days:0, late:0, brk:0, op:0, total:0, ot:0, updated:r.updated }); o.days+=r.days; o.late+=r.late; o.brk+=r.brk; o.op+=r.op; o.total+=r.total; o.ot+=(r.ot||0); if(r.updated>o.updated) o.updated=r.updated; });
     rows = Object.values(byAgent);
   } else {
     rows = src.filter(r => r.month === ATT.month);
@@ -3524,8 +3525,8 @@ function renderAttendance() {
   rows.sort((a,b)=>b.total-a.total);
   if (!rows.length) { el.innerHTML = `<div style="margin-bottom:12px">${attMonthBar(monthOpts)}</div>` + emptyHtml('No data for this month','Pick another month, or run the Apps Script to refresh the feed.'); return; }
 
-  const sum = k => rows.reduce((s,r)=>s+r[k],0);
-  const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op');
+  const sum = k => rows.reduce((s,r)=>s+(r[k]||0),0);
+  const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op'), totOt = sum('ot');
   const hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
   const worst = rows[0];
   const updated = (rows.find(r=>r.updated)||{}).updated || '—';
@@ -3537,6 +3538,7 @@ function renderAttendance() {
     <td class="${r.brk>0?'cr':'cg'}">${r.brk?Math.round(r.brk)+' min':'—'}</td>
     <td class="${r.op>0?'cr':'cg'}">${r.op?Math.round(r.op)+' min':'—'}</td>
     <td><strong class="${r.total>0?'cr':'cg'}">${r.total?Math.round(r.total)+' min':'0'}</strong><br><span style="font-size:11px;color:var(--text3)">${r.total?hm(r.total):''}</span></td>
+    <td class="${r.ot>0?'cg':''}">${r.ot?Math.round(r.ot)+' min':'—'}</td>
     <td style="min-width:120px"><div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden"><div style="height:100%;width:${worst.total?Math.min(100,r.total/worst.total*100):0}%;background:var(--amber);border-radius:4px"></div></div></td>
   </tr>`).join('');
 
@@ -3552,10 +3554,11 @@ function renderAttendance() {
       <div class="metric"><div class="m-lbl">Total Lateness</div><div class="m-val ${totLate?'cr':'cg'}">${hm(totLate)}</div><div class="m-sub">minutes late</div></div>
       <div class="metric"><div class="m-lbl">Break Over</div><div class="m-val ${totBrk?'cr':'cg'}">${hm(totBrk)}</div><div class="m-sub">over 60m/day</div></div>
       <div class="metric"><div class="m-lbl">Offline+Personal Over</div><div class="m-val ${totOp?'cr':'cg'}">${hm(totOp)}</div><div class="m-sub">over 20m/day</div></div>
+      <div class="metric"><div class="m-lbl">Overtime</div><div class="m-val ${totOt?'cg':''}">${hm(totOt)}</div><div class="m-sub">available past shift end</div></div>
     </div>
     <div class="charts-grid">${chartCard('Total Wasted Time by Agent','attWasteChart')}</div>
     <div class="card"><div class="card-hd"><span class="card-title">Wasted Time by Agent</span><span style="font-size:11px;color:var(--text3)">Late + Break-over + Offline/Personal-over · compensation basis</span></div>
-      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Agent</th><th>Days</th><th>Late</th><th>Break Over</th><th>Off+Pers Over</th><th>Total Wasted</th><th>Share</th></tr></thead>
+      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Agent</th><th>Days</th><th>Late</th><th>Break Over</th><th>Off+Pers Over</th><th>Total Wasted</th><th>Overtime</th><th>Share</th></tr></thead>
       <tbody>${trs}</tbody></table></div>
     </div>`;
 
@@ -4391,6 +4394,7 @@ function renderAgent() {
         ${cell('Lateness',_attRow.late,'minutes late')}
         ${cell('Break Over',_attRow.brk,'over 60m/day')}
         ${cell('Offline+Personal Over',_attRow.op,'over 20m/day')}
+        <div class="metric"><div class="m-lbl">Overtime</div><div class="m-val ${(_attRow.ot||0)>0?'cg':''}">${_attRow.ot?Math.round(_attRow.ot)+' min':'—'}</div><div class="m-sub">available past shift end</div></div>
         <div class="metric"><div class="m-lbl">Total Wasted</div><div class="m-val ${_attRow.total>0?'cr':'cg'}"><span style="font-size:24px">${_hm(_attRow.total)}</span></div><div class="m-sub">${_attRow.days} days · updated ${_attRow.updated||'—'}</div></div>
       </div></div>
     </div>`;
