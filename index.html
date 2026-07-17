@@ -932,7 +932,7 @@ const DEFAULT_TARGETS = {
 // ════════════════════════════════════════
 const S = {
   mode: null, agentId: null, agentName: null, adminPass: null, adminUser: null,
-  qRows: [], pRows: [], aRows: [], tRows: [], sRows: [], dRows: [], rRows: [], attRows: [], // sRows = schedule, dRows = disputes, rRows = raw (Root Cause), attRows = Attendance Summary feed
+  qRows: [], pRows: [], aRows: [], tRows: [], sRows: [], dRows: [], rRows: [], attRows: [], attInc: [], // sRows=schedule, dRows=disputes, rRows=raw(Root Cause), attRows=Attendance Summary, attInc=incident detail
   disputed: { links:new Set(), records:[] }, // disputed ticket links + parsed dispute records
   agentIds: {}, exceptions: [], gasUrl: null,
   identity: {}, identityClusters: [], // identity overrides (key→canonical name) + detected clusters
@@ -1543,7 +1543,7 @@ async function syncAll(silent=false) {
   };
 
   try {
-    const [q, p, t, sch, disp, raw, att] = await Promise.all([
+    const [q, p, t, sch, disp, raw, att, attInc] = await Promise.all([
       fetchSheet(c.qId, c.qTab, c.qGid, null, false, 'Quality'),
       fetchSheet(c.pId, c.pTab, c.pGid, null, false, 'Performance'),
       fetchSheet(c.tId || c.aId, c.tTab || c.aTab, c.tGid || c.aGid, null, false, 'Timeline'), // tId/tTab = Timeline sheet (replaces old Adherence)
@@ -1551,6 +1551,7 @@ async function syncAll(silent=false) {
       fetchSheet(c.dId, c.dTab || 'Form Responses 1', c.dGid, null, false, 'Disputes'),        // Dispute Google Form responses
       fetchSheet(c.rId, c.rTab || 'Query result', c.rGid, null, false, 'Raw Data'),            // Raw support-desk data (Root Cause)
       fetchSheet(c.atId || c.pId, c.atTab || 'Attendance Summary', c.atGid, null, false, 'Attendance'), // Apps Script feed (lateness + AUX over-minutes)
+      fetchSheet(c.atId || c.pId, 'Attendance Incidents', c.aiGid, null, false, 'Attendance Incidents'), // per-incident drill-down feed
     ]);
     // If nothing was configured at all, guide the user to Setup instead of silently showing empty tabs.
     const _cfgd = S.fetchDiag.filter(d=>d.status!=='not-configured');
@@ -1644,13 +1645,23 @@ async function syncAll(silent=false) {
     agent:   ID.resolve((r['Agent']||r['agent']||'').trim(), '', ''),
     month:   (r['Month']||'').trim(),
     days:    _atNum(r['Days Worked']),
-    inc:     _atNum(r['Incidents']),
     late:    _atNum(r['Late (min)']),
     brk:     _atNum(r['Break Over (min)']),
     op:      _atNum(r['Offline+Personal Over (min)']),
     total:   _atNum(r['Total Wasted (min)']),
-    ot:      _atNum(r['Overtime (min)']),
     updated: (r['Updated']||'').trim()
+  }));
+
+  // Per-incident drill-down feed (date, start, end, exceedance) for the "missing minutes" click.
+  S.attInc = (attInc||[]).filter(r => (r['Agent']||'').trim() && (r['Date']||'').trim()).map(r => ({
+    agent: ID.resolve((r['Agent']||'').trim(), '', ''),
+    month: (r['Month']||'').trim(),
+    date:  (r['Date']||'').trim(),
+    type:  (r['Type']||'').trim(),
+    start: (r['Start']||'').trim(),
+    end:   (r['End']||'').trim(),
+    dur:   (r['Duration']||'').trim(),
+    over:  _atNum(r['Exceedance (min)'])
   }));
 
   // Discover any AUX status_name not yet classified — auto-add as Non-Productive default so nothing is silently dropped
@@ -3494,6 +3505,30 @@ function attMonthBar(monthOpts) {
     <span style="font-size:11px;color:var(--text3)">One row per agent per month · switch months without touching the sheet</span>
   </div>`;
 }
+/* Drill-down: each incident behind an agent's missing minutes (date · start · end · exceedance). */
+function openAttIncidents(agent, month) {
+  let inc = (S.attInc||[]).filter(r => r.agent === agent);
+  if (month) inc = inc.filter(r => r.month === month);
+  if (!inc.length) {
+    openModal('Incidents — ' + agent, `<div style="padding:16px;color:var(--text3);font-size:13px">No incident detail found${month?' for '+fmtYm(month):''}. Run the Apps Script (⏰ Attendance → Run ALL reports) to generate the “Attendance Incidents” tab, then Sync.</div>`);
+    return;
+  }
+  inc.sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:0);
+  const col = { 'Late login':'#ef4444', 'Break':'#f59e0b', 'Offline + Personal':'#7c5af0' };
+  const trs = inc.map(r=>`<tr>
+    <td style="white-space:nowrap">${r.date}</td>
+    <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col[r.type]||'#888'};margin-right:6px"></span>${r.type}</td>
+    <td style="font-family:monospace">${r.start||'—'}</td>
+    <td style="font-family:monospace">${r.end||'—'}</td>
+    <td>${r.dur||'—'}</td>
+    <td class="cr">${r.over?r.over+' min':'—'}</td>
+  </tr>`).join('');
+  const body = `<div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Date</th><th>Type</th><th>Start</th><th>End</th><th>Duration</th><th>Exceedance</th></tr></thead>
+    <tbody>${trs}</tbody></table></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Late login shows scheduled start → actual login. Break / Offline+Personal show each session; Exceedance = minutes over that day's limit.</div>`;
+  openModal('⏱ Incidents — ' + agent + (month?' · '+fmtYm(month):' · all months') + ' (' + inc.length + ')', body);
+}
 function renderAttendance() {
   const el = document.getElementById('attendanceContent'); if (!el) return;
   if (!S.attRows.length) {
@@ -3518,7 +3553,7 @@ function renderAttendance() {
   let rows;
   if (ATT.month === 'ALL') {
     const byAgent = {};
-    src.forEach(r => { const o = byAgent[r.agent] || (byAgent[r.agent] = { agent:r.agent, month:'ALL', days:0, inc:0, late:0, brk:0, op:0, total:0, ot:0, updated:r.updated }); o.days+=r.days; o.inc+=(r.inc||0); o.late+=r.late; o.brk+=r.brk; o.op+=r.op; o.total+=r.total; o.ot+=(r.ot||0); if(r.updated>o.updated) o.updated=r.updated; });
+    src.forEach(r => { const o = byAgent[r.agent] || (byAgent[r.agent] = { agent:r.agent, month:'ALL', days:0, late:0, brk:0, op:0, total:0, updated:r.updated }); o.days+=r.days; o.late+=r.late; o.brk+=r.brk; o.op+=r.op; o.total+=r.total; if(r.updated>o.updated) o.updated=r.updated; });
     rows = Object.values(byAgent);
   } else {
     rows = src.filter(r => r.month === ATT.month);
@@ -3526,24 +3561,20 @@ function renderAttendance() {
   rows.sort((a,b)=>b.total-a.total);
   if (!rows.length) { el.innerHTML = `<div style="margin-bottom:12px">${attMonthBar(monthOpts)}</div>` + emptyHtml('No data for this month','Pick another month, or run the Apps Script to refresh the feed.'); return; }
 
-  rows.forEach(r => { r.net = (r.total||0) - (r.ot||0); });
-  const sum = k => rows.reduce((s,r)=>s+(r[k]||0),0);
-  const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op'), totOt = sum('ot'), totInc = sum('inc'), totNet = totWasted - totOt;
-  const hm = m => { m=Math.round(m); const a=Math.abs(m); const h=Math.floor(a/60), r=a%60; return (m<0?'-':'')+(h?h+'h ':'')+r+'m'; };
-  const netCell = n => n>0 ? `<span class="cr">${Math.round(n)} min missing</span>` : n<0 ? `<span class="cg">${Math.round(-n)} min over</span>` : '<span style="color:var(--text3)">balanced</span>';
+  const sum = k => rows.reduce((s,r)=>s+r[k],0);
+  const totWasted = sum('total'), totLate = sum('late'), totBrk = sum('brk'), totOp = sum('op');
+  const hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
   const worst = rows[0];
   const updated = (rows.find(r=>r.updated)||{}).updated || '—';
 
   const trs = rows.map(r=>`<tr>
     <td style="color:var(--text);font-weight:600">${r.agent}<br><span style="font-size:11px;color:var(--text3)">${S.teams[r.agent]||''}</span></td>
     <td>${r.days}</td>
-    <td class="${r.inc>0?'ca':'cg'}">${r.inc||0}</td>
     <td class="${r.late>0?'cr':'cg'}">${r.late?Math.round(r.late)+' min':'—'}</td>
     <td class="${r.brk>0?'cr':'cg'}">${r.brk?Math.round(r.brk)+' min':'—'}</td>
     <td class="${r.op>0?'cr':'cg'}">${r.op?Math.round(r.op)+' min':'—'}</td>
-    <td><strong class="${r.total>0?'cr':'cg'}">${r.total?Math.round(r.total)+' min':'0'}</strong><br><span style="font-size:11px;color:var(--text3)">${r.total?hm(r.total):''}</span></td>
-    <td class="${r.ot>0?'cg':''}">${r.ot?Math.round(r.ot)+' min':'—'}</td>
-    <td><strong>${netCell(r.net)}</strong></td>
+    <td>${r.total>0?`<button class="badge br" style="border:none;cursor:pointer;font:inherit" onclick="openAttIncidents('${r.agent.replace(/'/g,"\\'")}','${(ATT.month==='ALL'?'':ATT.month)}')" title="Click to see each incident (date · start · end · exceedance)">${Math.round(r.total)} min ↗</button>`:'<span class="cg">0</span>'}</td>
+    <td style="min-width:120px"><div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden"><div style="height:100%;width:${worst.total?Math.min(100,r.total/worst.total*100):0}%;background:var(--amber);border-radius:4px"></div></div></td>
   </tr>`).join('');
 
   el.innerHTML = `
@@ -3554,14 +3585,14 @@ function renderAttendance() {
     </div>
     <div class="metrics-grid">
       <div class="metric"><div class="m-lbl">Agents</div><div class="m-val cb">${rows.length}</div><div class="m-sub">in view</div></div>
-      <div class="metric"><div class="m-lbl">Incidents</div><div class="m-val ${totInc?'ca':'cg'}">${totInc}</div><div class="m-sub">late + break + off/pers</div></div>
-      <div class="metric"><div class="m-lbl">Total Wasted Time</div><div class="m-val ${totWasted?'cr':'cg'}">${hm(totWasted)}</div><div class="m-sub">late + break + off/pers</div></div>
-      <div class="metric"><div class="m-lbl">Overtime</div><div class="m-val ${totOt?'cg':''}">${hm(totOt)}</div><div class="m-sub">available past shift end</div></div>
-      <div class="metric"><div class="m-lbl">Net to Compensate</div><div class="m-val ${totNet>0?'cr':totNet<0?'cg':''}"><span style="font-size:24px">${totNet>0?hm(totNet)+' missing':totNet<0?hm(-totNet)+' over':'balanced'}</span></div><div class="m-sub">wasted − overtime</div></div>
+      <div class="metric"><div class="m-lbl">Total Wasted Time</div><div class="m-val ${totWasted?'cr':'cg'}"><span style="font-size:26px">${hm(totWasted)}</span></div><div class="m-sub">to compensate</div></div>
+      <div class="metric"><div class="m-lbl">Total Lateness</div><div class="m-val ${totLate?'cr':'cg'}">${hm(totLate)}</div><div class="m-sub">minutes late</div></div>
+      <div class="metric"><div class="m-lbl">Break Over</div><div class="m-val ${totBrk?'cr':'cg'}">${hm(totBrk)}</div><div class="m-sub">over 60m/day</div></div>
+      <div class="metric"><div class="m-lbl">Offline+Personal Over</div><div class="m-val ${totOp?'cr':'cg'}">${hm(totOp)}</div><div class="m-sub">over 20m/day</div></div>
     </div>
     <div class="charts-grid">${chartCard('Total Wasted Time by Agent','attWasteChart')}</div>
     <div class="card"><div class="card-hd"><span class="card-title">Wasted Time by Agent</span><span style="font-size:11px;color:var(--text3)">Late + Break-over + Offline/Personal-over · compensation basis</span></div>
-      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Agent</th><th>Days</th><th>Incidents</th><th>Late</th><th>Break Over</th><th>Off+Pers Over</th><th>Total Wasted</th><th>Overtime</th><th>Net (Missing / Over)</th></tr></thead>
+      <div class="tbl-wrap card-bd-0"><table class="tbl"><thead><tr><th>Agent</th><th>Days</th><th>Late</th><th>Break Over</th><th>Off+Pers Over</th><th>Total Wasted</th><th>Share</th></tr></thead>
       <tbody>${trs}</tbody></table></div>
     </div>`;
 
@@ -4389,20 +4420,15 @@ function renderAgent() {
   const _attRow = (S.attRows||[]).filter(r=>r.agent===name).sort((a,b)=>(b.month||'').localeCompare(a.month||''))[0];
   let attCardHtml = '';
   if (_attRow) {
-    const _hm = m => { m=Math.round(m); const a=Math.abs(m); const h=Math.floor(a/60), r=a%60; return (m<0?'-':'')+(h?h+'h ':'')+r+'m'; };
+    const _hm = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return (h?h+'h ':'')+r+'m'; };
     const cell = (lbl,v,sub) => `<div class="metric"><div class="m-lbl">${lbl}</div><div class="m-val ${v>0?'cr':'cg'}">${v?Math.round(v)+' min':'—'}</div><div class="m-sub">${sub}</div></div>`;
-    const _net = (_attRow.total||0) - (_attRow.ot||0);
-    const _netTxt = _net>0 ? _hm(_net)+' missing' : _net<0 ? _hm(-_net)+' over' : 'balanced';
     attCardHtml = `<div class="card" style="margin-bottom:14px">
-      <div class="card-hd"><span class="card-title">⏱ Attendance &amp; Wasted Time${_attRow.month?` · ${fmtYm(_attRow.month)}`:''}</span><span class="badge ${_net>0?'br':_net<0?'bg':'bp'}">Net: ${_netTxt}</span></div>
+      <div class="card-hd"><span class="card-title">⏱ Attendance &amp; Wasted Time${_attRow.month?` · ${fmtYm(_attRow.month)}`:''}</span><span class="badge ${_attRow.total>0?'br':'bg'}">${_attRow.total?_hm(_attRow.total)+' to compensate':'nothing to compensate'}</span></div>
       <div class="card-bd"><div class="metrics-grid" style="margin:0">
-        <div class="metric"><div class="m-lbl">Incidents</div><div class="m-val ${(_attRow.inc||0)>0?'ca':'cg'}">${_attRow.inc||0}</div><div class="m-sub">${_attRow.days} days worked</div></div>
         ${cell('Lateness',_attRow.late,'minutes late')}
         ${cell('Break Over',_attRow.brk,'over 60m/day')}
         ${cell('Offline+Personal Over',_attRow.op,'over 20m/day')}
-        <div class="metric"><div class="m-lbl">Total Wasted</div><div class="m-val ${_attRow.total>0?'cr':'cg'}">${_hm(_attRow.total)}</div><div class="m-sub">to compensate</div></div>
-        <div class="metric"><div class="m-lbl">Overtime</div><div class="m-val ${(_attRow.ot||0)>0?'cg':''}">${_attRow.ot?Math.round(_attRow.ot)+' min':'—'}</div><div class="m-sub">past shift end</div></div>
-        <div class="metric"><div class="m-lbl">Net (Missing / Over)</div><div class="m-val ${_net>0?'cr':_net<0?'cg':''}"><span style="font-size:24px">${_netTxt}</span></div><div class="m-sub">wasted − overtime · updated ${_attRow.updated||'—'}</div></div>
+        <div class="metric"><div class="m-lbl">Total Wasted</div><div class="m-val ${_attRow.total>0?'cr':'cg'}"><span style="font-size:24px">${_hm(_attRow.total)}</span></div><div class="m-sub">${_attRow.days} days · updated ${_attRow.updated||'—'}</div></div>
       </div></div>
     </div>`;
   }
