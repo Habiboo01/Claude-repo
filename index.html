@@ -2542,15 +2542,20 @@ function renderOverview() {
     const members=lbData.filter(d=>S.teams[d.a]===t);
     if(!members.length) return null;
     const avg=k=>{ const v=members.map(d=>d[k]).filter(x=>x!=null); return v.length?(+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1)):null; };
-    return {team:t,count:members.length,composite:avg('composite'),qa:avg('qa'),csat:avg('csat'),ahtScore:avg('ahtScore'),artScore:avg('artScore'),aht:avg('aht'),frt:avg('frt')};
+    // Team CSAT weighted by surveys, not an average of member percentages.
+    let _tPos=0,_tRated=0; members.forEach(m=>{ const perf=PF(m.a); if(perf){ _tPos+=parseFloat(perf.csat_positive_count)||0; _tRated+=parseFloat(perf.csat_rated_count)||0; } });
+    const _tCsat=_tRated>0?+(_tPos/_tRated*100).toFixed(1):null;
+    return {team:t,count:members.length,composite:avg('composite'),qa:avg('qa'),csat:_tCsat,ahtScore:avg('ahtScore'),artScore:avg('artScore'),aht:avg('aht'),frt:avg('frt')};
   }).filter(Boolean).sort((a,b)=>b.composite-a.composite);
 
   const _ahtVals=cData.map(d=>d.aht).filter(v=>v!=null);
   const avgAHT=_ahtVals.length?(_ahtVals.reduce((a,b)=>a+b,0)/_ahtVals.length).toFixed(1):null;
   const _artVals=cData.map(d=>d.frt).filter(v=>v!=null);
   const avgART=_artVals.length?Math.round(_artVals.reduce((a,b)=>a+b,0)/_artVals.length):null;
-  const _csatVals=cData.map(d=>d.csat).filter(v=>v!=null);
-  const avgCSAT=_csatVals.length?(_csatVals.reduce((a,b)=>a+b,0)/_csatVals.length).toFixed(1):null;
+  // CSAT is weighted: total satisfied ÷ total surveys (NOT an average of per-agent percentages).
+  let _csatPos=0, _csatRated=0;
+  agents.forEach(a=>{ const perf=PF(a); if(perf){ _csatPos+=parseFloat(perf.csat_positive_count)||0; _csatRated+=parseFloat(perf.csat_rated_count)||0; } });
+  const avgCSAT=_csatRated>0?(_csatPos/_csatRated*100).toFixed(1):null;
   const totChats=S.rRows.filter(r=>inScope(r.agent_assigned_at||rcDate(r))).length;
   const _rrRates=cData.map(d=>d.rr).filter(x=>x!=null);
   const avgRR=_rrRates.length?(_rrRates.reduce((s,x)=>s+x.rate,0)/_rrRates.length).toFixed(1):null;
@@ -4407,6 +4412,8 @@ function wbrAgentData(from,to,rrIdx,rrWin) {
       qa:   q?q.avg:null,
       tickets: q?q.total:0,
       csat: perf?parseFloat(perf.csat_pct):null,
+      csatPos:   perf?parseFloat(perf.csat_positive_count)||0:0,
+      csatRated: perf?parseFloat(perf.csat_rated_count)||0:0,
       aht:  perf?parseFloat(perf.avg_aht_min):null,
       frt:  perf?parseFloat(perf.avg_art_sec):null,
       rr };
@@ -4439,7 +4446,7 @@ async function generateWBR() {
     const mtd=wbrAgentData(mtdFrom,lwTo,rrIdx,rrWin);
 
     const overall=data=>({
-      csat:wbrAvg(data.map(d=>d.csat)),
+      csat:(()=>{ const rated=data.reduce((s,d)=>s+(d.csatRated||0),0), pos=data.reduce((s,d)=>s+(d.csatPos||0),0); return rated>0?+(pos/rated*100).toFixed(1):null; })(),
       qa:wbrAvg(data.map(d=>d.qa)),
       aht:wbrAvg(data.map(d=>d.aht)),
       frt:wbrAvg(data.map(d=>d.frt))
